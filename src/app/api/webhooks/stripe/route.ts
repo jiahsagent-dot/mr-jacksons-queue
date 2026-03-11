@@ -75,6 +75,11 @@ export async function POST(req: NextRequest) {
         // Get order details
         const { data: order } = await admin.from('orders').select('*').eq('id', orderId).single()
 
+        // Idempotency check — if already processed, skip entirely (prevents duplicate SMS on Stripe retries)
+        if (order?.stripe_session_id === session.id) {
+          return NextResponse.json({ received: true, skipped: 'already processed' })
+        }
+
         // Update order status — also write phone back to DB so staff SMS works
         await admin
           .from('orders')
