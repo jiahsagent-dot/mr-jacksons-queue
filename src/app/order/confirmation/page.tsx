@@ -3,15 +3,16 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { formatTimeSlot, formatDate } from '@/lib/timeslots'
+import Image from 'next/image'
 
 type OrderData = {
   id: string
   customer_name: string
   phone: string
-  time_slot: string
+  time_slot?: string
   date?: string
   dining_option?: string
+  table_number?: number
   items: { name: string; quantity: number; price: number }[]
   status: string
   created_at: string
@@ -34,62 +35,73 @@ function ConfirmationContent() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-stone-300 border-t-stone-800 rounded-full animate-spin mx-auto mb-3"></div>
-          <p className="text-stone-400 text-sm font-sans">Loading your receipt...</p>
-        </div>
+        <div className="w-8 h-8 border-2 border-stone-300 border-t-stone-800 rounded-full animate-spin mx-auto"></div>
       </div>
     )
   }
 
   if (!order) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4">
-        <p className="text-stone-400 font-sans">Order not found</p>
-        <Link href="/order/new" className="btn-primary mt-4">Place New Order</Link>
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 text-center">
+        <p className="text-stone-400 font-sans mb-4">We couldn't find your order — but don't worry, if your payment went through it was received.</p>
+        <Link href="/join" className="btn-primary">Back to Home</Link>
       </div>
     )
   }
 
   const total = order.items.reduce((sum, i) => sum + i.price * i.quantity, 0)
-  const orderDate = new Date(order.created_at)
+  const orderRef = order.id.replace(/-/g, '').slice(0, 6).toUpperCase()
+  const isDineIn = order.dining_option === 'dine_in'
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <div className="bg-gradient-to-b from-green-800 to-green-900 text-white px-4 pt-12 pb-8 text-center">
-        <div className="animate-fade-in">
-          <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl">✅</span>
+    <div className="min-h-screen flex flex-col bg-stone-50">
+      {/* Hero header */}
+      <div className="relative overflow-hidden">
+        <div className="relative h-[200px]">
+          <Image src="/images/hero.jpg" alt="Mr Jackson" fill className="object-cover" priority />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/50 to-black/80" />
+        </div>
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-6 text-white text-center px-4">
+          <div className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center mb-3 shadow-lg">
+            <span className="text-2xl">✓</span>
           </div>
-          <h1 className="text-3xl font-bold">Order Confirmed!</h1>
-          <p className="text-green-200 mt-1 font-sans">Thanks, {order.customer_name}</p>
+          <h1 className="text-2xl font-bold drop-shadow-lg">You're all set, {order.customer_name}!</h1>
+          <p className="text-white/70 text-sm font-sans mt-1">Thank you for your order — we're on it 🙌</p>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center px-4 -mt-5">
-        {/* Receipt Card */}
-        <div className="card w-full max-w-sm border-2 border-green-200 animate-slide-up">
-          {/* Restaurant Info */}
-          <div className="text-center border-b border-stone-100 pb-4 mb-4">
-            <h2 className="text-xl font-bold text-stone-900">Mr Jackson</h2>
-            <p className="text-xs text-stone-400 font-sans">1/45 Main St, Mornington VIC 3931</p>
-            <p className="text-xs text-stone-400 font-sans mt-1">
-              {orderDate.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
-              {' · '}
-              {orderDate.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })}
-            </p>
-          </div>
+      <div className="flex-1 max-w-sm mx-auto w-full px-4 py-5 space-y-4">
 
-          {/* Dining + Pickup */}
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-4 mb-4 text-center">
-            <p className="text-lg mb-1">{order.dining_option === 'takeaway' ? '🛍️ Takeaway' : '🍽️ Eat In'}</p>
-            <p className="text-xs text-amber-600 uppercase tracking-wide font-semibold font-sans">Pickup</p>
-            {order.date && <p className="text-sm font-semibold text-amber-700 font-sans">{formatDate(order.date)}</p>}
-            <p className="text-2xl font-bold text-amber-800">{formatTimeSlot(order.time_slot)}</p>
-          </div>
+        {/* Order number */}
+        <div className="card text-center border-2 border-amber-200 bg-amber-50/60">
+          <p className="text-xs font-bold text-amber-600 uppercase tracking-widest font-sans mb-1">Your Order Number</p>
+          <p className="text-4xl font-bold text-stone-900 tracking-widest">{orderRef}</p>
+          <p className="text-xs text-stone-400 font-sans mt-2">Keep this handy — our team will use it to find you</p>
+        </div>
 
-          {/* Items */}
+        {/* SMS notice */}
+        <div className="flex items-start gap-3 bg-white rounded-2xl border border-stone-100 px-4 py-3 shadow-sm">
+          <span className="text-xl mt-0.5">📱</span>
+          <div>
+            <p className="text-sm font-semibold text-stone-800">Receipt sent via SMS</p>
+            <p className="text-xs text-stone-400 font-sans mt-0.5">A copy of your order has been sent to your phone. We'll also text you when your food is being prepared.</p>
+          </div>
+        </div>
+
+        {/* Dine-in / table info */}
+        {isDineIn && (
+          <div className="flex items-start gap-3 bg-white rounded-2xl border border-stone-100 px-4 py-3 shadow-sm">
+            <span className="text-xl mt-0.5">🍽️</span>
+            <div>
+              <p className="text-sm font-semibold text-stone-800">Dine In{order.table_number ? ` · Table ${order.table_number}` : ''}</p>
+              <p className="text-xs text-stone-400 font-sans mt-0.5">Sit back and relax — your food will be brought to you shortly.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Order summary */}
+        <div className="card">
+          <h2 className="text-sm font-bold text-stone-500 uppercase tracking-wide mb-3 font-sans">Your Order</h2>
           <div className="space-y-2 mb-4">
             {order.items.map((item, i) => (
               <div key={i} className="flex justify-between text-sm font-sans">
@@ -101,37 +113,21 @@ function ConfirmationContent() {
               </div>
             ))}
           </div>
-
-          {/* Total */}
-          <div className="border-t border-stone-200 pt-3 flex justify-between font-bold text-stone-900 text-lg">
+          <div className="border-t border-stone-100 pt-3 flex justify-between font-bold text-stone-900">
             <span>Total Paid</span>
             <span className="tabular-nums">${total.toFixed(2)}</span>
           </div>
-
-          {/* Order ID */}
-          <div className="mt-4 bg-stone-50 rounded-xl px-3 py-2 text-center">
-            <p className="text-xs text-stone-400 font-sans font-mono">
-              Order #{order.id.slice(0, 8).toUpperCase()}
-            </p>
-          </div>
         </div>
 
-        {/* Actions */}
-        <div className="mt-6 space-y-3 text-center animate-fade-in">
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3 max-w-sm">
-            <p className="text-sm text-amber-800 font-sans font-medium">📱 Show this receipt when you pick up</p>
-          </div>
-          <Link href="/order/new" className="block text-stone-500 underline underline-offset-2 text-sm font-sans">
-            Place another order
-          </Link>
-          <Link href="/join" className="block text-stone-400 text-xs font-sans">
-            Back to queue
+        {/* Footer message */}
+        <div className="text-center py-2 space-y-3">
+          <p className="text-stone-500 text-sm font-sans">We hope you enjoy every bite. 😊</p>
+          <p className="text-stone-400 text-xs font-sans">Questions? Call us on <span className="font-semibold">03 5909 8815</span></p>
+          <Link href="/join" className="block text-stone-400 text-xs font-sans underline underline-offset-2 mt-2">
+            Back to home
           </Link>
         </div>
 
-        <div className="mt-auto py-6">
-          <p className="text-stone-300 text-xs font-sans text-center">Thank you for ordering at Mr Jackson 🙂</p>
-        </div>
       </div>
     </div>
   )
