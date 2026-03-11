@@ -58,28 +58,8 @@ export default function TablesPage() {
         return
       }
 
-      // Reserve the table
-      const res = await fetch('/api/tables/reserve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table_number: selected, customer_name: name.trim() }),
-      })
-      const data = await res.json()
-
-      if (!res.ok) {
-        if (res.status === 409) {
-          toast.error('Someone just took that table! Pick another.')
-          const refreshed = await fetch(`/api/tables?_t=${Date.now()}`).then(r => r.json())
-          setTables(refreshed.tables || [])
-          setSelected(null)
-          setTableCode('')
-        } else {
-          toast.error(data.error || 'Something went wrong')
-        }
-        return
-      }
-
       // Create pending order immediately so customer has their order number
+      // Table will be marked occupied only after payment is confirmed
       const orderRes = await fetch('/api/order/pending', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

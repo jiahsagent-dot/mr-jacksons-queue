@@ -62,6 +62,7 @@ function NewOrderPage() {
 
   const orderId = searchParams.get('order_id') || ''
   const orderRef = searchParams.get('order_ref') || ''
+  const tableNumber = searchParams.get('table') || ''
 
   // Pre-fill from URL params (coming from queue, booking, or table selection)
   useEffect(() => {
@@ -109,6 +110,7 @@ function NewOrderPage() {
           dining_option: diningOption,
           items: items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
           ...(orderId ? { order_id: orderId } : {}),
+          ...(tableNumber ? { table_number: parseInt(tableNumber) } : {}),
         }),
       })
       const text = await res.text()

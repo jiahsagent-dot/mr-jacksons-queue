@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
       const timeSlot = session.metadata?.time_slot
       const date = session.metadata?.date
       const diningOption = session.metadata?.dining_option || 'dine_in'
+      const tableNumber = session.metadata?.table_number ? parseInt(session.metadata.table_number) : null
 
       if (orderId) {
         const admin = createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_KEY)
@@ -79,6 +80,36 @@ export async function POST(req: NextRequest) {
           .from('orders')
           .update({ status: 'received', stripe_session_id: session.id, paid_at: new Date().toISOString() })
           .eq('id', orderId)
+
+        // Mark table as occupied after payment (dine-in only)
+        if (diningOption === 'dine_in' && tableNumber) {
+          const now = new Date()
+          await admin
+            .from('tables')
+            .update({
+              status: 'occupied',
+              current_customer: customerName,
+              occupied_at: now.toISOString(),
+            })
+            .eq('table_number', tableNumber)
+
+          // Create booking record for staff timeline
+          const todayDate = now.toISOString().split('T')[0]
+          const currentMinutes = now.getUTCHours() * 60 + now.getUTCMinutes()
+          const roundedMinutes = Math.floor(currentMinutes / 30) * 30
+          const roundedHour = Math.floor(roundedMinutes / 60)
+          const roundedMin = roundedMinutes % 60
+          const slot = `${roundedHour.toString().padStart(2, '0')}:${roundedMin.toString().padStart(2, '0')}`
+          await admin.from('bookings').insert({
+            customer_name: customerName,
+            phone: phone || '',
+            party_size: 2,
+            date: todayDate,
+            time_slot: slot,
+            table_number: tableNumber,
+            status: 'seated',
+          }) // non-fatal if this fails
+        }
 
         const items = order?.items || []
         const total = items.reduce((sum: number, i: any) => sum + (i.price * i.quantity), 0)
