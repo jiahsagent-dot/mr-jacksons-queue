@@ -1,0 +1,80 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const STRIPE_KEY = process.env.STRIPE_SECRET_KEY!
+
+export async function POST(req: NextRequest) {
+  try {
+    const { name, phone, email, date, time_slot, items, dining_option } = await req.json()
+
+    if (!name || !phone || !time_slot || !items?.length) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    const admin = createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_KEY)
+
+    const { data: order, error: dbError } = await admin
+      .from('orders')
+      .insert({
+        customer_name: name,
+        phone,
+        email: email || null,
+        date: date || null,
+        time_slot,
+        items,
+        dining_option: dining_option || 'dine_in',
+        status: 'pending',
+      })
+      .select()
+      .single()
+
+    if (dbError) {
+      return NextResponse.json({ error: 'DB error: ' + dbError.message }, { status: 500 })
+    }
+
+    const stripeKey = process.env.STRIPE_SECRET_KEY || STRIPE_KEY
+
+    const params = new URLSearchParams()
+    params.append('mode', 'payment')
+    params.append('success_url', `https://mr-jacksons.vercel.app/order/confirmation?order_id=${order.id}&session_id={CHECKOUT_SESSION_ID}`)
+    params.append('cancel_url', 'https://mr-jacksons.vercel.app/order/new')
+    params.append('payment_method_types[0]', 'card')
+    // Pre-fill email so Stripe never asks for it again
+    if (email) params.append('customer_email', email)
+    params.append('metadata[order_id]', order.id)
+    params.append('metadata[customer_name]', name)
+    params.append('metadata[phone]', phone)
+    params.append('metadata[time_slot]', time_slot)
+    params.append('metadata[dining_option]', dining_option || 'dine_in')
+    if (email) params.append('metadata[email]', email)
+    if (date) params.append('metadata[date]', date)
+
+    items.forEach((item: any, i: number) => {
+      params.append(`line_items[${i}][price_data][currency]`, 'aud')
+      params.append(`line_items[${i}][price_data][product_data][name]`, item.name)
+      params.append(`line_items[${i}][price_data][unit_amount]`, String(Math.round(item.price * 100)))
+      params.append(`line_items[${i}][quantity]`, String(item.quantity))
+    })
+
+    const stripeRes = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${stripeKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    })
+
+    const session = await stripeRes.json()
+
+    if (!stripeRes.ok) {
+      return NextResponse.json({ error: 'Stripe: ' + (session.error?.message || 'unknown') }, { status: 500 })
+    }
+
+    return NextResponse.json({ checkout_url: session.url })
+  } catch (err: any) {
+    return NextResponse.json({ error: err?.message || 'Checkout failed' }, { status: 500 })
+  }
+}

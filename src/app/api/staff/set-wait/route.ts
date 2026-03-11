@@ -1,0 +1,28 @@
+export const dynamic = 'force-dynamic'
+import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/lib/supabase'
+
+export async function POST(req: NextRequest) {
+  const body = await req.json()
+  const admin = supabaseAdmin()
+
+  // Only update the fields that were sent — never wipe other columns
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  if (body.minutes !== undefined) update.estimated_wait = body.minutes
+  if (body.is_closed !== undefined) update.is_closed = body.is_closed
+
+  const { data, error } = await admin
+    .from('queue_settings')
+    .update(update)
+    .eq('id', 1)
+    .select()
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+  if (!data || data.length === 0) {
+    return NextResponse.json({ error: 'No rows updated' }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true, settings: data[0] })
+}
