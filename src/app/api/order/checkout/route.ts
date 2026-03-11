@@ -9,7 +9,11 @@ export async function POST(req: NextRequest) {
   try {
     const { name, phone, email, date, time_slot, items, dining_option } = await req.json()
 
-    if (!name || !phone || !time_slot || !items?.length) {
+    const needsDateTime = dining_option === 'booking'
+    if (!name || !phone || !items?.length) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+    if (needsDateTime && (!date || !time_slot)) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
@@ -22,7 +26,7 @@ export async function POST(req: NextRequest) {
         phone,
         email: email || null,
         date: date || null,
-        time_slot,
+        time_slot: time_slot || null,
         items,
         dining_option: dining_option || 'dine_in',
         status: 'pending',
@@ -46,7 +50,7 @@ export async function POST(req: NextRequest) {
     params.append('metadata[order_id]', order.id)
     params.append('metadata[customer_name]', name)
     params.append('metadata[phone]', phone)
-    params.append('metadata[time_slot]', time_slot)
+    if (time_slot) params.append('metadata[time_slot]', time_slot)
     params.append('metadata[dining_option]', dining_option || 'dine_in')
     if (email) params.append('metadata[email]', email)
     if (date) params.append('metadata[date]', date)
