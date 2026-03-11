@@ -306,26 +306,25 @@ function NewOrderPage() {
               </div>
             )}
 
-            {/* Details — for dine-in these were already collected on the tables page */}
+            {/* Details */}
             {isDineIn ? (
-              <div className="card bg-stone-50 border border-stone-100">
-                <div className="flex items-center justify-between">
+              <div className="card">
+                <h2 className="text-lg font-bold text-stone-900 mb-3">Your Details</h2>
+                <div className="space-y-3">
                   <div>
-                    <p className="font-semibold text-stone-800 text-sm">{name}</p>
-                    <p className="text-stone-400 text-xs font-sans">{phone}</p>
+                    <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 font-sans">Name</label>
+                    <input type="text" className="input-field" placeholder="e.g. Sarah" value={name} onChange={e => setName(e.target.value)} />
                   </div>
-                  {orderRef && (
-                    <div className="text-right">
-                      <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide font-sans">Your Order #</p>
-                      <p className="text-xl font-bold text-stone-900 tracking-widest">{orderRef}</p>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 mt-3 font-sans">
-                    Email <span className="normal-case text-stone-300 font-normal">(optional — for receipt)</span>
-                  </label>
-                  <input type="email" className="input-field" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} />
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 font-sans">Mobile Number</label>
+                    <input type="tel" className="input-field" placeholder="04XX XXX XXX" value={phone} onChange={e => setPhone(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 font-sans">
+                      Email <span className="normal-case text-stone-300 font-normal">(optional — for receipt)</span>
+                    </label>
+                    <input type="email" className="input-field" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} />
+                  </div>
                 </div>
               </div>
             ) : (
