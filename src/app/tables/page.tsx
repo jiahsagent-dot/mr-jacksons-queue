@@ -77,9 +77,6 @@ export default function TablesPage() {
         return
       }
 
-      setOrderRef(orderData.order_ref)
-      setOrderId(orderData.order_id)
-
       // Store for use on order page
       sessionStorage.setItem('mr_jackson_table', JSON.stringify({
         table_number: selected,
@@ -88,6 +85,9 @@ export default function TablesPage() {
         order_id: orderData.order_id,
         order_ref: orderData.order_ref,
       }))
+
+      // Go straight to menu — order number shows in the banner
+      router.push(`/order/new?context=dine_in&table=${selected}&name=${encodeURIComponent(name.trim())}&phone=${encodeURIComponent(phone.trim())}&order_id=${orderData.order_id}&order_ref=${orderData.order_ref}`)
     } catch {
       toast.error('Failed to reserve table')
     } finally {
@@ -123,26 +123,6 @@ export default function TablesPage() {
       </div>
 
       <div className="flex-1 max-w-lg mx-auto w-full px-4 -mt-4 relative z-10 pb-48">
-        {/* Order number screen — shown after table confirmed */}
-        {orderRef && orderId && (
-          <div className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center px-6 text-center animate-fade-in">
-            <div className="text-6xl mb-4">🎉</div>
-            <h2 className="text-2xl font-bold text-stone-900 mb-1">You're booked in!</h2>
-            <p className="text-stone-400 text-sm font-sans mb-6">Table {selected} is yours. Here's your order number:</p>
-            <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl px-10 py-6 mb-6">
-              <p className="text-xs font-bold text-amber-600 uppercase tracking-widest mb-1 font-sans">Order Reference</p>
-              <p className="text-5xl font-bold text-stone-900 tracking-widest">{orderRef}</p>
-            </div>
-            <p className="text-stone-400 text-xs font-sans mb-8 max-w-xs">Screenshot this or remember it — you'll need it to collect your order.</p>
-            <button
-              onClick={() => router.push(`/order/new?context=dine_in&table=${selected}&name=${encodeURIComponent(name.trim())}&phone=${encodeURIComponent(phone.trim())}&order_id=${orderId}&order_ref=${orderRef}`)}
-              className="btn-primary w-full max-w-xs py-4 text-lg"
-            >
-              Browse Menu →
-            </button>
-          </div>
-        )}
-
         {/* Name + Phone inputs */}
         <div className="card mb-4 animate-slide-up space-y-3">
           <div>
