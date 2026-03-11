@@ -60,6 +60,9 @@ function NewOrderPage() {
   const [step, setStep] = useState<'menu' | 'details'>('menu')
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
 
+  const orderId = searchParams.get('order_id') || ''
+  const orderRef = searchParams.get('order_ref') || ''
+
   // Pre-fill from URL params (coming from queue, booking, or table selection)
   useEffect(() => {
     const paramName = searchParams.get('name')
@@ -82,6 +85,7 @@ function NewOrderPage() {
     ? menuData.categories.filter(c => c.name === activeCategory)
     : menuData.categories
 
+  const isDineIn = context === 'dine_in'
   const needsDateTime = context === 'booking'
 
   const handleCheckout = async () => {
@@ -104,6 +108,7 @@ function NewOrderPage() {
           time_slot: timeSlot,
           dining_option: diningOption,
           items: items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
+          ...(orderId ? { order_id: orderId } : {}),
         }),
       })
       const text = await res.text()
@@ -139,10 +144,16 @@ function NewOrderPage() {
           <div className="card border-2 border-amber-200 bg-amber-50/50 mb-4 animate-slide-up">
             <div className="flex items-center gap-3">
               <span className="text-2xl">{banner.emoji}</span>
-              <div>
+              <div className="flex-1">
                 <p className="font-bold text-stone-800 text-sm">{banner.title}{tableNum ? ` · Table ${tableNum}` : ''}</p>
                 <p className="text-stone-500 text-xs font-sans">{banner.subtitle}</p>
               </div>
+              {orderRef && (
+                <div className="text-right">
+                  <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide font-sans">Order #</p>
+                  <p className="text-lg font-bold text-stone-900 tracking-widest">{orderRef}</p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -293,26 +304,49 @@ function NewOrderPage() {
               </div>
             )}
 
-            {/* Details */}
-            <div className="card">
-              <h2 className="text-lg font-bold text-stone-900 mb-3">Your Details</h2>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 font-sans">Name</label>
-                  <input type="text" className="input-field" placeholder="e.g. Sarah" value={name} onChange={e => setName(e.target.value)} />
+            {/* Details — for dine-in these were already collected on the tables page */}
+            {isDineIn ? (
+              <div className="card bg-stone-50 border border-stone-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-stone-800 text-sm">{name}</p>
+                    <p className="text-stone-400 text-xs font-sans">{phone}</p>
+                  </div>
+                  {orderRef && (
+                    <div className="text-right">
+                      <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide font-sans">Your Order #</p>
+                      <p className="text-xl font-bold text-stone-900 tracking-widest">{orderRef}</p>
+                    </div>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 font-sans">Mobile Number</label>
-                  <input type="tel" className="input-field" placeholder="04XX XXX XXX" value={phone} onChange={e => setPhone(e.target.value)} />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 font-sans">
+                  <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 mt-3 font-sans">
                     Email <span className="normal-case text-stone-300 font-normal">(optional — for receipt)</span>
                   </label>
                   <input type="email" className="input-field" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} />
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="card">
+                <h2 className="text-lg font-bold text-stone-900 mb-3">Your Details</h2>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 font-sans">Name</label>
+                    <input type="text" className="input-field" placeholder="e.g. Sarah" value={name} onChange={e => setName(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 font-sans">Mobile Number</label>
+                    <input type="tel" className="input-field" placeholder="04XX XXX XXX" value={phone} onChange={e => setPhone(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 font-sans">
+                      Email <span className="normal-case text-stone-300 font-normal">(optional — for receipt)</span>
+                    </label>
+                    <input type="email" className="input-field" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Date & Time — only needed for bookings */}
             {needsDateTime && (

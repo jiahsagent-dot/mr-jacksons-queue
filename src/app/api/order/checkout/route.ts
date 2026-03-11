@@ -7,7 +7,7 @@ const STRIPE_KEY = process.env.STRIPE_SECRET_KEY!
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, phone, email, date, time_slot, items, dining_option } = await req.json()
+    const { name, phone, email, date, time_slot, items, dining_option, order_id } = await req.json()
 
     const needsDateTime = dining_option === 'booking'
     if (!name || !phone || !items?.length) {
@@ -19,20 +19,47 @@ export async function POST(req: NextRequest) {
 
     const admin = createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_KEY)
 
-    const { data: order, error: dbError } = await admin
-      .from('orders')
-      .insert({
-        customer_name: name,
-        phone,
-        email: email || null,
-        date: date || null,
-        time_slot: time_slot || null,
-        items,
-        dining_option: dining_option || 'dine_in',
-        status: 'pending',
-      })
-      .select()
-      .single()
+    let order: any
+    let dbError: any
+
+    if (order_id) {
+      // Update existing pending order with full details
+      const result = await admin
+        .from('orders')
+        .update({
+          customer_name: name,
+          phone,
+          email: email || null,
+          date: date || null,
+          time_slot: time_slot || null,
+          items,
+          dining_option: dining_option || 'dine_in',
+          status: 'pending',
+        })
+        .eq('id', order_id)
+        .select()
+        .single()
+      order = result.data
+      dbError = result.error
+    } else {
+      // Create new order (takeaway / queue / booking flow)
+      const result = await admin
+        .from('orders')
+        .insert({
+          customer_name: name,
+          phone,
+          email: email || null,
+          date: date || null,
+          time_slot: time_slot || null,
+          items,
+          dining_option: dining_option || 'dine_in',
+          status: 'pending',
+        })
+        .select()
+        .single()
+      order = result.data
+      dbError = result.error
+    }
 
     if (dbError) {
       return NextResponse.json({ error: 'DB error: ' + dbError.message }, { status: 500 })

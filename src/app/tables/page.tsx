@@ -20,8 +20,11 @@ export default function TablesPage() {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<number | null>(null)
   const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
   const [tableCode, setTableCode] = useState('')
   const [confirming, setConfirming] = useState(false)
+  const [orderRef, setOrderRef] = useState<string | null>(null)
+  const [orderId, setOrderId] = useState<string | null>(null)
 
   useEffect(() => {
     fetch(`/api/tables?_t=${Date.now()}`)
@@ -40,6 +43,7 @@ export default function TablesPage() {
   const handleConfirm = async () => {
     if (!selected) return toast.error('Please select a table')
     if (!name.trim()) return toast.error('Please enter your name')
+    if (!phone.trim()) return toast.error('Please enter your mobile number')
     if (!tableCode.trim() || tableCode.length < 4) return toast.error('Enter the 4-digit code on your table')
 
     setConfirming(true)
@@ -75,14 +79,35 @@ export default function TablesPage() {
         return
       }
 
-      // Store table info
+      // Create pending order immediately so customer has their order number
+      const orderRes = await fetch('/api/order/pending', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          phone: phone.trim(),
+          table_number: selected,
+          dining_option: 'dine_in',
+        }),
+      })
+      const orderData = await orderRes.json()
+
+      if (!orderRes.ok) {
+        toast.error('Could not create order — please try again')
+        return
+      }
+
+      setOrderRef(orderData.order_ref)
+      setOrderId(orderData.order_id)
+
+      // Store for use on order page
       sessionStorage.setItem('mr_jackson_table', JSON.stringify({
         table_number: selected,
         customer_name: name.trim(),
+        phone: phone.trim(),
+        order_id: orderData.order_id,
+        order_ref: orderData.order_ref,
       }))
-
-      // Go straight to order page
-      router.push(`/order/new?context=dine_in&table=${selected}&name=${encodeURIComponent(name.trim())}`)
     } catch {
       toast.error('Failed to reserve table')
     } finally {
@@ -118,17 +143,50 @@ export default function TablesPage() {
       </div>
 
       <div className="flex-1 max-w-lg mx-auto w-full px-4 -mt-4 relative z-10 pb-48">
-        {/* Name input */}
-        <div className="card mb-4 animate-slide-up">
-          <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 font-sans">Your Name</label>
-          <input
-            type="text"
-            className="input-field"
-            placeholder="e.g. Sarah"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            autoComplete="given-name"
-          />
+        {/* Order number screen — shown after table confirmed */}
+        {orderRef && orderId && (
+          <div className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center px-6 text-center animate-fade-in">
+            <div className="text-6xl mb-4">🎉</div>
+            <h2 className="text-2xl font-bold text-stone-900 mb-1">You're booked in!</h2>
+            <p className="text-stone-400 text-sm font-sans mb-6">Table {selected} is yours. Here's your order number:</p>
+            <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl px-10 py-6 mb-6">
+              <p className="text-xs font-bold text-amber-600 uppercase tracking-widest mb-1 font-sans">Order Reference</p>
+              <p className="text-5xl font-bold text-stone-900 tracking-widest">{orderRef}</p>
+            </div>
+            <p className="text-stone-400 text-xs font-sans mb-8 max-w-xs">Screenshot this or remember it — you'll need it to collect your order.</p>
+            <button
+              onClick={() => router.push(`/order/new?context=dine_in&table=${selected}&name=${encodeURIComponent(name.trim())}&phone=${encodeURIComponent(phone.trim())}&order_id=${orderId}&order_ref=${orderRef}`)}
+              className="btn-primary w-full max-w-xs py-4 text-lg"
+            >
+              Browse Menu →
+            </button>
+          </div>
+        )}
+
+        {/* Name + Phone inputs */}
+        <div className="card mb-4 animate-slide-up space-y-3">
+          <div>
+            <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 font-sans">Your Name</label>
+            <input
+              type="text"
+              className="input-field"
+              placeholder="e.g. Sarah"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              autoComplete="given-name"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 font-sans">Mobile Number</label>
+            <input
+              type="tel"
+              className="input-field"
+              placeholder="04XX XXX XXX"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              autoComplete="tel"
+            />
+          </div>
         </div>
 
         {/* Table Grid */}
@@ -203,7 +261,7 @@ export default function TablesPage() {
       </div>
 
       {/* Fixed bottom bar */}
-      {selected && name.trim() && tableCode.length === 4 && (
+      {selected && name.trim() && phone.trim() && tableCode.length === 4 && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 pt-4 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] animate-slide-up" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
           <div className="max-w-lg mx-auto">
             <p className="text-xs text-stone-400 text-center mb-3 font-sans">
