@@ -183,8 +183,15 @@ export default function StaffOrdersPage() {
     return ma - mb
   })
 
-  // All active orders for the "All Orders" tab
-  const activeOrders = orders.filter(o => !['served', 'cancelled'].includes(o.status))
+  // All active orders for the "All Orders" tab — exclude stale unpaid pending orders
+  const activeOrders = orders.filter(o => {
+    if (['served', 'cancelled'].includes(o.status)) return false
+    // Hide 'pending' orders older than 30 min — they were abandoned before payment
+    if (o.status === 'pending') {
+      return minutesAgo(o.created_at) < 30
+    }
+    return true
+  })
   const completedOrders = orders.filter(o => ['served', 'cancelled'].includes(o.status))
 
   const newCount = orders.filter(o => o.status === 'received').length

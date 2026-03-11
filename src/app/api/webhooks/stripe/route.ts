@@ -75,10 +75,15 @@ export async function POST(req: NextRequest) {
         // Get order details
         const { data: order } = await admin.from('orders').select('*').eq('id', orderId).single()
 
-        // Update order status
+        // Update order status — also write phone back to DB so staff SMS works
         await admin
           .from('orders')
-          .update({ status: 'received', stripe_session_id: session.id, paid_at: new Date().toISOString() })
+          .update({
+            status: 'received',
+            stripe_session_id: session.id,
+            paid_at: new Date().toISOString(),
+            ...(phone ? { phone } : {}),
+          })
           .eq('id', orderId)
 
         // Mark table as occupied after payment (dine-in only)
