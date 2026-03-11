@@ -113,26 +113,26 @@ export async function POST(req: NextRequest) {
 
         const items = order?.items || []
         const total = items.reduce((sum: number, i: any) => sum + (i.price * i.quantity), 0)
-        const receiptNum = orderId.slice(0, 8).toUpperCase()
+        const orderRef = orderId.replace(/-/g, '').slice(0, 6).toUpperCase()
 
         // Build SMS receipt
         const dineLabel = diningOption === 'takeaway' ? 'Takeaway' : 'Dine In'
         const itemsList = items.map((i: any) => `  ${i.quantity}x ${i.name} — $${(i.price * i.quantity).toFixed(2)}`).join('\n')
 
         let smsBody = `✅ MR JACKSON — ORDER CONFIRMED\n\n`
-        smsBody += `Hi ${customerName}!\n\n`
-        smsBody += `Receipt #${receiptNum}\n`
+        smsBody += `Hi ${customerName}! Your order is in.\n\n`
+        smsBody += `ORDER #${orderRef}\n`
         smsBody += `─────────────\n`
         smsBody += `${itemsList}\n`
         smsBody += `─────────────\n`
-        smsBody += `💰 TOTAL PAID: $${total.toFixed(2)}\n\n`
-        smsBody += `📋 ${dineLabel}\n`
-        if (date) smsBody += `📅 ${formatDate(date)}\n`
-        if (timeSlot) smsBody += `⏰ ${formatTime(timeSlot)}\n`
+        smsBody += `TOTAL PAID: $${total.toFixed(2)}\n\n`
+        smsBody += `${dineLabel}`
+        if (tableNumber) smsBody += ` · Table ${tableNumber}`
         smsBody += `\n`
-        smsBody += `Need to cancel or change your order?\n`
-        smsBody += `📞 Call us: ${RESTAURANT_PHONE}\n\n`
-        smsBody += `See you soon! 🙂\n`
+        if (date) smsBody += `${formatDate(date)}\n`
+        if (timeSlot) smsBody += `${formatTime(timeSlot)}\n`
+        smsBody += `\n`
+        smsBody += `Questions? Call us: ${RESTAURANT_PHONE}\n`
         smsBody += `Mr Jackson, Mornington`
 
         // Send SMS receipt
