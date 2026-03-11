@@ -11,8 +11,8 @@ export async function POST(req: NextRequest) {
   try {
     const { name, phone, table_number, dining_option } = await req.json()
 
-    if (!name || !phone) {
-      return NextResponse.json({ error: 'Name and phone required' }, { status: 400 })
+    if (!name) {
+      return NextResponse.json({ error: 'Name required' }, { status: 400 })
     }
 
     const admin = getAdmin()
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       .from('orders')
       .insert({
         customer_name: name,
-        phone,
+        phone: phone || null,
         table_number: table_number || null,
         dining_option: dining_option || 'dine_in',
         items: [],
