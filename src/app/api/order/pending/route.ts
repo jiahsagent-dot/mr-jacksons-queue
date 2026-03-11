@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
         table_number: table_number || null,
         dining_option: dining_option || 'dine_in',
         items: [],
-        status: 'pending_items', // awaiting menu selection
+        status: 'pending',
       })
       .select()
       .single()
