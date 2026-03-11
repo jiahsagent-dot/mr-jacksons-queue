@@ -23,7 +23,7 @@ async function sendSMS(to: string, body: string) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        messages: [{ source: 'mr-jacksons', from: 'MrJackson', to, body }],
+        messages: [{ source: 'mr-jacksons', to, body }],
       }),
     })
   } catch (err: any) {

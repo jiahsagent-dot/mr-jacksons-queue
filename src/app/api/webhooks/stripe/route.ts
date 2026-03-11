@@ -35,7 +35,7 @@ async function sendSMS(to: string, body: string) {
       body: JSON.stringify({
         messages: [{
           source: 'mr-jacksons',
-          from: 'MrJackson',
+
           to,
           body,
         }],
