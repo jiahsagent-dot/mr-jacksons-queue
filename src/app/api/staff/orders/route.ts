@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { notifyNextInQueue } from '@/lib/notifyQueue'
 
 const CLICKSEND_USERNAME = process.env.CLICKSEND_USERNAME || 'jiahsagent@gmail.com'
 const CLICKSEND_API_KEY = process.env.CLICKSEND_API_KEY || '6A27AE52-866F-25C1-158C-C1D17531DBA7'
@@ -85,6 +86,16 @@ export async function PATCH(req: NextRequest) {
   // Update the status
   const { error } = await admin.from('orders').update({ status }).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // When a dine-in order is marked served, free the table and notify next in queue
+  if (status === 'served' && order.dining_option === 'dine_in' && order.table_number) {
+    await admin
+      .from('tables')
+      .update({ status: 'available', current_customer: null, occupied_at: null })
+      .eq('table_number', order.table_number)
+
+    await notifyNextInQueue(admin, order.table_number)
+  }
 
   // Send SMS notification
   const phone = order.phone

@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { notifyNextInQueue } from '@/lib/notifyQueue'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -51,7 +52,14 @@ export async function POST(req: NextRequest) {
     if (!data || data.length === 0) {
       return NextResponse.json({ error: 'No rows updated — RLS may be blocking' }, { status: 500 })
     }
-    return NextResponse.json({ success: true, table: data[0] })
+
+    // When a table is freed, check if anyone is waiting in the queue
+    let queueEntry = null
+    if (status === 'available') {
+      queueEntry = await notifyNextInQueue(admin, table_number)
+    }
+
+    return NextResponse.json({ success: true, table: data[0], notified: queueEntry?.name || null })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

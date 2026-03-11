@@ -37,7 +37,6 @@ export async function POST(req: NextRequest) {
         messages: [
           {
             source: 'mr-jacksons',
-            from: 'MrJackson',
             to: entry.phone,
             body: `Hi ${entry.name}! Your table at Mr Jackson's is ready 🎉 Head to the host stand now.`,
           },

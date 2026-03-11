@@ -119,7 +119,12 @@ export default function StaffTablesPage() {
       body: JSON.stringify({ table_number: table.table_number, status: newStatus }),
     })
     if (res.ok) {
-      toast.success(`Table ${table.table_number} → ${newStatus}`)
+      const data = await res.json()
+      if (data.notified) {
+        toast.success(`Table ${table.table_number} freed — ${data.notified} notified from queue 📱`)
+      } else {
+        toast.success(`Table ${table.table_number} → ${newStatus}`)
+      }
       fetchAll()
     } else {
       toast.error('Failed to update')
