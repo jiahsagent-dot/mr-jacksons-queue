@@ -169,13 +169,7 @@ export default function FullPage() {
             </div>
           </Link>
 
-          {/* Browse menu link */}
-          <Link
-            href="/menu"
-            className="block text-center text-stone-400 text-sm hover:text-stone-700 transition-colors py-3 font-sans"
-          >
-            Browse our menu while you decide →
-          </Link>
+
         </div>
       </div>
     </main>

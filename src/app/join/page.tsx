@@ -256,14 +256,7 @@ export default function JoinPage() {
               <span>Book a Table</span>
             </Link>
 
-            {/* Browse menu */}
-            <Link
-              href="/menu"
-              className="btn-secondary w-full flex items-center justify-center gap-3 py-4 text-base"
-            >
-              <span className="text-xl">📋</span>
-              <span>View Our Menu</span>
-            </Link>
+
           </div>
         </div>
       </div>

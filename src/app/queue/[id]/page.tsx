@@ -182,12 +182,7 @@ export default function QueueStatusPage() {
               </div>
             </div>
 
-            <Link
-              href="/menu"
-              className="block text-center text-stone-400 text-sm font-sans hover:text-stone-700 transition-colors py-2"
-            >
-              Browse our menu →
-            </Link>
+
           </div>
         )}
 
