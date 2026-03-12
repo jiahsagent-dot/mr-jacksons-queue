@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import Image from 'next/image'
+import { ScrollReveal } from '@/components/ScrollReveal'
 
 const GALLERY = [
   '/images/food1.jpg',
@@ -114,7 +115,7 @@ export default function JoinPage() {
           src="/images/hero.jpg"
           alt="Mr Jackson Mornington"
           fill
-          className="object-cover"
+          className="object-cover animate-hero-zoom"
           priority
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/45 to-black/85" />
@@ -176,7 +177,7 @@ export default function JoinPage() {
 
         {/* Booking code entry */}
         {!seated && (
-          <div className="w-full max-w-sm mb-3 animate-slide-up">
+          <div className="w-full max-w-sm mb-3 animate-slide-up-1">
             {!showCodeEntry ? (
               <button
                 onClick={() => setShowCodeEntry(true)}
@@ -231,7 +232,7 @@ export default function JoinPage() {
           </div>
         )}
 
-        <div className="card w-full max-w-sm shadow-xl animate-slide-up">
+        <div className="card w-full max-w-sm shadow-xl animate-slide-up-2">
           <h2 className="text-[18px] font-semibold text-stone-900 mb-1 text-center">
             {seated ? 'Or start fresh' : 'Welcome'}
           </h2>
@@ -275,7 +276,7 @@ export default function JoinPage() {
             {/* Browse menu */}
             <Link
               href="/menu"
-              className="btn-secondary w-full flex items-center justify-center gap-3 py-4 text-base"
+              className="btn-secondary w-full flex items-center justify-center gap-3 py-4 text-base card-hover"
             >
               <span className="text-xl">📋</span>
               <span>View Our Menu</span>
@@ -285,52 +286,56 @@ export default function JoinPage() {
       </div>
 
       {/* ── Gallery strip ── */}
-      <div className="mt-8 w-full">
+      <ScrollReveal delay={100} direction="up" className="mt-8 w-full">
         <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider px-4 mb-3">From the kitchen</p>
         <div
           className="flex gap-2.5 overflow-x-auto px-4 pb-2 scrollbar-hide"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
           {GALLERY.map((src, i) => (
-            <div key={i} className="relative w-32 h-32 rounded-2xl overflow-hidden flex-shrink-0 shadow-md">
+            <div key={i} className="relative w-32 h-32 rounded-2xl overflow-hidden flex-shrink-0 shadow-md hover:scale-[1.03] transition-transform duration-300">
               <Image src={src} alt="Mr Jackson dish" fill className="object-cover" />
             </div>
           ))}
           <div className="w-2 flex-shrink-0" />
         </div>
-      </div>
+      </ScrollReveal>
 
       {/* ── Divider ── */}
       <div className="mx-4 mt-6 border-t border-stone-100" />
 
       {/* ── Footer info ── */}
       <div className="px-4 pt-5 pb-10 flex flex-col items-center gap-4">
-        <div className="w-full max-w-sm bg-white rounded-2xl border border-stone-100 shadow-sm p-4">
-          <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-3">Hours</p>
-          <div className="space-y-1.5 text-sm">
-            <div className="flex justify-between text-stone-700">
-              <span className="text-stone-500 font-sans">Mon – Fri</span>
-              <span className="font-medium font-sans">7:30 AM – 2:30 PM</span>
-            </div>
-            <div className="flex justify-between text-stone-700">
-              <span className="text-stone-500 font-sans">Sat – Sun</span>
-              <span className="font-medium font-sans">7:30 AM – 3:00 PM</span>
+        <ScrollReveal delay={0} direction="up" className="w-full max-w-sm">
+          <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4">
+            <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-3">Hours</p>
+            <div className="space-y-1.5 text-sm">
+              <div className="flex justify-between text-stone-700">
+                <span className="text-stone-500 font-sans">Mon – Fri</span>
+                <span className="font-medium font-sans">7:30 AM – 2:30 PM</span>
+              </div>
+              <div className="flex justify-between text-stone-700">
+                <span className="text-stone-500 font-sans">Sat – Sun</span>
+                <span className="font-medium font-sans">7:30 AM – 3:00 PM</span>
+              </div>
             </div>
           </div>
-        </div>
+        </ScrollReveal>
 
-        <div className="w-full max-w-sm bg-white rounded-2xl border border-stone-100 shadow-sm p-4 space-y-2">
-          <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-3">Find Us</p>
-          <a href="https://maps.google.com/?q=1/45+Main+St+Mornington+VIC" target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-2 text-sm text-stone-600 hover:text-stone-900 transition-colors font-sans">
-            <span className="text-base">📍</span>
-            <span>1/45 Main St, Mornington VIC 3931</span>
-          </a>
-          <a href="tel:0359098815" className="flex items-center gap-2 text-sm text-stone-600 hover:text-stone-900 transition-colors font-sans">
-            <span className="text-base">📞</span>
-            <span>03 5909 8815</span>
-          </a>
-        </div>
+        <ScrollReveal delay={120} direction="up" className="w-full max-w-sm">
+          <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 space-y-2">
+            <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-3">Find Us</p>
+            <a href="https://maps.google.com/?q=1/45+Main+St+Mornington+VIC" target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm text-stone-600 hover:text-stone-900 transition-colors font-sans">
+              <span className="text-base">📍</span>
+              <span>1/45 Main St, Mornington VIC 3931</span>
+            </a>
+            <a href="tel:0359098815" className="flex items-center gap-2 text-sm text-stone-600 hover:text-stone-900 transition-colors font-sans">
+              <span className="text-base">📞</span>
+              <span>03 5909 8815</span>
+            </a>
+          </div>
+        </ScrollReveal>
       </div>
     </main>
   )

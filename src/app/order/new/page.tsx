@@ -88,7 +88,11 @@ function NewOrderPage() {
     : menuData.categories
 
   const isDineIn = context === 'dine_in'
-  const needsDateTime = context === 'booking'
+  // Only show date/time pickers if they weren't already provided via URL (e.g. from a booking)
+  const hasPrefilledDateTime = !!(searchParams.get('date') && searchParams.get('time'))
+  const needsDateTime = context === 'booking' && !hasPrefilledDateTime
+  const hasPrefilledName = !!searchParams.get('name')
+  const hasPrefilledPhone = !!searchParams.get('phone')
 
   const handleCheckout = async () => {
     if (!name.trim()) return toast.error('Please enter your name')
@@ -308,25 +312,23 @@ function NewOrderPage() {
               </div>
             )}
 
-            {/* Details */}
-            {isDineIn ? (
-              <div className="card">
-                <h2 className="text-lg font-bold text-stone-900 mb-3">Your Details</h2>
-                <div className="space-y-3">
+            {/* Details — show locked summary if pre-filled, otherwise show inputs */}
+            {(hasPrefilledName && hasPrefilledPhone) ? (
+              <div className="card bg-stone-50 border-stone-200">
+                <div className="flex items-start justify-between">
                   <div>
-                    <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 font-sans">Name</label>
-                    <input type="text" className="input-field" placeholder="e.g. Sarah" value={name} onChange={e => setName(e.target.value)} />
+                    <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider font-sans mb-2">Your Details</p>
+                    <p className="font-semibold text-stone-800 text-sm font-sans">{name}</p>
+                    {phone && <p className="text-stone-500 text-xs font-sans mt-0.5">{phone}</p>}
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 font-sans">Mobile Number</label>
-                    <input type="tel" className="input-field" placeholder="04XX XXX XXX" value={phone} onChange={e => setPhone(e.target.value)} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 font-sans">
-                      Email <span className="normal-case text-stone-300 font-normal">(optional — for receipt)</span>
-                    </label>
-                    <input type="email" className="input-field" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} />
-                  </div>
+                  <span className="text-green-500 text-lg mt-0.5">✓</span>
+                </div>
+                {/* Still allow email for receipt */}
+                <div className="mt-3 pt-3 border-t border-stone-100">
+                  <label className="block text-xs font-semibold text-stone-400 uppercase tracking-wide mb-1.5 font-sans">
+                    Email <span className="normal-case text-stone-300 font-normal">(optional — for receipt)</span>
+                  </label>
+                  <input type="email" className="input-field bg-white" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} />
                 </div>
               </div>
             ) : (
@@ -351,7 +353,7 @@ function NewOrderPage() {
               </div>
             )}
 
-            {/* Date & Time — only needed for bookings */}
+            {/* Date & Time — only needed for bookings where not already provided */}
             {needsDateTime && (
               <>
                 <div className="card">
@@ -384,6 +386,24 @@ function NewOrderPage() {
                   </div>
                 </div>
               </>
+            )}
+
+            {/* Booking summary — shown when date/time already provided (no re-entry needed) */}
+            {context === 'booking' && hasPrefilledDateTime && (
+              <div className="card bg-stone-50 border-stone-200">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">📅</span>
+                  <div>
+                    <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider font-sans">Your Booking</p>
+                    <p className="font-semibold text-stone-800 text-sm font-sans">
+                      {selectedDate} at {timeSlot ? formatTimeSlot(timeSlot) : ''}
+                    </p>
+                  </div>
+                  <div className="ml-auto">
+                    <span className="text-green-500 text-lg">✓</span>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Pay */}

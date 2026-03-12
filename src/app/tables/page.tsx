@@ -43,6 +43,7 @@ export default function TablesPage() {
   const handleConfirm = async () => {
     if (!selected) return toast.error('Please select a table')
     if (!name.trim()) return toast.error('Please enter your name')
+    if (!phone.trim()) return toast.error('Please enter your mobile number')
     if (!tableCode.trim() || tableCode.length < 4) return toast.error('Enter the 4-digit code on your table')
 
     setConfirming(true)
@@ -135,7 +136,18 @@ export default function TablesPage() {
               autoComplete="given-name"
             />
           </div>
-
+          <div>
+            <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 font-sans">Mobile Number</label>
+            <input
+              type="tel"
+              className="input-field"
+              placeholder="04XX XXX XXX"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              autoComplete="tel"
+              inputMode="tel"
+            />
+          </div>
         </div>
 
         {/* Table Grid */}
@@ -210,7 +222,7 @@ export default function TablesPage() {
       </div>
 
       {/* Fixed bottom bar */}
-      {selected && name.trim() && tableCode.length === 4 && (
+      {selected && name.trim() && phone.trim() && tableCode.length === 4 && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 pt-4 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] animate-slide-up" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
           <div className="max-w-lg mx-auto">
             <p className="text-xs text-stone-400 text-center mb-3 font-sans">
