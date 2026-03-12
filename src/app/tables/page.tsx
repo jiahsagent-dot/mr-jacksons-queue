@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import Image from 'next/image'
+import { formatAusPhone, stripPhone } from '@/lib/format'
 
 type Table = {
   id: number
@@ -65,7 +66,7 @@ export default function TablesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name.trim(),
-          phone: phone.trim(),
+          phone: stripPhone(phone),
           table_number: selected,
           dining_option: 'dine_in',
         }),
@@ -81,7 +82,7 @@ export default function TablesPage() {
       sessionStorage.setItem('mr_jackson_table', JSON.stringify({
         table_number: selected,
         customer_name: name.trim(),
-        phone: phone.trim(),
+        phone: stripPhone(phone),
         order_id: orderData.order_id,
         order_ref: orderData.order_ref,
       }))
@@ -148,7 +149,7 @@ export default function TablesPage() {
               className="input-field"
               placeholder="04XX XXX XXX"
               value={phone}
-              onChange={e => setPhone(e.target.value)}
+              onChange={e => setPhone(formatAusPhone(e.target.value))}
               autoComplete="tel"
               inputMode="tel"
             />

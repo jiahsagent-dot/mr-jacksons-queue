@@ -80,7 +80,7 @@ export default function BookPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name.trim(),
-          phone: phone.trim(),
+          phone: stripPhone(phone),
           party_size: partySize,
           date: selectedDate,
           time_slot: timeSlot,
@@ -94,7 +94,7 @@ export default function BookPage() {
       sessionStorage.setItem('mr_jackson_booking', JSON.stringify({
         id: data.booking.id,
         name: name.trim(),
-        phone: phone.trim(),
+        phone: stripPhone(phone),
         party_size: partySize,
         date: selectedDate,
         time_slot: timeSlot,
@@ -153,7 +153,7 @@ export default function BookPage() {
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 font-sans">Mobile Number</label>
-                  <input type="tel" className="input-field" placeholder="04XX XXX XXX" value={phone} onChange={e => setPhone(e.target.value)} />
+                  <input type="tel" className="input-field" placeholder="04XX XXX XXX" value={phone} onChange={e => setPhone(formatAusPhone(e.target.value))} inputMode="tel" />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 font-sans">Party Size</label>

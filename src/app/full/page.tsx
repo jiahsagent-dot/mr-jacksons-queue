@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ScrollReveal } from '@/components/ScrollReveal'
+import { formatAusPhone, stripPhone } from '@/lib/format'
 
 export default function FullPage() {
   const router = useRouter()
@@ -42,7 +43,7 @@ export default function FullPage() {
         body: JSON.stringify({
           name: name.trim(),
           party_size: partySize,
-          phone: phone.trim(),
+          phone: stripPhone(phone),
         }),
       })
       const data = await res.json()
@@ -141,7 +142,7 @@ export default function FullPage() {
                     className="input-field"
                     placeholder="04XX XXX XXX"
                     value={phone}
-                    onChange={e => setPhone(e.target.value)}
+                    onChange={e => setPhone(formatAusPhone(e.target.value))}
                     autoComplete="tel"
                     inputMode="tel"
                     required

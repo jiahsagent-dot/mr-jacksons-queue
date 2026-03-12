@@ -249,7 +249,6 @@ function NewOrderPage() {
               {displayCategories.map(cat => (
                 <section key={cat.name}>
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="text-lg">{CATEGORY_ICONS[cat.name] || '📋'}</span>
                     <h2 className="text-lg font-bold text-stone-900">{cat.name}</h2>
                     <div className="flex-1 h-px bg-stone-100 ml-2"></div>
                   </div>
