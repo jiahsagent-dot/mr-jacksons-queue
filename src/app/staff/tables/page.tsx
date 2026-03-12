@@ -111,6 +111,52 @@ export default function StaffTablesPage() {
     return () => clearInterval(interval)
   }, [selectedDate])
 
+  const [editingTable, setEditingTable] = useState<Table | null>(null)
+  const [editLabel, setEditLabel] = useState('')
+  const [editSeats, setEditSeats] = useState('')
+  const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
+
+  const cancelBooking = async (bookingId: string, name: string) => {
+    if (!confirm(`Cancel ${name}'s booking?`)) return
+    setCancellingBooking(bookingId)
+    try {
+      const res = await fetch('/api/bookings', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: bookingId }),
+      })
+      if (res.ok) {
+        toast.success(`${name}'s booking cancelled`)
+        fetchAll()
+      } else {
+        toast.error('Failed to cancel')
+      }
+    } catch {
+      toast.error('Failed to cancel')
+    }
+    setCancellingBooking(null)
+  }
+
+  const saveTableEdit = async () => {
+    if (!editingTable) return
+    const res = await fetch('/api/staff/tables', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        table_number: editingTable.table_number,
+        label: editLabel.trim() || editingTable.label,
+        seats: parseInt(editSeats) || editingTable.seats,
+      }),
+    })
+    if (res.ok) {
+      toast.success('Table updated')
+      setEditingTable(null)
+      fetchAll()
+    } else {
+      toast.error('Failed to update')
+    }
+  }
+
   const toggleTable = async (table: Table) => {
     const newStatus = table.status === 'available' ? 'occupied' : 'available'
     const res = await fetch('/api/staff/tables', {
@@ -184,6 +230,34 @@ export default function StaffTablesPage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-4 pb-24">
+        {/* Table Edit Modal */}
+        {editingTable && (
+          <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4" onClick={() => setEditingTable(null)}>
+            <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
+              <h3 className="font-bold text-stone-900 text-lg mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
+                Edit Table {editingTable.table_number}
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1 font-sans">Label</label>
+                  <input className="input-field" value={editLabel} onChange={e => setEditLabel(e.target.value)} placeholder="e.g. Window Booth" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1 font-sans">Seats</label>
+                  <input className="input-field" type="number" value={editSeats} onChange={e => setEditSeats(e.target.value)} min="1" max="20" />
+                </div>
+                <div className="bg-stone-50 rounded-xl p-3">
+                  <p className="text-[11px] text-stone-400 font-sans">Table Code: <span className="font-bold text-stone-700 font-mono">{editingTable.table_code || 'Not set'}</span></p>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-4">
+                <button onClick={saveTableEdit} className="btn-primary flex-1 py-3">Save</button>
+                <button onClick={() => setEditingTable(null)} className="btn-secondary py-3 px-6">Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* View Toggle */}
         <div className="flex gap-2 mb-4">
           <button
@@ -280,16 +354,24 @@ export default function StaffTablesPage() {
                       </div>
                     )}
 
-                    <button
-                      onClick={() => toggleTable(table)}
-                      className={`w-full mt-3 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.97] font-sans ${
-                        table.status === 'available'
-                          ? 'bg-red-100 text-red-700 border border-red-200 hover:bg-red-200'
-                          : 'bg-green-500 text-white border border-green-600 hover:bg-green-600'
-                      }`}
-                    >
-                      {table.status === 'available' ? 'Mark Occupied' : '✓ Free Table'}
-                    </button>
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => toggleTable(table)}
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.97] font-sans ${
+                          table.status === 'available'
+                            ? 'bg-red-100 text-red-700 border border-red-200 hover:bg-red-200'
+                            : 'bg-green-500 text-white border border-green-600 hover:bg-green-600'
+                        }`}
+                      >
+                        {table.status === 'available' ? 'Mark Occupied' : '✓ Free Table'}
+                      </button>
+                      <button
+                        onClick={() => { setEditingTable(table); setEditLabel(table.label); setEditSeats(table.seats.toString()) }}
+                        className="py-2.5 px-3 rounded-xl text-xs font-semibold bg-white text-stone-500 border border-stone-200 hover:border-stone-400 transition-all font-sans"
+                      >
+                        ✎
+                      </button>
+                    </div>
                   </div>
                 )
               })}
@@ -416,7 +498,7 @@ export default function StaffTablesPage() {
                                   {formatTime(booking.time_slot)} — {booking.customer_name}
                                 </p>
                                 <p className="text-xs text-stone-400 font-sans">
-                                  {booking.party_size} people · {table ? `🪑 ${table.label}` : 'No table assigned'} · {booking.phone}
+                                  {booking.party_size} people · {table ? `🪑 ${table.label}` : 'No table assigned'}
                                 </p>
                               </div>
                               <span className={`text-[10px] px-2 py-1 rounded-full font-bold font-sans ${
@@ -445,6 +527,19 @@ export default function StaffTablesPage() {
                               }`}>
                                 {booking.confirmed_at ? '✓ Confirmed' : '⏳ Not confirmed'}
                               </span>
+                            </div>
+                            {/* Staff actions */}
+                            <div className="mt-2 pt-2 border-t border-stone-50 flex items-center gap-2">
+                              <a href={`tel:${booking.phone}`} className="text-[10px] font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 font-sans hover:bg-blue-100">
+                                📞 {booking.phone}
+                              </a>
+                              <button
+                                onClick={() => cancelBooking(booking.id, booking.customer_name)}
+                                disabled={cancellingBooking === booking.id}
+                                className="text-[10px] font-medium text-red-600 bg-red-50 px-2.5 py-1 rounded-lg border border-red-200 font-sans hover:bg-red-100 disabled:opacity-50"
+                              >
+                                {cancellingBooking === booking.id ? '...' : '✕ Cancel'}
+                              </button>
                             </div>
                           </div>
                         )

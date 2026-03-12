@@ -24,6 +24,9 @@ const CATEGORY_ICONS: Record<string, string> = {
   'Cocktails': '🍹', 'Beer': '🍺',
 }
 
+// Popular/featured items (by id)
+const POPULAR_IDS = ['brunch_5', 'brunch_8', 'brunch_9', 'burger_1', 'bowl_2', 'coffee_1']
+
 // Context banner messages
 const CONTEXT_BANNERS: Record<string, { emoji: string; title: string; subtitle: string }> = {
   dine_in: { emoji: '🍽️', title: 'Dine-In Order', subtitle: 'Your food will be served to your table' },
@@ -188,6 +191,36 @@ function NewOrderPage() {
 
         {step === 'menu' && (
           <>
+            {/* Popular Picks */}
+            {!activeCategory && (
+              <div className="mb-5 animate-slide-up">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">🔥</span>
+                  <h2 className="text-sm font-bold text-stone-900 font-sans">Popular Picks</h2>
+                </div>
+                <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-1" style={{ WebkitOverflowScrolling: 'touch' }}>
+                  {menuData.categories.flatMap(c => c.items).filter(item => POPULAR_IDS.includes(item.id)).map(item => {
+                    const inCart = items.find(i => i.id === item.id)
+                    return (
+                      <div key={item.id} className="flex-shrink-0 w-[140px] bg-white rounded-2xl border border-stone-100 p-3 shadow-sm">
+                        <h4 className="font-semibold text-stone-800 text-[12px] font-sans leading-tight mb-1">{item.name}</h4>
+                        <p className="text-[11px] text-stone-400 font-sans mb-2 line-clamp-2">{item.description?.slice(0, 40)}...</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-stone-600 font-sans">${item.price.toFixed(2)}</span>
+                          {inCart ? (
+                            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-sans">{inCart.quantity}×</span>
+                          ) : (
+                            <button onClick={() => addItem(item)} className="text-[10px] font-bold text-white bg-stone-900 px-3 py-1 rounded-full font-sans active:scale-95 transition-transform">Add</button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                  <div className="w-2 flex-shrink-0" />
+                </div>
+              </div>
+            )}
+
             {/* Category Grid */}
             <div className="mb-5">
               <div className="flex flex-wrap gap-1.5">

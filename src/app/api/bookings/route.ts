@@ -127,6 +127,34 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// DELETE — cancel a booking (staff action)
+export async function DELETE(req: NextRequest) {
+  try {
+    const { id } = await req.json()
+    if (!id) return NextResponse.json({ error: 'Booking ID required' }, { status: 400 })
+
+    const admin = getAdmin()
+
+    // Get the booking first to send cancellation SMS
+    const { data: booking } = await admin.from('bookings').select('*').eq('id', id).single()
+    if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+
+    // Update status to cancelled
+    const { error } = await admin.from('bookings').update({ status: 'cancelled' }).eq('id', id)
+    if (error) throw error
+
+    // Send cancellation SMS
+    if (booking.phone) {
+      const smsBody = `Hi ${booking.customer_name}, your booking at Mr Jackson's on ${booking.date} at ${formatTimeSlot(booking.time_slot)} has been cancelled.\n\nIf this was a mistake, please call us on 03 5909 8815.`
+      sendSMS(booking.phone, smsBody)
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
+
 // GET — fetch bookings (for staff) with order status
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)

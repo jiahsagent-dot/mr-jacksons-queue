@@ -109,6 +109,7 @@ export default function StaffOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [view, setView] = useState<'kitchen' | 'all'>('kitchen')
   const [loading, setLoading] = useState(true)
+  const [tableFilter, setTableFilter] = useState<number | null>(null)
 
   useEffect(() => {
     const t = sessionStorage.getItem('staff_token')
@@ -170,6 +171,7 @@ export default function StaffOrdersPage() {
   // Kitchen queue — only what needs to be made NOW
   const kitchenQueue = orders
     .filter(shouldShowInKitchen)
+    .filter(o => !tableFilter || o.table_number === tableFilter)
     .sort((a, b) => kitchenPriority(a) - kitchenPriority(b))
 
   // Upcoming bookings/takeaways not yet in window (for awareness)
@@ -186,13 +188,13 @@ export default function StaffOrdersPage() {
   // All active orders for the "All Orders" tab — exclude stale unpaid pending orders
   const activeOrders = orders.filter(o => {
     if (['served', 'cancelled'].includes(o.status)) return false
-    // Hide 'pending' orders older than 30 min — they were abandoned before payment
-    if (o.status === 'pending') {
-      return minutesAgo(o.created_at) < 30
-    }
+    if (o.status === 'pending') return minutesAgo(o.created_at) < 30
+    if (tableFilter && o.table_number !== tableFilter) return false
     return true
   })
-  const completedOrders = orders.filter(o => ['served', 'cancelled'].includes(o.status))
+  const completedOrders = orders
+    .filter(o => ['served', 'cancelled'].includes(o.status))
+    .filter(o => !tableFilter || o.table_number === tableFilter)
 
   const newCount = orders.filter(o => o.status === 'received').length
   const preparingCount = orders.filter(o => o.status === 'preparing').length
@@ -336,20 +338,55 @@ export default function StaffOrdersPage() {
 
       <div className="max-w-4xl mx-auto px-4 py-4">
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-center">
-            <p className="text-2xl font-bold text-yellow-700 font-sans">{newCount}</p>
-            <p className="text-[10px] text-yellow-600 font-semibold uppercase tracking-wide font-sans">New</p>
-          </div>
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
-            <p className="text-2xl font-bold text-blue-700 font-sans">{preparingCount}</p>
-            <p className="text-[10px] text-blue-600 font-semibold uppercase tracking-wide font-sans">Preparing</p>
-          </div>
-          <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
-            <p className="text-2xl font-bold text-green-700 font-sans">{readyCount}</p>
-            <p className="text-[10px] text-green-600 font-semibold uppercase tracking-wide font-sans">Ready</p>
-          </div>
-        </div>
+        {(() => {
+          const servedOrders = orders.filter(o => o.status === 'served')
+          const todayRevenue = servedOrders.reduce((sum, o) => sum + total(o.items), 0)
+          const tableNumbers = Array.from(new Set(orders.filter(o => o.table_number).map(o => o.table_number))).sort((a, b) => (a || 0) - (b || 0))
+
+          return (
+            <>
+              <div className="grid grid-cols-4 gap-2 mb-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-center">
+                  <p className="text-xl font-bold text-yellow-700 font-sans">{newCount}</p>
+                  <p className="text-[9px] text-yellow-600 font-semibold uppercase tracking-wide font-sans">New</p>
+                </div>
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
+                  <p className="text-xl font-bold text-blue-700 font-sans">{preparingCount}</p>
+                  <p className="text-[9px] text-blue-600 font-semibold uppercase tracking-wide font-sans">Preparing</p>
+                </div>
+                <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+                  <p className="text-xl font-bold text-green-700 font-sans">{readyCount}</p>
+                  <p className="text-[9px] text-green-600 font-semibold uppercase tracking-wide font-sans">Ready</p>
+                </div>
+                <div className="bg-white border border-stone-100 rounded-xl p-3 text-center">
+                  <p className="text-xl font-bold text-green-700 font-sans">${todayRevenue.toFixed(0)}</p>
+                  <p className="text-[9px] text-stone-400 font-semibold uppercase tracking-wide font-sans">Revenue</p>
+                </div>
+              </div>
+
+              {/* Table filter */}
+              {tableNumbers.length > 0 && (
+                <div className="flex gap-1.5 flex-wrap mb-3">
+                  <button
+                    onClick={() => setTableFilter(null)}
+                    className={`py-1 px-2.5 rounded-lg text-[10px] font-medium transition-all font-sans ${
+                      !tableFilter ? 'bg-stone-800 text-white' : 'bg-white text-stone-500 border border-stone-200'
+                    }`}
+                  >All tables</button>
+                  {tableNumbers.map(tn => (
+                    <button
+                      key={tn}
+                      onClick={() => setTableFilter(tableFilter === tn ? null : tn!)}
+                      className={`py-1 px-2.5 rounded-lg text-[10px] font-medium transition-all font-sans ${
+                        tableFilter === tn ? 'bg-stone-800 text-white' : 'bg-white text-stone-500 border border-stone-200'
+                      }`}
+                    >Table {tn}</button>
+                  ))}
+                </div>
+              )}
+            </>
+          )
+        })()}
 
         {/* View tabs */}
         <div className="flex gap-2 mb-4">

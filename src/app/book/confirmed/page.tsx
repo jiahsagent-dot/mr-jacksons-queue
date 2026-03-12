@@ -140,16 +140,32 @@ export default function BookingConfirmedPage() {
             )}
           </div>
 
-          {/* Add to Calendar */}
-          <a
-            href={buildCalendarUrl(booking)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white border border-stone-200 hover:border-stone-400 text-stone-600 text-sm font-medium font-sans transition-all active:scale-[0.98]"
-          >
-            <span>📅</span>
-            <span>Add to Calendar</span>
-          </a>
+          {/* Action Buttons */}
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <a
+              href={buildCalendarUrl(booking)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-white border border-stone-200 hover:border-stone-400 text-stone-600 text-sm font-medium font-sans transition-all active:scale-[0.98]"
+            >
+              <span>📅</span>
+              <span>Calendar</span>
+            </a>
+            <button
+              onClick={async () => {
+                const text = `Mr Jackson Booking\n${formatDate(booking.date)} at ${formatTimeSlot(booking.time_slot)}\n${booking.party_size} people\nCode: ${booking.code || 'N/A'}\n\n📍 1/45 Main St, Mornington`
+                if (navigator.share) {
+                  try { await navigator.share({ title: 'Mr Jackson Booking', text }) } catch {}
+                } else {
+                  try { await navigator.clipboard.writeText(text) } catch {}
+                }
+              }}
+              className="inline-flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-white border border-stone-200 hover:border-stone-400 text-stone-600 text-sm font-medium font-sans transition-all active:scale-[0.98]"
+            >
+              <span>📤</span>
+              <span>Share</span>
+            </button>
+          </div>
         </div>
 
         {/* When you arrive */}

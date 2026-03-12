@@ -64,3 +64,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
+
+// PATCH — edit table details (label, seats)
+export async function PATCH(req: NextRequest) {
+  try {
+    const { table_number, label, seats } = await req.json()
+    if (!table_number) return NextResponse.json({ error: 'Missing table_number' }, { status: 400 })
+
+    const admin = getAdmin()
+    const updateData: any = {}
+    if (label !== undefined) updateData.label = label
+    if (seats !== undefined) updateData.seats = parseInt(seats)
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
+    }
+
+    const { data, error } = await admin
+      .from('tables')
+      .update(updateData)
+      .eq('table_number', table_number)
+      .select()
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, table: data?.[0] })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}

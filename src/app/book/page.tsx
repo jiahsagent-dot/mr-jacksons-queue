@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import Link from 'next/link'
 import Image from 'next/image'
 import { generateTimeSlots, formatTimeSlot, getAvailableDates } from '@/lib/timeslots'
+import { formatAusPhone, stripPhone } from '@/lib/format'
 
 type TableInfo = {
   id: number

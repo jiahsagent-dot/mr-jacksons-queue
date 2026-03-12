@@ -301,6 +301,28 @@ export default function JoinPage() {
         </div>
       </ScrollReveal>
 
+      {/* ── How It Works ── */}
+      <ScrollReveal delay={0} direction="up" className="mt-8 px-4">
+        <div className="max-w-sm mx-auto">
+          <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-4 text-center">How it works</p>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { icon: '🪑', title: 'Choose', desc: 'Pick your table or join the queue' },
+              { icon: '📱', title: 'Order', desc: 'Browse the menu & order from your phone' },
+              { icon: '🍽️', title: 'Enjoy', desc: 'Food served right to your table' },
+            ].map((step, i) => (
+              <div key={i} className="text-center">
+                <div className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center mx-auto mb-2">
+                  <span className="text-xl">{step.icon}</span>
+                </div>
+                <p className="font-semibold text-stone-800 text-xs font-sans">{step.title}</p>
+                <p className="text-[10px] text-stone-400 font-sans mt-0.5 leading-tight">{step.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </ScrollReveal>
+
       {/* ── Divider ── */}
       <div className="mx-4 mt-6 border-t border-stone-100" />
 

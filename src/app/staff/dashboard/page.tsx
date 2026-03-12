@@ -3,13 +3,28 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import Link from 'next/link'
 import type { QueueEntry } from '@/lib/supabase'
 
 function minutesAgo(iso: string) {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
 }
 
-const WAIT_OPTIONS = [5, 10, 15, 20, 30]
+function formatTime(t: string) {
+  const [h, m] = t.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  return `${h > 12 ? h - 12 : h || 12}:${m.toString().padStart(2, '0')} ${ampm}`
+}
+
+const WAIT_OPTIONS = [5, 10, 15, 20, 30, 45]
+
+type DaySummary = {
+  total_orders: number
+  total_revenue: number
+  active_orders: number
+  bookings_today: number
+  bookings_upcoming: { customer_name: string; time_slot: string; party_size: number; table_number: number | null }[]
+}
 
 export default function StaffDashboard() {
   const router = useRouter()
@@ -18,8 +33,9 @@ export default function StaffDashboard() {
   const [isClosed, setIsClosed] = useState(false)
   const [waitTime, setWaitTime] = useState(20)
   const [callLoading, setCallLoading] = useState(false)
+  const [summary, setSummary] = useState<DaySummary | null>(null)
+  const [tableInfo, setTableInfo] = useState<{ available: number; total: number } | null>(null)
 
-  // Prevents polling from overwriting state during/after a mutation
   const mutatingUntil = useRef<number>(0)
 
   useEffect(() => {
@@ -28,17 +44,54 @@ export default function StaffDashboard() {
   }, [router])
 
   const fetchQueue = useCallback(async () => {
-    // Don't let the poll overwrite state while a mutation is in flight
     if (Date.now() < mutatingUntil.current) return
 
-    const res = await fetch(`/api/staff/queue?_t=${Date.now()}`)
-    if (res.status === 401) { router.push('/staff/login'); return }
-    if (res.ok) {
-      const data = await res.json()
+    const [queueRes, tablesRes, ordersRes, bookingsRes] = await Promise.all([
+      fetch(`/api/staff/queue?_t=${Date.now()}`),
+      fetch(`/api/tables?_t=${Date.now()}`),
+      fetch(`/api/staff/orders?_t=${Date.now()}`),
+      fetch(`/api/bookings?date=${new Date().toISOString().split('T')[0]}&_t=${Date.now()}`).catch(() => null),
+    ])
+
+    if (queueRes.status === 401) { router.push('/staff/login'); return }
+    if (queueRes.ok) {
+      const data = await queueRes.json()
       setWaiting(data.waiting)
       setCalled(data.called)
       setIsClosed(data.is_closed)
       setWaitTime(data.estimated_wait)
+    }
+    if (tablesRes.ok) {
+      const data = await tablesRes.json()
+      setTableInfo({
+        available: data.available_count || 0,
+        total: data.total_count || (data.tables?.length || 0),
+      })
+    }
+    if (ordersRes.ok) {
+      const data = await ordersRes.json()
+      const orders = data.orders || []
+      const served = orders.filter((o: any) => o.status === 'served')
+      const active = orders.filter((o: any) => !['served', 'cancelled', 'pending'].includes(o.status))
+      const revenue = served.reduce((sum: number, o: any) =>
+        sum + (o.items || []).reduce((s: number, i: any) => s + (i.price * i.quantity), 0), 0
+      )
+      const bookingsData = bookingsRes && bookingsRes.ok ? await bookingsRes.json() : { bookings: [] }
+      const todayBookings = (bookingsData.bookings || []).filter((b: any) => ['confirmed', 'seated'].includes(b.status))
+      const now = new Date()
+      const currentMinutes = now.getHours() * 60 + now.getMinutes()
+      const upcoming = todayBookings.filter((b: any) => {
+        const [bh, bm] = b.time_slot.split(':').map(Number)
+        return bh * 60 + bm > currentMinutes
+      }).sort((a: any, b: any) => a.time_slot.localeCompare(b.time_slot)).slice(0, 4)
+
+      setSummary({
+        total_orders: served.length,
+        total_revenue: revenue,
+        active_orders: active.length,
+        bookings_today: todayBookings.length,
+        bookings_upcoming: upcoming,
+      })
     }
   }, [router])
 
@@ -48,7 +101,6 @@ export default function StaffDashboard() {
     return () => clearInterval(interval)
   }, [fetchQueue])
 
-  // Hold off polling for 8 seconds whenever we mutate (let optimistic UI stick)
   const holdPoll = () => { mutatingUntil.current = Date.now() + 8000 }
 
   const callNext = async () => {
@@ -59,13 +111,12 @@ export default function StaffDashboard() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: waiting[0].id }),
     })
-    const data = await res.json()
     if (res.ok) {
       toast.success(`Called ${waiting[0].name}`)
-      // Refetch after save confirms
       holdPoll()
       await fetchQueue()
     } else {
+      const data = await res.json()
       toast.error(data.error || 'Failed')
     }
     setCallLoading(false)
@@ -85,40 +136,28 @@ export default function StaffDashboard() {
   }
 
   const setWait = async (mins: number) => {
-    // Optimistic update immediately
     setWaitTime(mins)
     holdPoll()
-
     const res = await fetch('/api/staff/set-wait', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ minutes: mins }),
     })
-    if (res.ok) {
-      toast.success(`Wait set to ${mins}m`)
-    } else {
-      toast.error('Failed to save — try again')
-      fetchQueue() // revert on failure
-    }
+    if (res.ok) toast.success(`Wait set to ${mins}m`)
+    else { toast.error('Failed to save'); fetchQueue() }
   }
 
   const toggleQueue = async () => {
     const newState = !isClosed
-    // Optimistic update immediately
     setIsClosed(newState)
     holdPoll()
-
     const res = await fetch('/api/staff/set-wait', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_closed: newState }),
     })
-    if (res.ok) {
-      toast.success(newState ? 'Queue closed' : 'Queue opened')
-    } else {
-      toast.error('Failed to save — try again')
-      setIsClosed(!newState) // revert on failure
-    }
+    if (res.ok) toast.success(newState ? 'Queue closed' : 'Queue opened')
+    else { toast.error('Failed to save'); setIsClosed(!newState) }
   }
 
   return (
@@ -133,9 +172,9 @@ export default function StaffDashboard() {
             <p className="text-xs text-stone-400 mt-0.5">Staff Dashboard</p>
           </div>
           <div className="flex items-center gap-2">
-            <a href="/staff/orders" className="text-xs bg-white text-stone-600 px-3 py-2 rounded-xl border border-stone-200 font-medium hover:border-stone-400 transition-all">Orders</a>
-            <a href="/staff/tables" className="text-xs bg-white text-stone-600 px-3 py-2 rounded-xl border border-stone-200 font-medium hover:border-stone-400 transition-all">Tables</a>
-            <a href="/staff/menu" className="text-xs bg-white text-stone-600 px-3 py-2 rounded-xl border border-stone-200 font-medium hover:border-stone-400 transition-all">Menu</a>
+            <Link href="/staff/orders" className="text-xs bg-white text-stone-600 px-3 py-2 rounded-xl border border-stone-200 font-medium hover:border-stone-400 transition-all">Orders</Link>
+            <Link href="/staff/tables" className="text-xs bg-white text-stone-600 px-3 py-2 rounded-xl border border-stone-200 font-medium hover:border-stone-400 transition-all">Tables</Link>
+            <Link href="/staff/menu" className="text-xs bg-white text-stone-600 px-3 py-2 rounded-xl border border-stone-200 font-medium hover:border-stone-400 transition-all">Menu</Link>
             <button
               onClick={() => { sessionStorage.removeItem('staff_token'); router.push('/staff/login') }}
               className="text-stone-400 text-xs hover:text-stone-700 px-2 py-1"
@@ -147,6 +186,49 @@ export default function StaffDashboard() {
       </div>
 
       <div className="px-4 pt-5 space-y-4">
+        {/* Today's Summary */}
+        {summary && (
+          <div className="grid grid-cols-4 gap-2">
+            <div className="bg-white border border-stone-100 rounded-xl p-3 text-center">
+              <p className="text-xl font-bold text-stone-900 font-sans">{summary.active_orders}</p>
+              <p className="text-[9px] text-stone-400 font-semibold uppercase tracking-wide font-sans">Active</p>
+            </div>
+            <div className="bg-white border border-stone-100 rounded-xl p-3 text-center">
+              <p className="text-xl font-bold text-stone-900 font-sans">{summary.total_orders}</p>
+              <p className="text-[9px] text-stone-400 font-semibold uppercase tracking-wide font-sans">Served</p>
+            </div>
+            <div className="bg-white border border-stone-100 rounded-xl p-3 text-center">
+              <p className="text-xl font-bold text-green-700 font-sans">${summary.total_revenue.toFixed(0)}</p>
+              <p className="text-[9px] text-stone-400 font-semibold uppercase tracking-wide font-sans">Revenue</p>
+            </div>
+            <div className="bg-white border border-stone-100 rounded-xl p-3 text-center">
+              <p className="text-xl font-bold text-stone-900 font-sans">{tableInfo?.available ?? '—'}<span className="text-stone-300 text-sm">/{tableInfo?.total ?? '—'}</span></p>
+              <p className="text-[9px] text-stone-400 font-semibold uppercase tracking-wide font-sans">Tables</p>
+            </div>
+          </div>
+        )}
+
+        {/* Upcoming Bookings */}
+        {summary && summary.bookings_upcoming.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
+            <div className="flex justify-between items-center mb-2">
+              <p className="text-xs font-bold text-blue-700 uppercase tracking-wide font-sans">📅 Upcoming Bookings</p>
+              <Link href="/staff/tables" className="text-[10px] text-blue-600 font-sans hover:underline">View all →</Link>
+            </div>
+            <div className="space-y-1.5">
+              {summary.bookings_upcoming.map((b, i) => (
+                <div key={i} className="flex justify-between items-center text-sm font-sans bg-white/60 rounded-xl px-3 py-2">
+                  <div>
+                    <span className="font-semibold text-stone-800">{b.customer_name}</span>
+                    <span className="text-stone-400 text-xs ml-2">{b.party_size}p{b.table_number ? ` · Table ${b.table_number}` : ''}</span>
+                  </div>
+                  <span className="text-xs font-semibold text-blue-700">{formatTime(b.time_slot)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Queue status banner */}
         <div className={`rounded-2xl border-2 p-4 ${isClosed ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
           <div className="flex justify-between items-center mb-4">
@@ -216,8 +298,9 @@ export default function StaffDashboard() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-stone-900">{entry.name}</p>
                     <p className="text-xs text-stone-400">
-                      {entry.party_size} {entry.party_size === 1 ? 'person' : 'people'} · {minutesAgo(entry.created_at)}m waiting · {entry.phone}
+                      {entry.party_size} {entry.party_size === 1 ? 'person' : 'people'} · {minutesAgo(entry.created_at)}m waiting
                     </p>
+                    <a href={`tel:${entry.phone}`} className="text-xs text-blue-500 font-sans hover:underline">📞 {entry.phone}</a>
                   </div>
                   <div className="flex gap-1.5 flex-shrink-0">
                     <button
@@ -252,13 +335,22 @@ export default function StaffDashboard() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-stone-900">{entry.name}</p>
                     <p className="text-xs text-stone-400">{entry.party_size} people · SMS sent</p>
+                    <a href={`tel:${entry.phone}`} className="text-xs text-blue-500 font-sans hover:underline">📞 {entry.phone}</a>
                   </div>
-                  <button
-                    onClick={() => updateQueueStatus(entry.id, 'seated', entry.name)}
-                    className="text-xs bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded-lg border border-blue-200 font-medium flex-shrink-0"
-                  >
-                    ✓ Seated
-                  </button>
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => updateQueueStatus(entry.id, 'seated', entry.name)}
+                      className="text-xs bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded-lg border border-blue-200 font-medium"
+                    >
+                      ✓ Seated
+                    </button>
+                    <button
+                      onClick={() => updateQueueStatus(entry.id, 'waiting', entry.name)}
+                      className="text-xs bg-stone-50 text-stone-500 px-2.5 py-1.5 rounded-lg border border-stone-200 font-medium"
+                    >
+                      Re-queue
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
