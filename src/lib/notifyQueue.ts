@@ -29,11 +29,21 @@ function formatPhone(phone: string): string {
  * Returns the queue entry if one was found, null otherwise.
  */
 export async function notifyNextInQueue(admin: SupabaseClient, tableNumber: number) {
-  // Find the next waiting queue entry (oldest first)
+  // Get the seat count for this table
+  const { data: table } = await admin
+    .from('tables')
+    .select('seats')
+    .eq('table_number', tableNumber)
+    .single()
+
+  const seats = table?.seats ?? 999
+
+  // Find the next waiting person whose party fits this table (oldest first)
   const { data: next } = await admin
     .from('queue_entries')
     .select('*')
     .eq('status', 'waiting')
+    .lte('party_size', seats)
     .order('created_at', { ascending: true })
     .limit(1)
     .single()
