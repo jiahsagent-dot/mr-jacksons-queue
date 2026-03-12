@@ -238,14 +238,30 @@ export default function JoinPage() {
           <p className="text-stone-400 text-sm mb-5 text-center font-sans">How would you like to dine today?</p>
 
           <div className="space-y-3">
-            {/* Dine In — checks table availability */}
-            <button
-              onClick={handleDineIn}
-              className="btn-primary w-full flex items-center justify-center gap-3 py-4 text-base"
-            >
-              <span className="text-xl">🍽️</span>
-              <span>Dine In Now</span>
-            </button>
+            {/* Dine In — shows queue option when full */}
+            {tableInfo?.has_availability === false ? (
+              <div className="space-y-2">
+                <div className="w-full flex items-center gap-3 py-4 px-4 rounded-2xl bg-amber-50 border-2 border-amber-200 text-amber-800 text-sm font-semibold font-sans">
+                  <span className="text-xl">🪑</span>
+                  <span>We're currently full</span>
+                </div>
+                <button
+                  onClick={() => router.push('/full')}
+                  className="btn-primary w-full flex items-center justify-center gap-3 py-4 text-base"
+                >
+                  <span className="text-xl">⏳</span>
+                  <span>Join the Waitlist</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleDineIn}
+                className="btn-primary w-full flex items-center justify-center gap-3 py-4 text-base"
+              >
+                <span className="text-xl">🍽️</span>
+                <span>Dine In Now</span>
+              </button>
+            )}
 
             {/* Book a Table */}
             <Link
