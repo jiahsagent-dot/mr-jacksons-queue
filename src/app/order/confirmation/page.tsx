@@ -13,6 +13,7 @@ type OrderData = {
   date?: string
   dining_option?: string
   table_number?: number
+  queue_entry_id?: string
   items: { name: string; quantity: number; price: number }[]
   status: string
   created_at: string
@@ -22,13 +23,23 @@ function ConfirmationContent() {
   const params = useSearchParams()
   const orderId = params.get('order_id')
   const [order, setOrder] = useState<OrderData | null>(null)
+  const [queuePosition, setQueuePosition] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!orderId) { setLoading(false); return }
     fetch(`/api/order/status?id=${orderId}`)
       .then(r => r.json())
-      .then(data => { setOrder(data.order); setLoading(false) })
+      .then(async data => {
+        const o = data.order
+        setOrder(o)
+        // If this was a queue pre-order, fetch their queue position
+        if (o?.queue_entry_id) {
+          const qRes = await fetch(`/api/queue/status?id=${o.queue_entry_id}`).then(r => r.json()).catch(() => null)
+          if (qRes?.position) setQueuePosition(qRes.position)
+        }
+        setLoading(false)
+      })
       .catch(() => setLoading(false))
   }, [orderId])
 
@@ -78,6 +89,18 @@ function ConfirmationContent() {
           <p className="text-4xl font-bold text-stone-900 tracking-widest">{orderRef}</p>
           <p className="text-xs text-stone-400 font-sans mt-2">Keep this handy — our team will use it to find you</p>
         </div>
+
+        {/* Queue position — shown if they ordered while in the queue */}
+        {queuePosition !== null && (
+          <div className="card border-2 border-amber-200 bg-amber-50/60 text-center">
+            <p className="text-xs font-bold text-amber-600 uppercase tracking-widest font-sans mb-1">Your Queue Position</p>
+            <p className="text-4xl font-bold text-stone-900 font-sans">#{queuePosition}</p>
+            <p className="text-xs text-stone-400 font-sans mt-2">
+              {queuePosition === 1 ? "You're next — a table won't be long!" : `${queuePosition - 1} ${queuePosition - 1 === 1 ? 'party' : 'parties'} ahead of you`}
+            </p>
+            <p className="text-xs text-stone-400 font-sans mt-1">We'll text you when your table is ready 📱</p>
+          </div>
+        )}
 
         {/* SMS notice */}
         <div className="flex items-start gap-3 bg-white rounded-2xl border border-stone-100 px-4 py-3 shadow-sm">
