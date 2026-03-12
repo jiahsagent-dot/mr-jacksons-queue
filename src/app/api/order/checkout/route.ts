@@ -7,7 +7,7 @@ const STRIPE_KEY = process.env.STRIPE_SECRET_KEY!
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, phone, email, date, time_slot, items, dining_option, order_id, table_number, queue_entry_id } = await req.json()
+    const { name, phone, email, date, time_slot, items, dining_option, order_id, table_number, queue_entry_id, notes } = await req.json()
 
     const needsDateTime = dining_option === 'booking'
     if (!name || !phone || !items?.length) {
@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
           date: date || null,
           time_slot: time_slot || null,
           items,
+          notes: notes || null,
           dining_option: dining_option || 'dine_in',
           status: 'pending',
           ...(queue_entry_id ? { queue_entry_id } : {}),
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
           date: date || null,
           time_slot: time_slot || null,
           items,
+          notes: notes || null,
           dining_option: dining_option || 'dine_in',
           status: 'pending',
           ...(queue_entry_id ? { queue_entry_id } : {}),

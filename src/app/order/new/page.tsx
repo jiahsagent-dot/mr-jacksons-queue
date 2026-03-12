@@ -62,6 +62,7 @@ function NewOrderPage() {
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState<'menu' | 'details'>('menu')
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
+  const [notes, setNotes] = useState('')
 
   const orderId = searchParams.get('order_id') || ''
   const orderRef = searchParams.get('order_ref') || ''
@@ -117,6 +118,7 @@ function NewOrderPage() {
           time_slot: timeSlot,
           dining_option: diningOption,
           items: items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
+          notes: notes.trim() || undefined,
           ...(orderId ? { order_id: orderId } : {}),
           ...(tableNumber ? { table_number: parseInt(tableNumber) } : {}),
           ...(queueId ? { queue_entry_id: queueId } : {}),
@@ -438,6 +440,21 @@ function NewOrderPage() {
                 </div>
               </div>
             )}
+
+            {/* Special Requests */}
+            <div className="card">
+              <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 font-sans">
+                Special Requests <span className="normal-case text-stone-300 font-normal">(optional)</span>
+              </label>
+              <textarea
+                className="input-field resize-none"
+                rows={2}
+                placeholder="Allergies, dietary needs, special occasions..."
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                maxLength={500}
+              />
+            </div>
 
             {/* Pay */}
             <button

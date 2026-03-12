@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
+import { StaffNav } from '@/components/StaffNav'
 
 type Table = {
   id: number
@@ -221,10 +222,9 @@ export default function StaffTablesPage() {
             <h1 className="text-xl font-bold text-stone-900" style={{ fontFamily: "'Playfair Display', serif" }}>Tables</h1>
             <p className="text-xs text-stone-400 font-sans">{available.length} free · {occupied.length} occupied</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/staff/dashboard" className="text-xs bg-white text-stone-600 px-3 py-2 rounded-xl border border-stone-200 font-medium hover:border-stone-400 transition-all font-sans">Queue</Link>
-            <Link href="/staff/orders" className="text-xs bg-white text-stone-600 px-3 py-2 rounded-xl border border-stone-200 font-medium hover:border-stone-400 transition-all font-sans">Orders</Link>
-            <Link href="/staff/menu" className="text-xs bg-white text-stone-600 px-3 py-2 rounded-xl border border-stone-200 font-medium hover:border-stone-400 transition-all font-sans">Menu</Link>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-[10px] text-stone-300 font-sans">Live</span>
           </div>
         </div>
       </div>
@@ -551,6 +551,7 @@ export default function StaffTablesPage() {
           </>
         )}
       </div>
+      <StaffNav />
     </main>
   )
 }

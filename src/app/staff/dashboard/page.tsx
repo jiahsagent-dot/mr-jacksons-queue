@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import type { QueueEntry } from '@/lib/supabase'
+import { StaffNav } from '@/components/StaffNav'
 
 function minutesAgo(iso: string) {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
@@ -161,7 +162,7 @@ export default function StaffDashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-[#faf8f5] max-w-2xl mx-auto pb-16">
+    <main className="min-h-screen bg-[#faf8f5] max-w-2xl mx-auto pb-24">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-[#faf8f5]/95 backdrop-blur-sm px-4 pt-5 pb-4 border-b border-stone-100">
         <div className="flex justify-between items-center">
@@ -171,17 +172,12 @@ export default function StaffDashboard() {
             </h1>
             <p className="text-xs text-stone-400 mt-0.5">Staff Dashboard</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/staff/orders" className="text-xs bg-white text-stone-600 px-3 py-2 rounded-xl border border-stone-200 font-medium hover:border-stone-400 transition-all">Orders</Link>
-            <Link href="/staff/tables" className="text-xs bg-white text-stone-600 px-3 py-2 rounded-xl border border-stone-200 font-medium hover:border-stone-400 transition-all">Tables</Link>
-            <Link href="/staff/menu" className="text-xs bg-white text-stone-600 px-3 py-2 rounded-xl border border-stone-200 font-medium hover:border-stone-400 transition-all">Menu</Link>
-            <button
-              onClick={() => { sessionStorage.removeItem('staff_token'); router.push('/staff/login') }}
-              className="text-stone-400 text-xs hover:text-stone-700 px-2 py-1"
-            >
-              Sign out
-            </button>
-          </div>
+          <button
+            onClick={() => { sessionStorage.removeItem('staff_token'); router.push('/staff/login') }}
+            className="text-stone-400 text-xs hover:text-stone-700 px-3 py-1.5 rounded-lg border border-stone-200 bg-white"
+          >
+            Sign out
+          </button>
         </div>
       </div>
 
@@ -357,6 +353,7 @@ export default function StaffDashboard() {
           </section>
         )}
       </div>
+      <StaffNav />
     </main>
   )
 }

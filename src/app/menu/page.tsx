@@ -116,15 +116,11 @@ export default function MenuPage() {
                   <Image src={CATEGORY_PHOTOS[cat.name]} alt={cat.name} fill className="object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/20"></div>
                   <div className="absolute inset-0 flex items-center px-5">
-                    <div>
-                      <span className="text-2xl mr-2">{CATEGORY_ICONS[cat.name] || '📋'}</span>
-                      <h2 className="text-xl font-bold text-white inline">{cat.name}</h2>
-                    </div>
+                    <h2 className="text-xl font-bold text-white tracking-tight">{cat.name}</h2>
                   </div>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xl">{CATEGORY_ICONS[cat.name] || '📋'}</span>
                   <h2 className="text-lg font-bold text-stone-900">{cat.name}</h2>
                   <div className="flex-1 h-px bg-stone-200 ml-2"></div>
                 </div>
@@ -161,7 +157,7 @@ export default function MenuPage() {
             <Image src="/images/food2.jpg" alt="Special deal" fill className="object-cover" />
             <div className="absolute inset-0 bg-gradient-to-r from-amber-900/85 to-amber-800/70"></div>
             <div className="relative p-6 text-center text-white">
-              <p className="font-bold text-2xl">🎉 <span className="shimmer-text">Special Deal — $30.99</span></p>
+              <p className="font-bold text-2xl"><span className="shimmer-text">Special Deal — $30.99</span></p>
               <p className="text-amber-100 text-sm mt-2 font-sans">Choose one main meal paired with your choice of alcoholic beverage</p>
             </div>
           </div>
@@ -171,8 +167,8 @@ export default function MenuPage() {
         <ScrollReveal delay={100} direction="up">
           <div className="mt-8 mb-10 text-center space-y-2">
             <div className="flex flex-wrap justify-center gap-3 text-xs text-stone-400 font-sans">
-              <span className="bg-stone-100 px-2.5 py-1.5 rounded-lg">☕ Milk alt +$0.90</span>
-              <span className="bg-stone-100 px-2.5 py-1.5 rounded-lg">🍯 Syrup +$0.90</span>
+              <span className="bg-stone-100 px-2.5 py-1.5 rounded-lg">Milk alt +$0.90</span>
+              <span className="bg-stone-100 px-2.5 py-1.5 rounded-lg">Syrup +$0.90</span>
             </div>
             <p className="text-xs text-stone-400 mt-3 font-sans">10% surcharge weekends · 15% public holidays</p>
             <p className="text-xs text-stone-400 font-sans">Please inform staff of any allergies or dietary requirements</p>
@@ -184,12 +180,12 @@ export default function MenuPage() {
             </div>
 
             <Link href="/order/new" className="btn-primary inline-block mt-5 px-8">
-              🍽️ Order & Pay Online
+              Order & Pay Online
             </Link>
 
             <div className="mt-6 space-y-1">
               <p className="text-stone-400 text-xs font-sans font-medium">Mon–Fri 7:30AM – 2:30PM · Sat–Sun 7:30AM – 3PM</p>
-              <p className="text-stone-300 text-xs font-sans">📞 03 5909 8815</p>
+              <p className="text-stone-300 text-xs font-sans">03 5909 8815</p>
             </div>
           </div>
         </ScrollReveal>

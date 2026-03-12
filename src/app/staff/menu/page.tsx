@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
+import { StaffNav } from '@/components/StaffNav'
 
 type MenuItem = {
   id: number
@@ -46,6 +47,11 @@ export default function StaffMenuPage() {
 
   const categories = Array.from(new Set(items.map(i => i.category)))
   const filtered = activeCategory ? items.filter(i => i.category === activeCategory) : items
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const searchFiltered = searchQuery
+    ? filtered.filter(i => i.name.toLowerCase().includes(searchQuery.toLowerCase()) || i.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+    : filtered
 
   const toggleAvailable = async (item: MenuItem) => {
     const res = await fetch('/api/staff/menu', {
@@ -126,10 +132,11 @@ export default function StaffMenuPage() {
             <h1 className="text-xl font-bold text-stone-900" style={{ fontFamily: "'Playfair Display', serif" }}>Menu Manager</h1>
             <p className="text-xs text-stone-400 font-sans">{items.length} items · {categories.length} categories</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/staff/dashboard" className="text-xs bg-white text-stone-600 px-3 py-2 rounded-xl border border-stone-200 font-medium hover:border-stone-400 transition-all font-sans">Queue</Link>
-            <Link href="/staff/orders" className="text-xs bg-white text-stone-600 px-3 py-2 rounded-xl border border-stone-200 font-medium hover:border-stone-400 transition-all font-sans">Orders</Link>
-          </div>
+          <p className="text-[10px] text-stone-300 font-sans">
+            {items.filter(i => !i.available).length > 0
+              ? `⚠️ ${items.filter(i => !i.available).length} items off`
+              : '✓ All items on'}
+          </p>
         </div>
       </div>
 
@@ -151,6 +158,50 @@ export default function StaffMenuPage() {
               }`}
             >{cat} ({items.filter(i => i.category === cat).length})</button>
           ))}
+        </div>
+
+        {/* Search + Bulk Actions */}
+        <div className="flex gap-2 mb-4">
+          <input
+            type="text"
+            className="input-field flex-1"
+            placeholder="🔍 Search menu items..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+          {activeCategory && (
+            <div className="flex gap-1.5">
+              <button
+                onClick={async () => {
+                  const categoryItems = items.filter(i => i.category === activeCategory && !i.available)
+                  if (categoryItems.length === 0) return toast('All items already available')
+                  for (const item of categoryItems) {
+                    await fetch('/api/staff/menu', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: item.id, available: true }) })
+                  }
+                  toast.success(`All ${activeCategory} items enabled`)
+                  fetchMenu()
+                }}
+                className="text-[10px] px-3 py-2 rounded-xl bg-green-50 text-green-700 border border-green-200 font-semibold font-sans whitespace-nowrap hover:bg-green-100"
+              >
+                All On
+              </button>
+              <button
+                onClick={async () => {
+                  const categoryItems = items.filter(i => i.category === activeCategory && i.available)
+                  if (categoryItems.length === 0) return toast('All items already unavailable')
+                  if (!confirm(`Mark all ${activeCategory} items unavailable?`)) return
+                  for (const item of categoryItems) {
+                    await fetch('/api/staff/menu', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: item.id, available: false }) })
+                  }
+                  toast.success(`All ${activeCategory} items disabled`)
+                  fetchMenu()
+                }}
+                className="text-[10px] px-3 py-2 rounded-xl bg-red-50 text-red-600 border border-red-200 font-semibold font-sans whitespace-nowrap hover:bg-red-100"
+              >
+                All Off
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Add / Edit Form */}
@@ -176,10 +227,16 @@ export default function StaffMenuPage() {
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1 font-sans">Category</label>
-                  <select className="input-field" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
-                    <option value="">Select...</option>
-                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  <input
+                    className="input-field"
+                    placeholder="Type or select category"
+                    list="categories-list"
+                    value={form.category}
+                    onChange={e => setForm({...form, category: e.target.value})}
+                  />
+                  <datalist id="categories-list">
+                    {categories.map(c => <option key={c} value={c} />)}
+                  </datalist>
                 </div>
               </div>
               <div>
@@ -212,7 +269,7 @@ export default function StaffMenuPage() {
           </div>
         ) : (
           <div className="space-y-2">
-            {filtered.map(item => (
+            {searchFiltered.map(item => (
               <div
                 key={item.id}
                 className={`rounded-xl border p-3 flex items-center gap-3 transition-all ${
@@ -269,6 +326,7 @@ export default function StaffMenuPage() {
           </div>
         </div>
       )}
+      <StaffNav />
     </main>
   )
 }

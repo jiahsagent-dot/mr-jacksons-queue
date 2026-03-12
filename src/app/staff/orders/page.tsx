@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
+import { StaffNav } from '@/components/StaffNav'
 
 type Order = {
   id: string
@@ -329,9 +330,9 @@ export default function StaffOrdersPage() {
             <h1 className="text-xl font-bold text-stone-900" style={{ fontFamily: "'Playfair Display', serif" }}>Orders</h1>
             <p className="text-xs text-stone-400 font-sans">{kitchenQueue.length} to prepare · auto-refreshes</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/staff/dashboard" className="text-xs bg-white text-stone-600 px-3 py-2 rounded-xl border border-stone-200 font-medium font-sans">Queue</Link>
-            <Link href="/staff/tables" className="text-xs bg-white text-stone-600 px-3 py-2 rounded-xl border border-stone-200 font-medium font-sans">Tables</Link>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-[10px] text-stone-300 font-sans">Live</span>
           </div>
         </div>
       </div>
@@ -476,6 +477,7 @@ export default function StaffOrdersPage() {
           </div>
         )}
       </div>
+      <StaffNav />
     </main>
   )
 }
