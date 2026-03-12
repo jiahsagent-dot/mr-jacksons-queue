@@ -292,9 +292,10 @@ export default function StaffOrdersPage() {
         </div>
 
         {order.notes && (
-          <p className="text-xs italic mb-3 font-sans bg-amber-50 rounded-lg px-3 py-2 border border-amber-200 text-stone-600">
-            📝 {order.notes}
-          </p>
+          <div className="mb-3 bg-amber-50 rounded-lg px-3 py-2 border border-amber-200">
+            <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide font-sans mb-0.5">Customer Notes</p>
+            <p className="text-xs text-stone-600 font-sans">{order.notes}</p>
+          </div>
         )}
 
         <p className="text-[10px] text-stone-300 font-mono mb-3">#{order.id.replace(/-/g,'').slice(0,6).toUpperCase()}</p>

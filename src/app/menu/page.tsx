@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { menuData } from '@/lib/menu'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -39,6 +39,13 @@ const CATEGORY_PHOTOS: Record<string, string> = {
 export default function MenuPage() {
   const [activeTag, setActiveTag] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
+  const [unavailable, setUnavailable] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    fetch('/api/menu').then(r => r.json()).then(data => {
+      if (data.unavailable?.length) setUnavailable(new Set(data.unavailable))
+    }).catch(() => {})
+  }, [])
 
   const allTags = ['V', 'LG', 'VG', 'DF']
 
@@ -126,25 +133,33 @@ export default function MenuPage() {
                 </div>
               )}
               <div className="space-y-1">
-                {cat.items.map(item => (
-                  <div
-                    key={item.id}
-                    className="group flex justify-between items-start gap-3 py-3 px-3 border-b border-stone-100 last:border-0 hover:bg-white/60 rounded-xl transition-colors -mx-1"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-stone-800 text-[15px] font-sans">{item.name}</h3>
-                        {item.tags.map(tag => (
-                          <span key={tag} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${TAG_COLORS[tag]}`}>{tag}</span>
-                        ))}
+                {cat.items.map(item => {
+                  const soldOut = unavailable.has(item.name)
+                  return (
+                    <div
+                      key={item.id}
+                      className={`group flex justify-between items-start gap-3 py-3 px-3 border-b border-stone-100 last:border-0 rounded-xl transition-colors -mx-1 ${
+                        soldOut ? 'opacity-50' : 'hover:bg-white/60'
+                      }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className={`font-semibold text-[15px] font-sans ${soldOut ? 'text-stone-400 line-through' : 'text-stone-800'}`}>{item.name}</h3>
+                          {soldOut && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-red-50 text-red-500 border border-red-200">SOLD OUT</span>
+                          )}
+                          {!soldOut && item.tags.map(tag => (
+                            <span key={tag} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${TAG_COLORS[tag]}`}>{tag}</span>
+                          ))}
+                        </div>
+                        {item.description && !soldOut && (
+                          <p className="text-[13px] text-stone-400 mt-0.5 leading-relaxed font-sans">{item.description}</p>
+                        )}
                       </div>
-                      {item.description && (
-                        <p className="text-[13px] text-stone-400 mt-0.5 leading-relaxed font-sans">{item.description}</p>
-                      )}
+                      <span className={`font-bold whitespace-nowrap text-[15px] tabular-nums pt-0.5 font-sans ${soldOut ? 'text-stone-300' : 'text-stone-700'}`}>${item.price.toFixed(2)}</span>
                     </div>
-                    <span className="font-bold text-stone-700 whitespace-nowrap text-[15px] tabular-nums pt-0.5 font-sans">${item.price.toFixed(2)}</span>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </section>
             </ScrollReveal>

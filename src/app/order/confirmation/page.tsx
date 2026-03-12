@@ -26,21 +26,26 @@ function ConfirmationContent() {
   const [queuePosition, setQueuePosition] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  const fetchOrder = async () => {
     if (!orderId) { setLoading(false); return }
-    fetch(`/api/order/status?id=${orderId}`)
-      .then(r => r.json())
-      .then(async data => {
-        const o = data.order
-        setOrder(o)
-        // If this was a queue pre-order, fetch their queue position
-        if (o?.queue_entry_id) {
-          const qRes = await fetch(`/api/queue/status?id=${o.queue_entry_id}`).then(r => r.json()).catch(() => null)
-          if (qRes?.position) setQueuePosition(qRes.position)
-        }
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
+    try {
+      const res = await fetch(`/api/order/status?id=${orderId}`)
+      const data = await res.json()
+      const o = data.order
+      setOrder(o)
+      if (o?.queue_entry_id) {
+        const qRes = await fetch(`/api/queue/status?id=${o.queue_entry_id}`).then(r => r.json()).catch(() => null)
+        if (qRes?.position) setQueuePosition(qRes.position)
+      }
+    } catch {}
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchOrder()
+    // Poll for status updates every 15 seconds
+    const interval = setInterval(fetchOrder, 15000)
+    return () => clearInterval(interval)
   }, [orderId])
 
   if (loading) {
@@ -99,6 +104,44 @@ function ConfirmationContent() {
               {queuePosition === 1 ? "You're next — a table won't be long!" : `${queuePosition - 1} ${queuePosition - 1 === 1 ? 'party' : 'parties'} ahead of you`}
             </p>
             <p className="text-xs text-stone-400 font-sans mt-1">We'll text you when your table is ready 📱</p>
+          </div>
+        )}
+
+        {/* Live Order Status Tracker */}
+        {order.status !== 'served' && order.status !== 'cancelled' && (
+          <div className="card border-2 border-stone-100 animate-slide-up-1">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-bold text-stone-500 uppercase tracking-wide font-sans">Order Status</p>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-[10px] text-stone-300 font-sans">Live</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-0">
+              {['received', 'preparing', 'ready'].map((s, i) => {
+                const steps = ['received', 'preparing', 'ready']
+                const currentIdx = steps.indexOf(order.status)
+                const isActive = i <= currentIdx
+                const isCurrent = s === order.status
+                const labels = { received: 'Received', preparing: 'Preparing', ready: 'Ready' }
+                return (
+                  <div key={s} className="flex-1 flex flex-col items-center">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                      isActive ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-400'
+                    } ${isCurrent ? 'ring-2 ring-amber-400 ring-offset-2' : ''}`}>
+                      {isActive ? '✓' : i + 1}
+                    </div>
+                    <p className={`text-[10px] font-sans mt-1.5 font-medium ${isActive ? 'text-stone-900' : 'text-stone-400'}`}>
+                      {labels[s as keyof typeof labels]}
+                    </p>
+                    {i < 2 && (
+                      <div className={`absolute h-0.5 w-[calc(33%-16px)] ${isActive && i < currentIdx ? 'bg-stone-900' : 'bg-stone-100'}`}
+                        style={{ top: '14px', left: `calc(${(i * 33.33) + 16.67}% + 16px)` }} />
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 

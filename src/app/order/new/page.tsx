@@ -63,6 +63,13 @@ function NewOrderPage() {
   const [step, setStep] = useState<'menu' | 'details'>('menu')
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
+  const [unavailable, setUnavailable] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    fetch('/api/menu').then(r => r.json()).then(data => {
+      if (data.unavailable?.length) setUnavailable(new Set(data.unavailable))
+    }).catch(() => {})
+  }, [])
 
   const orderId = searchParams.get('order_id') || ''
   const orderRef = searchParams.get('order_ref') || ''
@@ -201,7 +208,7 @@ function NewOrderPage() {
                   <h2 className="text-sm font-bold text-stone-900 font-sans">Popular Picks</h2>
                 </div>
                 <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-1" style={{ WebkitOverflowScrolling: 'touch' }}>
-                  {menuData.categories.flatMap(c => c.items).filter(item => POPULAR_IDS.includes(item.id)).map(item => {
+                  {menuData.categories.flatMap(c => c.items).filter(item => POPULAR_IDS.includes(item.id) && !unavailable.has(item.name)).map(item => {
                     const inCart = items.find(i => i.id === item.id)
                     return (
                       <div key={item.id} className="flex-shrink-0 w-[140px] bg-white rounded-2xl border border-stone-100 p-3 shadow-sm">
@@ -255,33 +262,40 @@ function NewOrderPage() {
                   <div className="space-y-1">
                     {cat.items.map(item => {
                       const inCart = items.find(i => i.id === item.id)
+                      const soldOut = unavailable.has(item.name)
                       return (
-                        <div key={item.id} className="flex items-center gap-3 py-3 px-3 rounded-2xl hover:bg-white/80 transition-colors -mx-1 group">
+                        <div key={item.id} className={`flex items-center gap-3 py-3 px-3 rounded-2xl transition-colors -mx-1 group ${soldOut ? 'opacity-40' : 'hover:bg-white/80'}`}>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-semibold text-stone-800 text-[14px] font-sans">{item.name}</h3>
-                              {item.tags.map(tag => (
-                                <span key={tag} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${TAG_COLORS[tag] || ''}`}>{tag}</span>
-                              ))}
+                              <h3 className={`font-semibold text-[14px] font-sans ${soldOut ? 'text-stone-400 line-through' : 'text-stone-800'}`}>{item.name}</h3>
+                              {soldOut ? (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-red-50 text-red-500 border border-red-200">SOLD OUT</span>
+                              ) : (
+                                item.tags.map(tag => (
+                                  <span key={tag} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${TAG_COLORS[tag] || ''}`}>{tag}</span>
+                                ))
+                              )}
                             </div>
-                            {item.description && (
+                            {item.description && !soldOut && (
                               <p className="text-[12px] text-stone-400 mt-0.5 font-sans leading-relaxed">{item.description}</p>
                             )}
-                            <p className="text-[14px] font-bold text-stone-600 mt-0.5 font-sans">${item.price.toFixed(2)}</p>
+                            <p className={`text-[14px] font-bold mt-0.5 font-sans ${soldOut ? 'text-stone-300' : 'text-stone-600'}`}>${item.price.toFixed(2)}</p>
                           </div>
-                          <div className="flex items-center gap-1.5 flex-shrink-0">
-                            {inCart ? (
-                              <>
-                                <button onClick={() => removeItem(item.id)} className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 font-bold text-lg flex items-center justify-center transition-colors">−</button>
-                                <span className="w-7 text-center font-bold text-stone-900 text-sm font-sans">{inCart.quantity}</span>
-                                <button onClick={() => addItem(item)} className="w-8 h-8 rounded-full bg-stone-900 hover:bg-stone-800 text-white font-bold text-lg flex items-center justify-center transition-colors">+</button>
-                              </>
-                            ) : (
-                              <button onClick={() => addItem(item)} className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold font-sans transition-colors shadow-sm">
-                                Add
-                              </button>
-                            )}
-                          </div>
+                          {!soldOut && (
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {inCart ? (
+                                <>
+                                  <button onClick={() => removeItem(item.id)} className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 font-bold text-lg flex items-center justify-center transition-colors">−</button>
+                                  <span className="w-7 text-center font-bold text-stone-900 text-sm font-sans">{inCart.quantity}</span>
+                                  <button onClick={() => addItem(item)} className="w-8 h-8 rounded-full bg-stone-900 hover:bg-stone-800 text-white font-bold text-lg flex items-center justify-center transition-colors">+</button>
+                                </>
+                              ) : (
+                                <button onClick={() => addItem(item)} className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold font-sans transition-colors shadow-sm">
+                                  Add
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )
                     })}
