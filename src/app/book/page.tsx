@@ -118,7 +118,7 @@ export default function BookPage() {
     <main className="min-h-screen flex flex-col">
       {/* Header */}
       <div className="relative h-[180px] overflow-hidden">
-        <Image src="/images/hero.jpg" alt="Mr Jackson" fill className="object-cover" priority />
+        <Image src="/images/hero.jpg" alt="Mr Jackson" fill className="object-cover animate-hero-zoom" priority />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/80" />
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4">
           <button
@@ -129,9 +129,12 @@ export default function BookPage() {
           <h1 className="text-2xl font-bold drop-shadow-lg">Book a Table</h1>
           <div className="w-6 h-0.5 bg-amber-500 mx-auto mt-1.5" />
           {/* Step indicator */}
-          <div className="flex items-center gap-2 mt-3">
-            <div className={`w-2 h-2 rounded-full ${step === 'details' ? 'bg-amber-400' : 'bg-white/40'}`} />
-            <div className={`w-2 h-2 rounded-full ${step === 'table' ? 'bg-amber-400' : 'bg-white/40'}`} />
+          <div className="flex items-center gap-1.5 mt-3">
+            <div className="flex items-center gap-1.5">
+              <div className={`w-6 h-6 rounded-full text-[10px] font-bold flex items-center justify-center font-sans transition-all ${step === 'details' ? 'bg-amber-400 text-stone-900' : 'bg-white/20 text-white/60'}`}>1</div>
+              <div className={`w-8 h-0.5 rounded-full transition-all ${step === 'table' ? 'bg-amber-400' : 'bg-white/20'}`} />
+              <div className={`w-6 h-6 rounded-full text-[10px] font-bold flex items-center justify-center font-sans transition-all ${step === 'table' ? 'bg-amber-400 text-stone-900' : 'bg-white/20 text-white/60'}`}>2</div>
+            </div>
           </div>
         </div>
       </div>
@@ -202,13 +205,23 @@ export default function BookPage() {
         {step === 'table' && (
           <div className="space-y-4 animate-slide-up">
             {/* Summary */}
-            <div className="card bg-stone-50">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-sm font-semibold text-stone-900 font-sans">{name} · {partySize} {partySize === 1 ? 'person' : 'people'}</p>
-                  <p className="text-xs text-stone-500 font-sans">{selectedDate} at {formatTimeSlot(timeSlot)}</p>
+            <div className="card bg-stone-50 border-stone-200">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">👤</span>
+                    <p className="text-sm font-semibold text-stone-900 font-sans">{name}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">👥</span>
+                    <p className="text-xs text-stone-500 font-sans">{partySize} {partySize === 1 ? 'person' : 'people'}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">📅</span>
+                    <p className="text-xs text-stone-500 font-sans">{selectedDate} at {formatTimeSlot(timeSlot)}</p>
+                  </div>
                 </div>
-                <button onClick={() => setStep('details')} className="text-xs text-amber-700 font-semibold font-sans hover:underline">Change</button>
+                <button onClick={() => setStep('details')} className="text-xs text-amber-700 font-semibold font-sans hover:underline bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200">Change</button>
               </div>
             </div>
 
@@ -220,8 +233,14 @@ export default function BookPage() {
               </p>
 
               {loadingTables ? (
-                <div className="flex justify-center py-8">
-                  <div className="w-8 h-8 border-2 border-stone-300 border-t-stone-800 rounded-full animate-spin"></div>
+                <div className="grid grid-cols-2 gap-3">
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="rounded-2xl p-4 border-2 border-stone-100">
+                      <div className="skeleton h-5 w-8 mb-3" />
+                      <div className="skeleton h-4 w-20 mb-1.5" />
+                      <div className="skeleton h-3 w-14" />
+                    </div>
+                  ))}
                 </div>
               ) : availableTables.length === 0 ? (
                 <div className="text-center py-8">

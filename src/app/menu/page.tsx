@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { menuData } from '@/lib/menu'
 import Link from 'next/link'
 import Image from 'next/image'
+import { ScrollReveal } from '@/components/ScrollReveal'
 
 const TAG_LABELS: Record<string, string> = { V: 'Vegetarian', LG: 'Low Gluten', VG: 'Vegan', DF: 'Dairy Free' }
 const TAG_COLORS: Record<string, string> = {
@@ -53,7 +54,7 @@ export default function MenuPage() {
     <main className="min-h-screen bg-gradient-to-b from-stone-50 to-amber-50/30">
       {/* Hero with photo */}
       <div className="relative h-[220px] overflow-hidden">
-        <Image src="/images/hero.jpg" alt="Mr Jackson Mornington" fill className="object-cover" priority />
+        <Image src="/images/hero.jpg" alt="Mr Jackson Mornington" fill className="object-cover animate-hero-zoom" priority />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/80"></div>
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4">
           <Link href="/join" className="absolute top-4 left-4 text-white/70 text-sm hover:text-white font-sans">← Back</Link>
@@ -106,8 +107,9 @@ export default function MenuPage() {
 
         {/* Menu Categories */}
         <div className="space-y-8">
-          {filteredCategories.map(cat => (
-            <section key={cat.name}>
+          {filteredCategories.map((cat, catIdx) => (
+            <ScrollReveal key={cat.name} delay={catIdx < 3 ? catIdx * 80 : 0} direction="up">
+            <section>
               {/* Category Header with optional photo */}
               {CATEGORY_PHOTOS[cat.name] ? (
                 <div className="relative h-32 rounded-2xl overflow-hidden mb-4">
@@ -149,43 +151,48 @@ export default function MenuPage() {
                 ))}
               </div>
             </section>
+            </ScrollReveal>
           ))}
         </div>
 
         {/* Special Deal */}
-        <div className="mt-8 relative overflow-hidden rounded-2xl">
-          <Image src="/images/food2.jpg" alt="Special deal" fill className="object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-amber-900/85 to-amber-800/70"></div>
-          <div className="relative p-6 text-center text-white">
-            <p className="font-bold text-2xl">🎉 Special Deal — $30.99</p>
-            <p className="text-amber-100 text-sm mt-2 font-sans">Choose one main meal paired with your choice of alcoholic beverage</p>
+        <ScrollReveal delay={0} direction="up">
+          <div className="mt-8 relative overflow-hidden rounded-2xl">
+            <Image src="/images/food2.jpg" alt="Special deal" fill className="object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-900/85 to-amber-800/70"></div>
+            <div className="relative p-6 text-center text-white">
+              <p className="font-bold text-2xl">🎉 <span className="shimmer-text">Special Deal — $30.99</span></p>
+              <p className="text-amber-100 text-sm mt-2 font-sans">Choose one main meal paired with your choice of alcoholic beverage</p>
+            </div>
           </div>
-        </div>
+        </ScrollReveal>
 
         {/* Footer Notes */}
-        <div className="mt-8 mb-10 text-center space-y-2">
-          <div className="flex flex-wrap justify-center gap-3 text-xs text-stone-400 font-sans">
-            <span className="bg-stone-100 px-2.5 py-1.5 rounded-lg">☕ Milk alt +$0.90</span>
-            <span className="bg-stone-100 px-2.5 py-1.5 rounded-lg">🍯 Syrup +$0.90</span>
-          </div>
-          <p className="text-xs text-stone-400 mt-3 font-sans">10% surcharge weekends · 15% public holidays</p>
-          <p className="text-xs text-stone-400 font-sans">Please inform staff of any allergies or dietary requirements</p>
-          <div className="flex flex-wrap justify-center gap-3 mt-3 text-xs text-stone-400 font-sans">
-            <span>V = Vegetarian</span>
-            <span>LG = Low Gluten</span>
-            <span>VG = Vegan</span>
-            <span>DF = Dairy Free</span>
-          </div>
+        <ScrollReveal delay={100} direction="up">
+          <div className="mt-8 mb-10 text-center space-y-2">
+            <div className="flex flex-wrap justify-center gap-3 text-xs text-stone-400 font-sans">
+              <span className="bg-stone-100 px-2.5 py-1.5 rounded-lg">☕ Milk alt +$0.90</span>
+              <span className="bg-stone-100 px-2.5 py-1.5 rounded-lg">🍯 Syrup +$0.90</span>
+            </div>
+            <p className="text-xs text-stone-400 mt-3 font-sans">10% surcharge weekends · 15% public holidays</p>
+            <p className="text-xs text-stone-400 font-sans">Please inform staff of any allergies or dietary requirements</p>
+            <div className="flex flex-wrap justify-center gap-3 mt-3 text-xs text-stone-400 font-sans">
+              <span>V = Vegetarian</span>
+              <span>LG = Low Gluten</span>
+              <span>VG = Vegan</span>
+              <span>DF = Dairy Free</span>
+            </div>
 
-          <Link href="/order/new" className="btn-primary inline-block mt-5 px-8">
-            🍽️ Order & Pay Online
-          </Link>
+            <Link href="/order/new" className="btn-primary inline-block mt-5 px-8">
+              🍽️ Order & Pay Online
+            </Link>
 
-          <div className="mt-6 space-y-1">
-            <p className="text-stone-400 text-xs font-sans font-medium">Mon–Fri 7:30AM – 2:30PM · Sat–Sun 7:30AM – 3PM</p>
-            <p className="text-stone-300 text-xs font-sans">📞 03 5909 8815</p>
+            <div className="mt-6 space-y-1">
+              <p className="text-stone-400 text-xs font-sans font-medium">Mon–Fri 7:30AM – 2:30PM · Sat–Sun 7:30AM – 3PM</p>
+              <p className="text-stone-300 text-xs font-sans">📞 03 5909 8815</p>
+            </div>
           </div>
-        </div>
+        </ScrollReveal>
       </div>
     </main>
   )

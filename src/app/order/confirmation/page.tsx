@@ -73,7 +73,7 @@ function ConfirmationContent() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/50 to-black/80" />
         </div>
         <div className="absolute inset-0 flex flex-col items-center justify-end pb-6 text-white text-center px-4">
-          <div className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center mb-3 shadow-lg">
+          <div className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center mb-3 shadow-lg animate-confetti">
             <span className="text-2xl">✓</span>
           </div>
           <h1 className="text-2xl font-bold drop-shadow-lg">You're all set, {order.customer_name}!</h1>
@@ -84,9 +84,9 @@ function ConfirmationContent() {
       <div className="flex-1 max-w-sm mx-auto w-full px-4 py-5 space-y-4">
 
         {/* Order number */}
-        <div className="card text-center border-2 border-amber-200 bg-amber-50/60">
+        <div className="card text-center border-2 border-amber-200 bg-amber-50/60 animate-slide-up">
           <p className="text-xs font-bold text-amber-600 uppercase tracking-widest font-sans mb-1">Your Order Number</p>
-          <p className="text-4xl font-bold text-stone-900 tracking-widest">{orderRef}</p>
+          <p className="text-4xl font-bold text-stone-900 tracking-widest animate-count-in">{orderRef}</p>
           <p className="text-xs text-stone-400 font-sans mt-2">Keep this handy — our team will use it to find you</p>
         </div>
 

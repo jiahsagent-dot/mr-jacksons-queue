@@ -12,6 +12,7 @@ export default function QueueStatusPage() {
   const [position, setPosition] = useState(0)
   const [estimatedWait, setEstimatedWait] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [lastRefresh, setLastRefresh] = useState(Date.now())
 
   const fetchStatus = async () => {
     const res = await fetch(`/api/queue/status?id=${id}`)
@@ -21,6 +22,7 @@ export default function QueueStatusPage() {
       setPosition(data.position)
       setEstimatedWait(data.estimated_wait)
     }
+    setLastRefresh(Date.now())
     setLoading(false)
   }
 
@@ -32,10 +34,12 @@ export default function QueueStatusPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-stone-50">
-        <div className="text-center animate-fade-in">
-          <div className="w-8 h-8 border-2 border-stone-300 border-t-stone-800 rounded-full animate-spin mx-auto mb-3"></div>
-          <p className="text-stone-400 text-sm font-sans">Loading your status...</p>
+      <main className="min-h-screen flex flex-col bg-stone-50">
+        {/* Skeleton header */}
+        <div className="h-[160px] skeleton" />
+        <div className="flex-1 flex flex-col items-center px-4 pt-8 gap-4">
+          <div className="w-full max-w-sm h-48 skeleton" />
+          <div className="w-full max-w-sm h-24 skeleton" />
         </div>
       </main>
     )
@@ -55,10 +59,13 @@ export default function QueueStatusPage() {
   const isSeated = entry.status === 'seated'
   const isLeft = entry.status === 'left'
 
+  // Calculate progress (max 5 positions, 100% when position is 1)
+  const progressPercent = isWaiting ? Math.min(100, Math.max(10, (1 - (position - 1) / 5) * 100)) : 100
+
   return (
     <main className="min-h-screen flex flex-col">
       {/* Header */}
-      <div className={`relative h-[160px] overflow-hidden`}>
+      <div className="relative h-[160px] overflow-hidden">
         <Image src="/images/hero.jpg" alt="Mr Jackson" fill className="object-cover" priority />
         <div className={`absolute inset-0 ${
           isCalled ? 'bg-gradient-to-b from-green-900/50 via-green-900/60 to-green-900/90' :
@@ -84,26 +91,47 @@ export default function QueueStatusPage() {
         }`}>
           {isWaiting && (
             <>
-              <div className="w-20 h-20 rounded-full bg-amber-50 border-2 border-amber-200 flex items-center justify-center mx-auto mb-4">
+              <div className="w-20 h-20 rounded-full bg-amber-50 border-2 border-amber-200 flex items-center justify-center mx-auto mb-4 animate-count-in">
                 <span className="text-4xl font-bold text-amber-800 font-sans">#{position}</span>
               </div>
               <h2 className="text-xl font-bold text-stone-900 mb-1">You&apos;re in the Queue</h2>
               <p className="text-stone-400 text-sm font-sans mb-4">
-                {position === 1 ? "You're next!" : `${position - 1} ${position - 1 === 1 ? 'party' : 'parties'} ahead of you`}
+                {position === 1 ? "You're next! 🎉" : `${position - 1} ${position - 1 === 1 ? 'party' : 'parties'} ahead of you`}
               </p>
+
+              {/* Progress Bar */}
+              <div className="mb-4">
+                <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-1000 ease-out animate-progress-pulse"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+                <div className="flex justify-between mt-1.5">
+                  <span className="text-[10px] text-stone-300 font-sans">Joined</span>
+                  <span className="text-[10px] text-stone-300 font-sans">Your turn</span>
+                </div>
+              </div>
+
               {estimatedWait > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-4">
                   <p className="text-xs text-amber-600 uppercase tracking-wide font-semibold font-sans">Estimated Wait</p>
-                  <p className="text-2xl font-bold text-amber-800 font-sans">~{estimatedWait} min</p>
+                  <p className="text-2xl font-bold text-amber-800 font-sans animate-count-in">~{estimatedWait} min</p>
                 </div>
               )}
               <p className="text-stone-400 text-sm font-sans">📱 We&apos;ll text you when your table is ready</p>
+
+              {/* Live indicator */}
+              <div className="flex items-center justify-center gap-1.5 mt-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-[10px] text-stone-300 font-sans">Live · updates every 15s</span>
+              </div>
             </>
           )}
 
           {isCalled && (
             <>
-              <div className="w-20 h-20 rounded-full bg-green-100 border-2 border-green-300 flex items-center justify-center mx-auto mb-4 animate-bounce">
+              <div className="w-20 h-20 rounded-full bg-green-100 border-2 border-green-300 flex items-center justify-center mx-auto mb-4 animate-confetti">
                 <span className="text-4xl">🔔</span>
               </div>
               <h2 className="text-2xl font-bold text-green-800 mb-2">Your Table is Ready!</h2>
@@ -116,7 +144,7 @@ export default function QueueStatusPage() {
 
           {isSeated && (
             <>
-              <div className="text-5xl mb-4">😋</div>
+              <div className="text-5xl mb-4 animate-confetti">😋</div>
               <h2 className="text-2xl font-bold text-blue-800 mb-2">Enjoy Your Meal!</h2>
               <p className="text-blue-600 font-sans">You&apos;re all settled in at Mr Jackson</p>
             </>
@@ -134,7 +162,7 @@ export default function QueueStatusPage() {
 
         {/* Guest Info */}
         {!isLeft && (
-          <div className="card w-full max-w-sm mt-3 animate-fade-in">
+          <div className="card w-full max-w-sm mt-3 animate-slide-up-1">
             <div className="flex justify-between text-sm font-sans">
               <span className="text-stone-400">Name</span>
               <span className="font-semibold text-stone-800">{entry.name}</span>
@@ -148,7 +176,7 @@ export default function QueueStatusPage() {
 
         {/* ── Order Options (while waiting) ── */}
         {isWaiting && (
-          <div className="w-full max-w-sm mt-5 space-y-3 animate-fade-in">
+          <div className="w-full max-w-sm mt-5 space-y-3 animate-slide-up-2">
             <p className="text-center text-stone-400 text-sm font-sans font-medium">While you wait...</p>
 
             {/* Order Now — Highlighted */}
@@ -156,13 +184,13 @@ export default function QueueStatusPage() {
               href={`/order/new?context=queue&name=${encodeURIComponent(entry.name)}&phone=${encodeURIComponent(entry.phone)}&queue_id=${entry.id}`}
               className="block"
             >
-              <div className="card border-2 border-amber-300 bg-amber-50/30 hover:border-amber-400 transition-all active:scale-[0.98]">
+              <div className="card border-2 border-amber-300 bg-amber-50/30 hover:border-amber-400 transition-all active:scale-[0.98] card-hover">
                 <div className="flex items-start gap-4">
                   <span className="text-3xl">🚀</span>
                   <div>
                     <h3 className="font-bold text-stone-900 text-[16px]">Order &amp; Pay Now</h3>
                     <p className="text-stone-500 text-sm mt-1 font-sans leading-relaxed">
-                      Your food will start being prepared and will be served the moment you&apos;re seated. No waiting for food!
+                      Your food will be served the moment you&apos;re seated. No waiting!
                     </p>
                   </div>
                 </div>
@@ -176,7 +204,7 @@ export default function QueueStatusPage() {
                 <div>
                   <h3 className="font-bold text-stone-900 text-[16px]">Order When Seated</h3>
                   <p className="text-stone-400 text-sm mt-1 font-sans leading-relaxed">
-                    Take your time — browse the menu and order at your own pace once you&apos;re comfortable at your table.
+                    Browse the menu and order at your own pace once you&apos;re comfortable.
                   </p>
                 </div>
               </div>
@@ -193,7 +221,7 @@ export default function QueueStatusPage() {
 
         {/* When seated, offer ordering */}
         {isSeated && (
-          <div className="w-full max-w-sm mt-5 animate-fade-in">
+          <div className="w-full max-w-sm mt-5 animate-slide-up-1">
             <Link
               href={`/order/new?context=dine_in&name=${encodeURIComponent(entry.name)}&phone=${encodeURIComponent(entry.phone)}`}
               className="btn-primary w-full flex items-center justify-center gap-2 py-4 text-base"
@@ -201,10 +229,6 @@ export default function QueueStatusPage() {
               <span>🍽️</span> Order & Pay
             </Link>
           </div>
-        )}
-
-        {isWaiting && (
-          <p className="text-xs text-stone-300 font-sans mt-4">Auto-refreshes every 15 seconds</p>
         )}
       </div>
     </main>

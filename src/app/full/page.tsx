@@ -5,16 +5,18 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import Image from 'next/image'
+import { ScrollReveal } from '@/components/ScrollReveal'
 
 export default function FullPage() {
   const router = useRouter()
   const [settings, setSettings] = useState<{ is_closed: boolean; estimated_wait: number } | null>(null)
-  const [form, setForm] = useState({ name: '', party_size: '2', phone: '' })
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [partySize, setPartySize] = useState(2)
   const [joining, setJoining] = useState(false)
   const [showJoinForm, setShowJoinForm] = useState(false)
 
   useEffect(() => {
-    // Check if tables actually became available
     Promise.all([
       fetch('/api/tables').then(r => r.json()).catch(() => null),
       fetch('/api/queue/settings').then(r => r.json()).catch(() => null),
@@ -29,8 +31,8 @@ export default function FullPage() {
 
   const handleJoinQueue = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.name.trim()) return toast.error('Please enter your name')
-    if (!form.phone.trim()) return toast.error('Please enter your phone number')
+    if (!name.trim()) return toast.error('Please enter your name')
+    if (!phone.trim()) return toast.error('Please enter your phone number')
 
     setJoining(true)
     try {
@@ -38,9 +40,9 @@ export default function FullPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: form.name.trim(),
-          party_size: parseInt(form.party_size),
-          phone: form.phone.trim(),
+          name: name.trim(),
+          party_size: partySize,
+          phone: phone.trim(),
         }),
       })
       const data = await res.json()
@@ -58,7 +60,7 @@ export default function FullPage() {
     <main className="min-h-screen flex flex-col">
       {/* Header */}
       <div className="relative h-[180px] overflow-hidden">
-        <Image src="/images/hero.jpg" alt="Mr Jackson" fill className="object-cover" priority />
+        <Image src="/images/hero.jpg" alt="Mr Jackson" fill className="object-cover animate-hero-zoom" priority />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/85" />
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4">
           <Link href="/join" className="absolute top-4 left-4 text-white/70 text-sm hover:text-white font-sans">← Back</Link>
@@ -71,7 +73,9 @@ export default function FullPage() {
       <div className="flex-1 max-w-sm mx-auto w-full px-4 -mt-4 relative z-10 pb-10">
         {/* Sorry message */}
         <div className="card text-center shadow-xl animate-slide-up mb-4">
-          <p className="text-3xl mb-3">😔</p>
+          <div className="animate-gentle-float">
+            <p className="text-3xl mb-3">😔</p>
+          </div>
           <p className="text-stone-700 font-semibold font-sans">All tables are currently occupied</p>
           <p className="text-stone-400 text-sm mt-1 font-sans">But don&apos;t worry — you&apos;ve got options!</p>
           {settings && (
@@ -83,19 +87,19 @@ export default function FullPage() {
         </div>
 
         {/* Options */}
-        <div className="space-y-3 animate-fade-in">
+        <div className="space-y-3 animate-slide-up-1">
           {/* Join the Queue */}
           {!showJoinForm ? (
             <button
               onClick={() => setShowJoinForm(true)}
-              className="w-full text-left card border-2 border-transparent hover:border-amber-300 transition-all active:scale-[0.98]"
+              className="w-full text-left card border-2 border-transparent hover:border-amber-300 transition-all active:scale-[0.98] card-hover"
             >
               <div className="flex items-start gap-4">
                 <span className="text-3xl">⏳</span>
                 <div>
                   <h3 className="font-bold text-stone-900 text-[16px]">Join the Queue</h3>
                   <p className="text-stone-400 text-sm mt-1 font-sans leading-relaxed">
-                    We&apos;ll seat you at the next available table. You can order &amp; pay now so your food is ready when you sit down, or order later at your own pace.
+                    We&apos;ll seat you at the next available table. You can pre-order so food&apos;s ready when you sit down.
                   </p>
                 </div>
               </div>
@@ -113,23 +117,22 @@ export default function FullPage() {
                     type="text"
                     className="input-field"
                     placeholder="e.g. Sarah"
-                    value={form.name}
-                    onChange={e => setForm({ ...form, name: e.target.value })}
+                    value={name}
+                    onChange={e => setName(e.target.value)}
                     autoComplete="given-name"
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 font-sans">Party Size</label>
-                  <select
-                    className="input-field appearance-none"
-                    value={form.party_size}
-                    onChange={e => setForm({ ...form, party_size: e.target.value })}
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-                      <option key={n} value={n}>{n} {n === 1 ? 'person' : 'people'}</option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-4 py-2">
+                    <button type="button" onClick={() => setPartySize(Math.max(1, partySize - 1))}
+                      className="w-11 h-11 rounded-full border border-stone-200 bg-white text-stone-600 font-bold text-lg flex items-center justify-center hover:border-stone-400 transition-all active:scale-95">−</button>
+                    <span className="text-2xl font-bold text-stone-900 w-8 text-center font-sans">{partySize}</span>
+                    <button type="button" onClick={() => setPartySize(Math.min(12, partySize + 1))}
+                      className="w-11 h-11 rounded-full border border-stone-200 bg-white text-stone-600 font-bold text-lg flex items-center justify-center hover:border-stone-400 transition-all active:scale-95">+</button>
+                    <span className="text-sm text-stone-400 font-sans">{partySize === 1 ? 'person' : 'people'}</span>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 font-sans">Mobile Number</label>
@@ -137,9 +140,10 @@ export default function FullPage() {
                     type="tel"
                     className="input-field"
                     placeholder="04XX XXX XXX"
-                    value={form.phone}
-                    onChange={e => setForm({ ...form, phone: e.target.value })}
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
                     autoComplete="tel"
+                    inputMode="tel"
                     required
                   />
                 </div>
@@ -151,31 +155,41 @@ export default function FullPage() {
                   {joining ? 'Joining...' : 'Join Queue'}
                 </button>
               </form>
+              <button
+                onClick={() => setShowJoinForm(false)}
+                className="w-full text-center text-xs text-stone-400 mt-2 py-1 hover:text-stone-600 font-sans"
+              >
+                Cancel
+              </button>
             </div>
           )}
 
           {/* Book a Table */}
-          <Link href="/book" className="block">
-            <div className="card border-2 border-transparent hover:border-stone-300 transition-all active:scale-[0.98]">
-              <div className="flex items-start gap-4">
-                <span className="text-3xl">📅</span>
-                <div>
-                  <h3 className="font-bold text-stone-900 text-[16px]">Book a Time</h3>
-                  <p className="text-stone-400 text-sm mt-1 font-sans leading-relaxed">
-                    Reserve a table for later. You can pre-order your food so it&apos;s ready when you arrive, or order when you get here.
-                  </p>
+          <ScrollReveal delay={100} direction="up">
+            <Link href="/book" className="block">
+              <div className="card border-2 border-transparent hover:border-stone-300 transition-all active:scale-[0.98] card-hover">
+                <div className="flex items-start gap-4">
+                  <span className="text-3xl">📅</span>
+                  <div>
+                    <h3 className="font-bold text-stone-900 text-[16px]">Book a Time</h3>
+                    <p className="text-stone-400 text-sm mt-1 font-sans leading-relaxed">
+                      Reserve a table for later. Pre-order so food&apos;s ready when you arrive.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </Link>
+            </Link>
+          </ScrollReveal>
 
           {/* Browse menu link */}
-          <Link
-            href="/menu"
-            className="block text-center text-stone-400 text-sm hover:text-stone-700 transition-colors py-3 font-sans"
-          >
-            Browse our menu while you decide →
-          </Link>
+          <ScrollReveal delay={200} direction="up">
+            <Link
+              href="/menu"
+              className="block text-center text-stone-400 text-sm hover:text-stone-700 transition-colors py-3 font-sans"
+            >
+              Browse our menu while you decide →
+            </Link>
+          </ScrollReveal>
         </div>
       </div>
     </main>

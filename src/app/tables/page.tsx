@@ -97,10 +97,15 @@ export default function TablesPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <div className="text-center animate-fade-in">
-          <div className="w-8 h-8 border-2 border-stone-300 border-t-stone-800 rounded-full animate-spin mx-auto mb-3"></div>
-          <p className="text-stone-400 text-sm font-sans">Loading tables...</p>
+      <main className="min-h-screen flex flex-col">
+        <div className="h-[160px] skeleton" />
+        <div className="flex-1 max-w-lg mx-auto w-full px-4 pt-4 space-y-4">
+          <div className="skeleton h-24 w-full" />
+          <div className="grid grid-cols-3 gap-3">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="skeleton aspect-square" />
+            ))}
+          </div>
         </div>
       </main>
     )
@@ -112,7 +117,7 @@ export default function TablesPage() {
     <main className="min-h-screen flex flex-col">
       {/* Header */}
       <div className="relative h-[160px] overflow-hidden">
-        <Image src="/images/hero.jpg" alt="Mr Jackson" fill className="object-cover" priority />
+        <Image src="/images/hero.jpg" alt="Mr Jackson" fill className="object-cover animate-hero-zoom" priority />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/80" />
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4">
           <Link href="/join" className="absolute top-4 left-4 text-white/70 text-sm hover:text-white font-sans">← Back</Link>

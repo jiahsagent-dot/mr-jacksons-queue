@@ -136,7 +136,7 @@ function NewOrderPage() {
     <main className="min-h-screen flex flex-col">
       {/* Header with photo */}
       <div className="relative h-[180px] overflow-hidden">
-        <Image src="/images/hero.jpg" alt="Mr Jackson" fill className="object-cover" priority />
+        <Image src="/images/hero.jpg" alt="Mr Jackson" fill className="object-cover animate-hero-zoom" priority />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/80"></div>
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4">
           <Link href="/join" className="absolute top-4 left-4 text-white/70 text-sm hover:text-white font-sans">← Back</Link>
@@ -167,22 +167,22 @@ function NewOrderPage() {
         )}
 
         {/* Steps */}
-        <div className="flex justify-center gap-2 mb-5">
+        <div className="flex items-center justify-center gap-0 mb-5">
           <button
             onClick={() => setStep('menu')}
-            className={`text-sm px-5 py-2 rounded-full font-medium transition-all font-sans ${
-              step === 'menu' ? 'bg-stone-900 text-white shadow-sm' : 'bg-white text-stone-400 border border-stone-200'
+            className={`text-sm px-5 py-2.5 rounded-l-full font-medium transition-all font-sans border ${
+              step === 'menu' ? 'bg-stone-900 text-white border-stone-900 shadow-sm z-10' : 'bg-white text-stone-400 border-stone-200'
             }`}
           >
-            1. Select Items
+            🍽️ Menu
           </button>
           <button
             onClick={() => count > 0 ? setStep('details') : toast.error('Add items first')}
-            className={`text-sm px-5 py-2 rounded-full font-medium transition-all font-sans ${
-              step === 'details' ? 'bg-stone-900 text-white shadow-sm' : 'bg-white text-stone-400 border border-stone-200'
+            className={`text-sm px-5 py-2.5 rounded-r-full font-medium transition-all font-sans border -ml-px ${
+              step === 'details' ? 'bg-stone-900 text-white border-stone-900 shadow-sm z-10' : 'bg-white text-stone-400 border-stone-200'
             }`}
           >
-            2. Book & Pay
+            💳 Pay{count > 0 ? ` (${count})` : ''}
           </button>
         </div>
 
