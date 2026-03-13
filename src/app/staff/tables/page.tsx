@@ -160,6 +160,14 @@ export default function StaffTablesPage() {
 
   const toggleTable = async (table: Table) => {
     const newStatus = table.status === 'available' ? 'occupied' : 'available'
+
+    // Optimistically update UI immediately so staff sees the change right away
+    setTables(prev => prev.map(t =>
+      t.table_number === table.table_number
+        ? { ...t, status: newStatus as Table['status'], current_customer: newStatus === 'available' ? undefined : t.current_customer }
+        : t
+    ))
+
     const res = await fetch('/api/staff/tables', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -172,9 +180,12 @@ export default function StaffTablesPage() {
       } else {
         toast.success(`Table ${table.table_number} → ${newStatus}`)
       }
-      fetchAll()
+      // Slight delay then re-fetch to pick up any notifyNextInQueue DB changes
+      setTimeout(() => fetchAll(), 800)
     } else {
       toast.error('Failed to update')
+      // Revert optimistic update on failure
+      fetchAll()
     }
   }
 
@@ -211,7 +222,8 @@ export default function StaffTablesPage() {
   }
 
   const available = tables.filter(t => t.status === 'available')
-  const occupied = tables.filter(t => t.status !== 'available')
+  const reserved = tables.filter(t => t.status === 'reserved')
+  const occupied = tables.filter(t => t.status === 'occupied')
 
   return (
     <main className="min-h-screen bg-[#faf8f5]">
@@ -220,7 +232,7 @@ export default function StaffTablesPage() {
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-xl font-bold text-stone-900" style={{ fontFamily: "'Playfair Display', serif" }}>Tables</h1>
-            <p className="text-xs text-stone-400 font-sans">{available.length} free · {occupied.length} occupied</p>
+            <p className="text-xs text-stone-400 font-sans">{available.length} free · {occupied.length} occupied{reserved.length > 0 ? ` · ${reserved.length} queue` : ''}</p>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
@@ -290,6 +302,12 @@ export default function StaffTablesPage() {
                 <p className="text-2xl font-bold text-red-700 font-sans">{occupied.length}</p>
                 <p className="text-[10px] text-red-600 font-semibold uppercase tracking-wide font-sans">Occupied</p>
               </div>
+              {reserved.length > 0 && (
+                <div className="flex-1 bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+                  <p className="text-2xl font-bold text-amber-700 font-sans">{reserved.length}</p>
+                  <p className="text-[10px] text-amber-600 font-semibold uppercase tracking-wide font-sans">Queue</p>
+                </div>
+              )}
               <button onClick={freeAll}
                 className="bg-white border border-stone-200 rounded-xl px-4 text-xs font-medium text-stone-500 hover:border-stone-400 transition-all font-sans">
                 Free All
@@ -307,11 +325,17 @@ export default function StaffTablesPage() {
                   <div
                     key={table.id}
                     className={`relative rounded-2xl p-4 border-2 ${
-                      table.status === 'available' ? 'bg-white border-green-200' : 'bg-red-50 border-red-200'
+                      table.status === 'available'
+                        ? 'bg-white border-green-200'
+                        : table.status === 'reserved'
+                          ? 'bg-amber-50 border-amber-200'
+                          : 'bg-red-50 border-red-200'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-lg">{table.status === 'available' ? '🟢' : '🔴'}</span>
+                      <span className="text-lg">
+                        {table.status === 'available' ? '🟢' : table.status === 'reserved' ? '🟡' : '🔴'}
+                      </span>
                       <span className="text-[10px] text-stone-400 font-sans">{table.seats} seats</span>
                     </div>
                     <p className="font-bold text-stone-800 text-sm font-sans">{table.label}</p>
@@ -322,10 +346,13 @@ export default function StaffTablesPage() {
                       )}
                     </div>
 
-                    {table.status === 'occupied' && table.current_customer && (
-                      <p className="text-[11px] text-red-600 font-sans mt-1 truncate">👤 {table.current_customer}</p>
+                    {(table.status === 'occupied' || table.status === 'reserved') && table.current_customer && (
+                      <p className={`text-[11px] font-sans mt-1 truncate ${table.status === 'reserved' ? 'text-amber-600' : 'text-red-600'}`}>
+                        {table.status === 'reserved' ? '⏳' : '👤'} {table.current_customer}
+                        {table.status === 'reserved' && <span className="ml-1 text-[9px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700 px-1 py-0.5 rounded">Queue</span>}
+                      </p>
                     )}
-                    {table.status === 'occupied' && table.occupied_at && (
+                    {(table.status === 'occupied') && table.occupied_at && (
                       <p className="text-[10px] text-stone-400 font-sans">{minutesAgo(table.occupied_at)}m ago</p>
                     )}
 

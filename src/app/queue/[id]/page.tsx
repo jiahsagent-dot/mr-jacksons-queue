@@ -15,7 +15,8 @@ export default function QueueStatusPage() {
   const [lastRefresh, setLastRefresh] = useState(Date.now())
 
   const fetchStatus = async () => {
-    const res = await fetch(`/api/queue/status?id=${id}`)
+    // Cache-bust every request so position always reflects live DB state
+    const res = await fetch(`/api/queue/status?id=${id}&_t=${Date.now()}`)
     if (res.ok) {
       const data = await res.json()
       setEntry(data.entry)
@@ -28,7 +29,8 @@ export default function QueueStatusPage() {
 
   useEffect(() => {
     fetchStatus()
-    const interval = setInterval(fetchStatus, 15000)
+    // Poll every 8s (was 15s) for quicker position updates
+    const interval = setInterval(fetchStatus, 8000)
     return () => clearInterval(interval)
   }, [id])
 
