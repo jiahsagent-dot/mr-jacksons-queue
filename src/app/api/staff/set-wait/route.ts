@@ -19,6 +19,14 @@ export async function POST(req: NextRequest) {
     .select()
 
   if (error) {
+    // If error is due to missing column (migration not yet run), retry without that field
+    if (error.code === '42703' && update.no_show_minutes !== undefined) {
+      const { no_show_minutes: _, ...safeUpdate } = update
+      const { data: d2, error: e2 } = await admin
+        .from('queue_settings').update(safeUpdate).eq('id', 1).select()
+      if (e2) return NextResponse.json({ error: e2.message }, { status: 500 })
+      return NextResponse.json({ success: true, settings: d2?.[0], note: 'no_show_minutes not persisted — run DB migration' })
+    }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
   if (!data || data.length === 0) {

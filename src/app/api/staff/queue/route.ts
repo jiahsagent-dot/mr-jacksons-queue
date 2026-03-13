@@ -14,10 +14,17 @@ export async function GET() {
   const [waitingRes, calledRes, settingsRes] = await Promise.all([
     admin.from('queue_entries').select('*').eq('status', 'waiting').order('created_at', { ascending: true }),
     admin.from('queue_entries').select('*').eq('status', 'called').order('called_at', { ascending: true }),
-    admin.from('queue_settings').select('is_closed, estimated_wait, no_show_minutes').eq('id', 1).single(),
+    admin.from('queue_settings').select('is_closed, estimated_wait').eq('id', 1).single(),
   ])
 
-  const noShowMinutes = settingsRes.data?.no_show_minutes ?? DEFAULT_NO_SHOW_MINUTES
+  // Fetch no_show_minutes separately — column may not exist yet (migration pending)
+  const { data: nsData } = await admin
+    .from('queue_settings')
+    .select('no_show_minutes')
+    .eq('id', 1)
+    .single()
+    .catch(() => ({ data: null }))
+  const noShowMinutes: number = (nsData as any)?.no_show_minutes ?? DEFAULT_NO_SHOW_MINUTES
 
   // Auto-expire no-shows on every poll (staff page polls every 10s)
   const expiredNames = await expireNoShows(admin, noShowMinutes)
