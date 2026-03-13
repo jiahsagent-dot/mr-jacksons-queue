@@ -9,22 +9,18 @@ function getAdmin() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 }
 
-// GET /api/bookings/lookup?code=MJ-1234&table_code=2072
+// GET /api/bookings/lookup?code=MJ-1234
 export async function GET(req: NextRequest) {
   const params = new URL(req.url).searchParams
   const code = params.get('code')?.trim().toUpperCase()
-  const tableCode = params.get('table_code')?.trim()
 
   if (!code) {
     return NextResponse.json({ error: 'Booking code is required' }, { status: 400 })
   }
-  if (!tableCode) {
-    return NextResponse.json({ error: 'Table code is required' }, { status: 400 })
-  }
 
   const admin = getAdmin()
 
-  // Look up booking
+  // Look up booking by code only
   const { data: booking, error } = await admin
     .from('bookings')
     .select('*')
@@ -36,22 +32,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Booking not found. Check your code and try again.' }, { status: 404 })
   }
 
-  if (!booking.table_number) {
-    return NextResponse.json({ error: 'No table assigned to this booking.' }, { status: 400 })
-  }
-
-  // Verify table code matches
-  const { data: table } = await admin
-    .from('tables')
-    .select('table_code')
-    .eq('table_number', booking.table_number)
-    .single()
-
-  if (!table || table.table_code !== tableCode) {
-    return NextResponse.json({ error: 'Wrong table code. Check the code on your table and try again.' }, { status: 403 })
-  }
-
-  // Mark as confirmed
+  // Mark as confirmed/seated on first check-in
   if (!booking.confirmed_at) {
     await admin
       .from('bookings')

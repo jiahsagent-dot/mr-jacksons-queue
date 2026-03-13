@@ -37,7 +37,6 @@ export default function JoinPage() {
   const [seated, setSeated] = useState<SeatedInfo | null>(null)
   const [showCodeEntry, setShowCodeEntry] = useState(false)
   const [bookingCode, setBookingCode] = useState('')
-  const [tableCode, setTableCode] = useState('')
   const [codeLoading, setCodeLoading] = useState(false)
 
   useEffect(() => {
@@ -59,10 +58,9 @@ export default function JoinPage() {
 
   const lookupBooking = async () => {
     if (!bookingCode.trim()) return toast.error('Enter your booking code')
-    if (!tableCode.trim()) return toast.error('Enter the code on your table')
     setCodeLoading(true)
     try {
-      const res = await fetch(`/api/bookings/lookup?code=${encodeURIComponent(bookingCode.trim())}&table_code=${encodeURIComponent(tableCode.trim())}`)
+      const res = await fetch(`/api/bookings/lookup?code=${encodeURIComponent(bookingCode.trim())}`)
       const data = await res.json()
       if (!res.ok) {
         toast.error(data.error || 'Booking not found')
@@ -187,32 +185,17 @@ export default function JoinPage() {
               </button>
             ) : (
               <div className="card border-2 border-amber-300 bg-amber-50/30">
-                <p className="text-sm font-semibold text-stone-900 text-center mb-1">Confirm You&apos;re Here</p>
-                <p className="text-xs text-stone-400 text-center mb-3 font-sans">Enter your booking code and the 4-digit code on your table</p>
+                <p className="text-sm font-semibold text-stone-900 text-center mb-1">Have a Booking?</p>
+                <p className="text-xs text-stone-400 text-center mb-3 font-sans">Enter the code from your confirmation SMS</p>
                 <div className="space-y-2">
-                  <div>
-                    <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-1 font-sans">Booking Code (from your SMS)</label>
-                    <input
-                      type="text"
-                      className="input-field text-center text-lg font-bold tracking-wider uppercase"
-                      placeholder="MJ-0000"
-                      value={bookingCode}
-                      onChange={e => setBookingCode(e.target.value.toUpperCase())}
-                      maxLength={7}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-1 font-sans">Table Code (on your table)</label>
-                    <input
-                      type="text"
-                      className="input-field text-center text-lg font-bold tracking-wider"
-                      placeholder="0000"
-                      value={tableCode}
-                      onChange={e => setTableCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                      maxLength={4}
-                      inputMode="numeric"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    className="input-field text-center text-lg font-bold tracking-wider uppercase"
+                    placeholder="MJ-0000"
+                    value={bookingCode}
+                    onChange={e => setBookingCode(e.target.value.toUpperCase())}
+                    maxLength={7}
+                  />
                   <button
                     onClick={lookupBooking}
                     disabled={codeLoading}
@@ -222,7 +205,7 @@ export default function JoinPage() {
                   </button>
                 </div>
                 <button
-                  onClick={() => { setShowCodeEntry(false); setBookingCode(''); setTableCode('') }}
+                  onClick={() => { setShowCodeEntry(false); setBookingCode('') }}
                   className="w-full text-center text-xs text-stone-400 mt-2 py-1 hover:text-stone-600 font-sans"
                 >
                   Cancel
