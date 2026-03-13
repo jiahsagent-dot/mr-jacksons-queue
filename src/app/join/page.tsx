@@ -179,37 +179,51 @@ export default function JoinPage() {
             {!showCodeEntry ? (
               <button
                 onClick={() => setShowCodeEntry(true)}
-                className="w-full py-3 text-sm text-amber-700 font-semibold font-sans hover:text-amber-900 transition-colors"
+                className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border-2 border-amber-300 bg-amber-50 text-amber-800 font-semibold text-sm font-sans hover:bg-amber-100 hover:border-amber-400 active:scale-[0.98] transition-all shadow-sm"
               >
-                Have a booking code? Tap here
+                <span className="text-base">📅</span>
+                <span>I have a booking</span>
+                <span className="text-amber-400 text-xs ml-1">→</span>
               </button>
             ) : (
-              <div className="card border-2 border-amber-300 bg-amber-50/30">
-                <p className="text-sm font-semibold text-stone-900 text-center mb-1">Have a Booking?</p>
-                <p className="text-xs text-stone-400 text-center mb-3 font-sans">Enter the code from your confirmation SMS</p>
-                <div className="space-y-2">
+              <div className="w-full rounded-3xl overflow-hidden shadow-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 animate-slide-up">
+                {/* Header strip */}
+                <div className="bg-gradient-to-r from-amber-500 to-orange-400 px-5 py-4 text-white text-center">
+                  <div className="text-2xl mb-1">📅</div>
+                  <p className="font-bold text-base tracking-tight">I have a booking</p>
+                  <p className="text-white/80 text-xs font-sans mt-0.5">Enter the code from your SMS</p>
+                </div>
+
+                {/* Input area */}
+                <div className="px-5 py-5 space-y-3">
                   <input
                     type="text"
-                    className="input-field text-center text-lg font-bold tracking-wider uppercase"
+                    className="w-full text-center text-2xl font-bold tracking-[0.25em] uppercase bg-white border-2 border-amber-200 rounded-2xl px-4 py-4 text-stone-900 placeholder-stone-300 focus:outline-none focus:border-amber-400 transition-colors"
                     placeholder="MJ-0000"
                     value={bookingCode}
                     onChange={e => setBookingCode(e.target.value.toUpperCase())}
                     maxLength={7}
+                    autoFocus
                   />
                   <button
                     onClick={lookupBooking}
                     disabled={codeLoading}
-                    className="btn-primary w-full py-3 disabled:opacity-50"
+                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-400 text-white font-bold text-base shadow-md active:scale-[0.98] transition-all disabled:opacity-50"
                   >
-                    {codeLoading ? 'Checking...' : 'Confirm & Order'}
+                    {codeLoading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" />
+                        Checking...
+                      </span>
+                    ) : '✓ Check In & Order'}
+                  </button>
+                  <button
+                    onClick={() => { setShowCodeEntry(false); setBookingCode('') }}
+                    className="w-full text-center text-xs text-stone-400 py-1 hover:text-stone-600 font-sans transition-colors"
+                  >
+                    Cancel
                   </button>
                 </div>
-                <button
-                  onClick={() => { setShowCodeEntry(false); setBookingCode('') }}
-                  className="w-full text-center text-xs text-stone-400 mt-2 py-1 hover:text-stone-600 font-sans"
-                >
-                  Cancel
-                </button>
               </div>
             )}
           </div>
