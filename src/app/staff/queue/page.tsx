@@ -7,9 +7,21 @@ import Link from 'next/link'
 import type { QueueEntry } from '@/lib/supabase'
 
 const WAIT_OPTIONS = [5, 10, 15, 20, 30]
+const NO_SHOW_OPTIONS = [5, 10, 15, 20]
 
 function minutesWaiting(iso: string) {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+}
+
+function secondsWaiting(iso: string) {
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+}
+
+function formatCountdown(secondsLeft: number): string {
+  if (secondsLeft <= 0) return '0:00'
+  const m = Math.floor(secondsLeft / 60)
+  const s = secondsLeft % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
 }
 
 export default function StaffQueuePage() {
@@ -19,6 +31,8 @@ export default function StaffQueuePage() {
   const [called, setCalled] = useState<QueueEntry[]>([])
   const [isClosed, setIsClosed] = useState(false)
   const [waitTime, setWaitTime] = useState(20)
+  const [noShowMinutes, setNoShowMinutes] = useState(10)
+  const [tick, setTick] = useState(0) // for live countdown re-renders
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -28,7 +42,7 @@ export default function StaffQueuePage() {
   }, [])
 
   const fetchQueue = useCallback(async () => {
-    const res = await fetch('/api/staff/queue')
+    const res = await fetch(`/api/staff/queue?_t=${Date.now()}`)
     if (res.status === 401) { router.push('/staff/login'); return }
     if (res.ok) {
       const data = await res.json()
@@ -36,6 +50,13 @@ export default function StaffQueuePage() {
       setCalled(data.called)
       setIsClosed(data.is_closed)
       setWaitTime(data.estimated_wait)
+      setNoShowMinutes(data.no_show_minutes ?? 10)
+      // Toast any auto-expired no-shows
+      if (data.expired?.length > 0) {
+        data.expired.forEach((name: string) => {
+          toast.error(`⏰ ${name} didn't show up — table freed & next person notified`)
+        })
+      }
     }
   }, [router])
 
@@ -45,6 +66,12 @@ export default function StaffQueuePage() {
     const interval = setInterval(fetchQueue, 10000)
     return () => clearInterval(interval)
   }, [token, fetchQueue])
+
+  // 1-second ticker for live countdowns
+  useEffect(() => {
+    const t = setInterval(() => setTick(n => n + 1), 1000)
+    return () => clearInterval(t)
+  }, [])
 
   const callNext = async () => {
     if (waiting.length === 0) return toast.error('Queue is empty')
@@ -81,6 +108,16 @@ export default function StaffQueuePage() {
       body: JSON.stringify({ minutes: mins }),
     })
     if (res.ok) toast.success(`Wait time set to ${mins} mins`)
+  }
+
+  const setNoShow = async (mins: number) => {
+    setNoShowMinutes(mins)
+    const res = await fetch('/api/staff/set-wait', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ no_show_minutes: mins }),
+    })
+    if (res.ok) toast.success(`No-show timeout set to ${mins} mins`)
   }
 
   const toggleQueue = async () => {
@@ -135,32 +172,48 @@ export default function StaffQueuePage() {
       </div>
 
       {/* Controls */}
-      <div className="card mb-5">
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-          <button
-            onClick={callNext}
-            disabled={loading || waiting.length === 0}
-            className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            🔔 Call Next Table
-          </button>
-          <div>
-            <p className="text-xs text-stone-500 mb-2">Estimated wait</p>
-            <div className="flex gap-2 flex-wrap">
-              {WAIT_OPTIONS.map(mins => (
-                <button
-                  key={mins}
-                  onClick={() => setWait(mins)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
-                    waitTime === mins
-                      ? 'bg-stone-800 text-white border-stone-800'
-                      : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'
-                  }`}
-                >
-                  {mins}m
-                </button>
-              ))}
-            </div>
+      <div className="card mb-5 space-y-4">
+        <button
+          onClick={callNext}
+          disabled={loading || waiting.length === 0}
+          className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          🔔 Call Next Table
+        </button>
+        <div>
+          <p className="text-xs text-stone-500 mb-2">Estimated wait</p>
+          <div className="flex gap-2 flex-wrap">
+            {WAIT_OPTIONS.map(mins => (
+              <button
+                key={mins}
+                onClick={() => setWait(mins)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                  waitTime === mins
+                    ? 'bg-stone-800 text-white border-stone-800'
+                    : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'
+                }`}
+              >
+                {mins}m
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="text-xs text-stone-500 mb-2">⏰ No-show timeout — auto-remove if not seated within</p>
+          <div className="flex gap-2 flex-wrap">
+            {NO_SHOW_OPTIONS.map(mins => (
+              <button
+                key={mins}
+                onClick={() => setNoShow(mins)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                  noShowMinutes === mins
+                    ? 'bg-red-700 text-white border-red-700'
+                    : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'
+                }`}
+              >
+                {mins}m
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -207,24 +260,60 @@ export default function StaffQueuePage() {
       {called.length > 0 && (
         <section>
           <h2 className="text-base font-bold text-stone-700 uppercase tracking-wide mb-3">
-            Called ({called.length})
+            Called — waiting to arrive ({called.length})
           </h2>
           <div className="space-y-2">
-            {called.map(entry => (
-              <div key={entry.id} className="card flex items-center gap-3 opacity-80">
-                <div className="text-green-400 text-xl flex-shrink-0">🔔</div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-stone-900">{entry.name}</p>
-                  <p className="text-sm text-stone-400">{entry.party_size} people · SMS sent</p>
+            {called.map(entry => {
+              void tick // causes re-render every second for live countdown
+              const calledAt = entry.called_at ? new Date(entry.called_at) : new Date()
+              const secondsElapsed = Math.floor((Date.now() - calledAt.getTime()) / 1000)
+              const totalSeconds = noShowMinutes * 60
+              const secondsLeft = Math.max(0, totalSeconds - secondsElapsed)
+              const pct = Math.max(0, (secondsLeft / totalSeconds) * 100)
+              const isUrgent = secondsLeft < 120 // under 2 min = red
+              const isWarning = secondsLeft < totalSeconds / 2 // under half = amber
+
+              return (
+                <div key={entry.id} className={`card border-2 ${isUrgent ? 'border-red-300 bg-red-50' : isWarning ? 'border-amber-200 bg-amber-50' : 'border-stone-100'}`}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`text-xl flex-shrink-0 ${isUrgent ? 'animate-pulse' : ''}`}>
+                      {isUrgent ? '🚨' : '🔔'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-stone-900">{entry.name}</p>
+                      <p className="text-sm text-stone-400">{entry.party_size} {entry.party_size === 1 ? 'person' : 'people'} · SMS sent · {minutesWaiting(entry.called_at || '')}m ago</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className={`text-lg font-bold font-mono tabular-nums ${isUrgent ? 'text-red-600' : isWarning ? 'text-amber-600' : 'text-stone-500'}`}>
+                        {formatCountdown(secondsLeft)}
+                      </p>
+                      <p className="text-[10px] text-stone-400">remaining</p>
+                    </div>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden mb-3">
+                    <div
+                      className={`h-full rounded-full transition-all duration-1000 ${isUrgent ? 'bg-red-500' : isWarning ? 'bg-amber-400' : 'bg-green-400'}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => updateStatus(entry.id, 'seated', entry.name)}
+                      className="flex-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-lg border border-blue-200 font-medium"
+                    >
+                      ✓ Seated
+                    </button>
+                    <button
+                      onClick={() => updateStatus(entry.id, 'left', entry.name)}
+                      className="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg border border-red-200 font-medium"
+                    >
+                      No-show
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => updateStatus(entry.id, 'seated', entry.name)}
-                  className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-lg border border-blue-200 font-medium"
-                >
-                  ✓ Seated
-                </button>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </section>
       )}

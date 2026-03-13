@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (body.minutes !== undefined) update.estimated_wait = body.minutes
   if (body.is_closed !== undefined) update.is_closed = body.is_closed
+  if (body.no_show_minutes !== undefined) update.no_show_minutes = body.no_show_minutes
 
   const { data, error } = await admin
     .from('queue_settings')

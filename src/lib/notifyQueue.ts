@@ -48,10 +48,10 @@ export async function notifyNextInQueue(admin: SupabaseClient, tableNumber: numb
 
   if (!next) return null
 
-  // Mark them as called
+  // Mark them as called, store which table they were assigned
   await admin
     .from('queue_entries')
-    .update({ status: 'called', called_at: new Date().toISOString() })
+    .update({ status: 'called', called_at: new Date().toISOString(), assigned_table: tableNumber })
     .eq('id', next.id)
 
   // Reserve the table for them
