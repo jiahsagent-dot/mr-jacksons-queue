@@ -18,13 +18,15 @@ export async function GET() {
   ])
 
   // Fetch no_show_minutes separately — column may not exist yet (migration pending)
-  const { data: nsData } = await admin
-    .from('queue_settings')
-    .select('no_show_minutes')
-    .eq('id', 1)
-    .single()
-    .catch(() => ({ data: null }))
-  const noShowMinutes: number = (nsData as any)?.no_show_minutes ?? DEFAULT_NO_SHOW_MINUTES
+  let noShowMinutes: number = DEFAULT_NO_SHOW_MINUTES
+  try {
+    const { data: nsData } = await admin
+      .from('queue_settings')
+      .select('no_show_minutes')
+      .eq('id', 1)
+      .single()
+    if ((nsData as any)?.no_show_minutes) noShowMinutes = (nsData as any).no_show_minutes
+  } catch { /* column doesn't exist yet — use default */ }
 
   // Auto-expire no-shows on every poll (staff page polls every 10s)
   const expiredNames = await expireNoShows(admin, noShowMinutes)
