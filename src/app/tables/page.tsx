@@ -22,7 +22,6 @@ export default function TablesPage() {
   const [selected, setSelected] = useState<number | null>(null)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
-  const [tableCode, setTableCode] = useState('')
   const [confirming, setConfirming] = useState(false)
   const [orderRef, setOrderRef] = useState<string | null>(null)
   const [orderId, setOrderId] = useState<string | null>(null)
@@ -45,20 +44,12 @@ export default function TablesPage() {
     if (!selected) return toast.error('Please select a table')
     if (!name.trim()) return toast.error('Please enter your name')
     if (!phone.trim()) return toast.error('Please enter your mobile number')
-    if (!tableCode.trim() || tableCode.length < 4) return toast.error('Enter the 4-digit code on your table')
+    const phoneDigits = phone.replace(/[\s\-\(\)\+]/g, '')
+    const isValidAU = /^0[0-9]{9}$/.test(phoneDigits) || /^61[0-9]{9}$/.test(phoneDigits)
+    if (!isValidAU) return toast.error('Please enter a valid Australian phone number (e.g. 0483 880 253)')
 
     setConfirming(true)
     try {
-      // Verify table code first
-      const verifyRes = await fetch(`/api/tables/verify?table_number=${selected}&code=${encodeURIComponent(tableCode.trim())}`)
-      const verifyData = await verifyRes.json()
-
-      if (!verifyRes.ok) {
-        toast.error(verifyData.error || 'Wrong table code')
-        setConfirming(false)
-        return
-      }
-
       // Create pending order immediately so customer has their order number
       // Table will be marked occupied only after payment is confirmed
       const orderRes = await fetch('/api/order/pending', {
@@ -170,7 +161,6 @@ export default function TablesPage() {
                   onClick={() => {
                     if (isAvailable) {
                       setSelected(table.table_number)
-                      setTableCode('')
                     }
                   }}
                   disabled={!isAvailable}
@@ -209,26 +199,11 @@ export default function TablesPage() {
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-300" /> Occupied</span>
         </div>
 
-        {/* Table code input — appears when table selected */}
-        {selected && (
-          <div className="card mt-4 border-2 border-amber-300 bg-amber-50/30 animate-slide-up">
-            <p className="text-sm font-semibold text-stone-900 text-center mb-1">Enter Table Code</p>
-            <p className="text-xs text-stone-400 text-center mb-3 font-sans">Look for the 4-digit code on your table</p>
-            <input
-              type="text"
-              className="input-field text-center text-2xl font-bold tracking-[0.3em]"
-              placeholder="0000"
-              value={tableCode}
-              onChange={e => setTableCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-              maxLength={4}
-              inputMode="numeric"
-            />
-          </div>
-        )}
+
       </div>
 
       {/* Fixed bottom bar */}
-      {selected && name.trim() && phone.trim() && tableCode.length === 4 && (
+      {selected && name.trim() && phone.trim() && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 pt-4 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] animate-slide-up" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
           <div className="max-w-lg mx-auto">
             <p className="text-xs text-stone-400 text-center mb-3 font-sans">
