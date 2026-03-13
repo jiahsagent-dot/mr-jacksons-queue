@@ -108,6 +108,7 @@ const DINING_LABEL: Record<string, string> = {
 export default function StaffOrdersPage() {
   const router = useRouter()
   const [orders, setOrders] = useState<Order[]>([])
+  const [allTables, setAllTables] = useState<number[]>([])
   const [view, setView] = useState<'kitchen' | 'all'>('kitchen')
   const [loading, setLoading] = useState(true)
   const [tableFilter, setTableFilter] = useState<number | null>(null)
@@ -126,8 +127,18 @@ export default function StaffOrdersPage() {
     setLoading(false)
   }
 
+  const fetchTables = async () => {
+    const res = await fetch(`/api/tables?_t=${Date.now()}`)
+    if (res.ok) {
+      const data = await res.json()
+      const nums = (data.tables || []).map((t: any) => t.table_number as number).sort((a: number, b: number) => a - b)
+      setAllTables(nums)
+    }
+  }
+
   useEffect(() => {
     fetchOrders()
+    fetchTables()
     const interval = setInterval(fetchOrders, 8000)
     return () => clearInterval(interval)
   }, [])
@@ -343,7 +354,10 @@ export default function StaffOrdersPage() {
         {(() => {
           const servedOrders = orders.filter(o => o.status === 'served')
           const todayRevenue = servedOrders.reduce((sum, o) => sum + total(o.items), 0)
-          const tableNumbers = Array.from(new Set(orders.filter(o => o.table_number).map(o => o.table_number))).sort((a, b) => (a || 0) - (b || 0))
+          // Use allTables from DB so all tables always show (not just ones with active orders)
+          const tableNumbers = allTables.length > 0
+            ? allTables
+            : Array.from(new Set(orders.filter(o => o.table_number).map(o => o.table_number))).sort((a, b) => (a || 0) - (b || 0))
 
           return (
             <>
@@ -366,7 +380,7 @@ export default function StaffOrdersPage() {
                 </div>
               </div>
 
-              {/* Table filter */}
+              {/* Table filter — always shows all tables from DB */}
               {tableNumbers.length > 0 && (
                 <div className="flex gap-1.5 flex-wrap mb-3">
                   <button
