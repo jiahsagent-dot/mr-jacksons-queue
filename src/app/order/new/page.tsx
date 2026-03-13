@@ -108,6 +108,10 @@ function NewOrderPage() {
   const handleCheckout = async () => {
     if (!name.trim()) return toast.error('Please enter your name')
     if (!phone.trim()) return toast.error('Please enter your phone number')
+    // Validate AU phone number: strip spaces/dashes, must be 10 digits starting with 0 or 04
+    const phoneDigits = phone.replace(/[\s\-\(\)\+]/g, '')
+    const isValidAU = /^0[0-9]{9}$/.test(phoneDigits) || /^61[0-9]{9}$/.test(phoneDigits)
+    if (!isValidAU) return toast.error('Please enter a valid Australian phone number (e.g. 0483 880 253)')
     if (needsDateTime && !selectedDate) return toast.error('Please select a date')
     if (needsDateTime && !timeSlot) return toast.error('Please select a time')
     if (items.length === 0) return toast.error('Your cart is empty')

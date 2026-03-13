@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { formatPhone } from '@/lib/phone'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -147,15 +148,7 @@ export async function POST(req: NextRequest) {
 
         // Send SMS receipt
         if (phone) {
-          // Format AU numbers
-          let formattedPhone = phone.trim()
-          if (formattedPhone.startsWith('0')) {
-            formattedPhone = '+61' + formattedPhone.slice(1)
-          } else if (!formattedPhone.startsWith('+')) {
-            formattedPhone = '+61' + formattedPhone
-          }
-
-          await sendSMS(formattedPhone, smsBody)
+          await sendSMS(formatPhone(phone), smsBody)
         }
       }
     }

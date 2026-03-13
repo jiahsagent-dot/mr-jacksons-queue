@@ -2,17 +2,11 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { notifyNextInQueue } from '@/lib/notifyQueue'
+import { formatPhone } from '@/lib/phone'
 
 const CLICKSEND_USERNAME = process.env.CLICKSEND_USERNAME || 'jiahsagent@gmail.com'
 const CLICKSEND_API_KEY = process.env.CLICKSEND_API_KEY || '6A27AE52-866F-25C1-158C-C1D17531DBA7'
 const RESTAURANT_PHONE = '03 5909 8815'
-
-function formatPhone(phone: string): string {
-  let p = phone.trim()
-  if (p.startsWith('0')) p = '+61' + p.slice(1)
-  else if (!p.startsWith('+')) p = '+61' + p
-  return p
-}
 
 async function sendSMS(to: string, body: string) {
   try {

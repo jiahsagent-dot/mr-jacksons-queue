@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js'
+import { formatPhone } from './phone'
 
 const CLICKSEND_USERNAME = process.env.CLICKSEND_USERNAME || 'jiahsagent@gmail.com'
 const CLICKSEND_API_KEY = process.env.CLICKSEND_API_KEY || '6A27AE52-866F-25C1-158C-C1D17531DBA7'
@@ -6,21 +7,18 @@ const CLICKSEND_API_KEY = process.env.CLICKSEND_API_KEY || '6A27AE52-866F-25C1-1
 async function sendSMS(to: string, body: string) {
   try {
     const credentials = Buffer.from(`${CLICKSEND_USERNAME}:${CLICKSEND_API_KEY}`).toString('base64')
-    await fetch('https://rest.clicksend.com/v3/sms/send', {
+    const res = await fetch('https://rest.clicksend.com/v3/sms/send', {
       method: 'POST',
       headers: { 'Authorization': `Basic ${credentials}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages: [{ source: 'mr-jacksons', to, body }] }),
     })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      console.error('SMS failed:', JSON.stringify(err))
+    }
   } catch (err: any) {
     console.error('SMS failed:', err.message)
   }
-}
-
-function formatPhone(phone: string): string {
-  let p = phone.trim()
-  if (p.startsWith('0')) p = '+61' + p.slice(1)
-  else if (!p.startsWith('+')) p = '+61' + p
-  return p
 }
 
 /**
