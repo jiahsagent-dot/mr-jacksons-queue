@@ -35,9 +35,9 @@ export default function JoinPage() {
   const [tableInfo, setTableInfo] = useState<TableInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [seated, setSeated] = useState<SeatedInfo | null>(null)
-  const [showCodeEntry, setShowCodeEntry] = useState(false)
-  const [bookingCode, setBookingCode] = useState('')
-  const [codeLoading, setCodeLoading] = useState(false)
+  const [showBookingEntry, setShowBookingEntry] = useState(false)
+  const [bookingPhone, setBookingPhone] = useState('')
+  const [bookingLoading, setBookingLoading] = useState(false)
 
   useEffect(() => {
     // Check if customer is already seated at a table
@@ -46,28 +46,34 @@ export default function JoinPage() {
       try { setSeated(JSON.parse(storedTable)) } catch {}
     }
 
-    Promise.all([
-      fetch(`/api/queue/settings?_t=${Date.now()}`).then(r => r.json()).catch(() => null),
-      fetch(`/api/tables?_t=${Date.now()}`).then(r => r.json()).catch(() => null),
-    ]).then(([settingsData, tablesData]) => {
-      setSettings(settingsData)
-      setTableInfo(tablesData)
-      setLoading(false)
-    })
+    const fetchLiveData = () => {
+      Promise.all([
+        fetch(`/api/queue/settings?_t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()).catch(() => null),
+        fetch(`/api/tables?_t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()).catch(() => null),
+      ]).then(([settingsData, tablesData]) => {
+        setSettings(settingsData)
+        setTableInfo(tablesData)
+        setLoading(false)
+      })
+    }
+    fetchLiveData()
+    const interval = setInterval(fetchLiveData, 10000)
+    return () => clearInterval(interval)
   }, [])
 
   const lookupBooking = async () => {
-    if (!bookingCode.trim()) return toast.error('Enter your booking code')
-    setCodeLoading(true)
+    const cleaned = bookingPhone.replace(/\D/g, '')
+    if (!cleaned) return toast.error('Enter your phone number')
+    if (cleaned.length < 10) return toast.error('Please enter a valid phone number')
+    setBookingLoading(true)
     try {
-      const res = await fetch(`/api/bookings/lookup?code=${encodeURIComponent(bookingCode.trim())}`)
+      const res = await fetch(`/api/bookings/lookup?phone=${encodeURIComponent(cleaned)}`)
       const data = await res.json()
       if (!res.ok) {
-        toast.error(data.error || 'Booking not found')
+        toast.error(data.error || 'No booking found for this number')
         return
       }
       const b = data.booking
-      // Store booking info and go to order page
       sessionStorage.setItem('mr_jackson_booking', JSON.stringify(b))
       if (b.table_number) {
         sessionStorage.setItem('mr_jackson_table', JSON.stringify({
@@ -75,13 +81,20 @@ export default function JoinPage() {
           customer_name: b.customer_name,
         }))
       }
-      router.push(
-        `/order/new?context=booking&name=${encodeURIComponent(b.customer_name)}&phone=${encodeURIComponent(b.phone)}&table=${b.table_number || ''}&date=${b.date}&time=${b.time_slot}`
-      )
+
+      // If they already have an active order, go to tracking page
+      if (data.active_order) {
+        router.push(`/order/confirmation?order_id=${data.active_order.id}`)
+      } else {
+        // No order yet, go to ordering page
+        router.push(
+          `/order/new?context=booking&name=${encodeURIComponent(b.customer_name)}&phone=${encodeURIComponent(b.phone)}&table=${b.table_number || ''}&date=${b.date}&time=${b.time_slot}`
+        )
+      }
     } catch {
       toast.error('Something went wrong')
     } finally {
-      setCodeLoading(false)
+      setBookingLoading(false)
     }
   }
 
@@ -173,62 +186,6 @@ export default function JoinPage() {
           </div>
         )}
 
-        {/* Booking code entry */}
-        {!seated && (
-          <div className="w-full max-w-sm mb-3 animate-slide-up-1">
-            {!showCodeEntry ? (
-              <button
-                onClick={() => setShowCodeEntry(true)}
-                className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border-2 border-amber-300 bg-amber-50 text-amber-800 font-semibold text-sm font-sans hover:bg-amber-100 hover:border-amber-400 active:scale-[0.98] transition-all shadow-sm"
-              >
-                <span className="text-base">📅</span>
-                <span>I have a booking</span>
-                <span className="text-amber-400 text-xs ml-1">→</span>
-              </button>
-            ) : (
-              <div className="w-full rounded-3xl overflow-hidden shadow-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 animate-slide-up">
-                {/* Header strip */}
-                <div className="bg-gradient-to-r from-amber-500 to-orange-400 px-5 py-4 text-white text-center">
-                  <div className="text-2xl mb-1">📅</div>
-                  <p className="font-bold text-base tracking-tight">I have a booking</p>
-                  <p className="text-white/80 text-xs font-sans mt-0.5">Enter the code from your SMS</p>
-                </div>
-
-                {/* Input area */}
-                <div className="px-5 py-5 space-y-3">
-                  <input
-                    type="text"
-                    className="w-full text-center text-2xl font-bold tracking-[0.25em] uppercase bg-white border-2 border-amber-200 rounded-2xl px-4 py-4 text-stone-900 placeholder-stone-300 focus:outline-none focus:border-amber-400 transition-colors"
-                    placeholder="MJ-0000"
-                    value={bookingCode}
-                    onChange={e => setBookingCode(e.target.value.toUpperCase())}
-                    maxLength={7}
-                    autoFocus
-                  />
-                  <button
-                    onClick={lookupBooking}
-                    disabled={codeLoading}
-                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-400 text-white font-bold text-base shadow-md active:scale-[0.98] transition-all disabled:opacity-50"
-                  >
-                    {codeLoading ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" />
-                        Checking...
-                      </span>
-                    ) : '✓ Check In & Order'}
-                  </button>
-                  <button
-                    onClick={() => { setShowCodeEntry(false); setBookingCode('') }}
-                    className="w-full text-center text-xs text-stone-400 py-1 hover:text-stone-600 font-sans transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         <div className="card w-full max-w-sm shadow-xl animate-slide-up-2">
           <h2 className="text-[18px] font-semibold text-stone-900 mb-1 text-center">
             {seated ? 'Or start fresh' : 'Welcome'}
@@ -278,6 +235,51 @@ export default function JoinPage() {
               <span className="text-xl">📋</span>
               <span>View Our Menu</span>
             </Link>
+
+            {/* I have a booking — check in by phone */}
+            {!seated && !showBookingEntry && (
+              <button
+                onClick={() => setShowBookingEntry(true)}
+                className="w-full text-center text-sm text-stone-400 font-sans hover:text-stone-600 transition-colors pt-1"
+              >
+                Already have a booking? <span className="font-semibold text-stone-600 underline underline-offset-2">Check in here</span>
+              </button>
+            )}
+
+            {!seated && showBookingEntry && (
+              <div className="bg-stone-50 rounded-2xl p-4 space-y-3 border border-stone-100 animate-slide-up">
+                <div className="text-center">
+                  <p className="font-semibold text-stone-800 text-sm font-sans">Check in with your phone number</p>
+                </div>
+                <input
+                  type="tel"
+                  className="input-field text-center text-lg tracking-wide"
+                  placeholder="04XX XXX XXX"
+                  value={bookingPhone}
+                  onChange={e => setBookingPhone(e.target.value)}
+                  inputMode="tel"
+                  autoFocus
+                />
+                <button
+                  onClick={lookupBooking}
+                  disabled={bookingLoading}
+                  className="btn-primary w-full py-3.5 text-base disabled:opacity-50"
+                >
+                  {bookingLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" />
+                      Finding your booking...
+                    </span>
+                  ) : 'Find My Booking'}
+                </button>
+                <button
+                  onClick={() => { setShowBookingEntry(false); setBookingPhone('') }}
+                  className="w-full text-center text-xs text-stone-400 py-0.5 hover:text-stone-600 font-sans transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

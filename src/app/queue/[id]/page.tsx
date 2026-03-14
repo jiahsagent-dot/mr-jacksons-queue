@@ -1,18 +1,26 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useEffect, useState, useCallback } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import toast from 'react-hot-toast'
 import type { QueueEntry } from '@/lib/supabase'
+
+const CONFIRM_WINDOW_MS = 10 * 60 * 1000 // 10 minutes
 
 export default function QueueStatusPage() {
   const { id } = useParams()
-  const [entry, setEntry] = useState<QueueEntry | null>(null)
+  const router = useRouter()
+  const [entry, setEntry] = useState<(QueueEntry & { assigned_table?: number }) | null>(null)
   const [position, setPosition] = useState(0)
   const [estimatedWait, setEstimatedWait] = useState(0)
   const [loading, setLoading] = useState(true)
   const [lastRefresh, setLastRefresh] = useState(Date.now())
+  const [confirming, setConfirming] = useState(false)
+  const [timeLeft, setTimeLeft] = useState<number | null>(null)
+  const [cancelling, setCancelling] = useState(false)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
   const fetchStatus = async () => {
     // Cache-bust every request so position always reflects live DB state
@@ -29,10 +37,83 @@ export default function QueueStatusPage() {
 
   useEffect(() => {
     fetchStatus()
-    // Poll every 8s (was 15s) for quicker position updates
-    const interval = setInterval(fetchStatus, 8000)
+    const interval = setInterval(fetchStatus, 5000)
     return () => clearInterval(interval)
   }, [id])
+
+  // Countdown timer when called
+  useEffect(() => {
+    if (entry?.status !== 'called' || !entry.called_at) {
+      setTimeLeft(null)
+      return
+    }
+    const updateTimer = () => {
+      const calledAt = new Date(entry.called_at!).getTime()
+      const remaining = Math.max(0, CONFIRM_WINDOW_MS - (Date.now() - calledAt))
+      setTimeLeft(remaining)
+      if (remaining <= 0) fetchStatus() // refresh to check if expired
+    }
+    updateTimer()
+    const interval = setInterval(updateTimer, 1000)
+    return () => clearInterval(interval)
+  }, [entry?.status, entry?.called_at])
+
+  const handleConfirm = async () => {
+    setConfirming(true)
+    try {
+      const res = await fetch('/api/queue/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || 'Could not confirm')
+        fetchStatus()
+      } else {
+        toast.success('Table confirmed!')
+        // Store table info for ordering
+        if (data.table_number) {
+          sessionStorage.setItem('mr_jackson_table', JSON.stringify({
+            table_number: data.table_number,
+            customer_name: data.name,
+          }))
+        }
+        fetchStatus()
+      }
+    } catch {
+      toast.error('Something went wrong')
+    }
+    setConfirming(false)
+  }
+
+  const handleCancel = async () => {
+    setCancelling(true)
+    try {
+      const res = await fetch('/api/queue/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success('You\'ve been removed from the queue')
+        fetchStatus()
+        setShowCancelConfirm(false)
+      } else {
+        toast.error(data.error || 'Could not cancel')
+      }
+    } catch {
+      toast.error('Something went wrong')
+    }
+    setCancelling(false)
+  }
+
+  const formatCountdown = (ms: number) => {
+    const mins = Math.floor(ms / 60000)
+    const secs = Math.floor((ms % 60000) / 1000)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
 
   if (loading) {
     return (
@@ -134,21 +215,61 @@ export default function QueueStatusPage() {
           {isCalled && (
             <>
               <div className="w-20 h-20 rounded-full bg-green-100 border-2 border-green-300 flex items-center justify-center mx-auto mb-4 animate-confetti">
-                <span className="text-4xl">🔔</span>
+                <span className="text-4xl">🎉</span>
               </div>
               <h2 className="text-2xl font-bold text-green-800 mb-2">Your Table is Ready!</h2>
-              <p className="text-green-700 font-sans">Please head to the host stand now</p>
-              <div className="mt-4 bg-green-100 rounded-xl px-4 py-2 inline-block">
-                <p className="text-sm text-green-700 font-sans">📱 SMS sent to your phone</p>
-              </div>
+              {entry.assigned_table && (
+                <p className="text-green-700 font-sans font-semibold text-lg mb-1">Table {entry.assigned_table}</p>
+              )}
+
+              {/* Countdown timer */}
+              {timeLeft !== null && timeLeft > 0 && (
+                <div className={`mt-3 mb-4 rounded-2xl px-5 py-3 border-2 ${
+                  timeLeft < 60000 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'
+                }`}>
+                  <p className={`text-xs uppercase tracking-wide font-bold font-sans mb-1 ${
+                    timeLeft < 60000 ? 'text-red-500' : 'text-amber-600'
+                  }`}>Confirm within</p>
+                  <p className={`text-3xl font-bold font-sans tabular-nums ${
+                    timeLeft < 60000 ? 'text-red-700' : 'text-amber-800'
+                  }`}>{formatCountdown(timeLeft)}</p>
+                </div>
+              )}
+
+              {timeLeft !== null && timeLeft <= 0 && (
+                <div className="mt-3 mb-4 bg-red-50 border-2 border-red-200 rounded-2xl px-5 py-3">
+                  <p className="text-red-600 font-semibold font-sans text-sm">⏰ Time expired</p>
+                  <p className="text-red-400 text-xs font-sans mt-0.5">Your spot may have been given to the next person</p>
+                </div>
+              )}
+
+              <button
+                onClick={handleConfirm}
+                disabled={confirming || (timeLeft !== null && timeLeft <= 0)}
+                className="btn-primary w-full py-5 text-lg mt-2 disabled:opacity-50"
+              >
+                {confirming ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" />
+                    Confirming...
+                  </span>
+                ) : '✅ Confirm My Table'}
+              </button>
+              <p className="text-stone-400 text-xs font-sans mt-3">Tap to confirm and head to your table</p>
             </>
           )}
 
           {isSeated && (
             <>
-              <div className="text-5xl mb-4 animate-confetti">😋</div>
-              <h2 className="text-2xl font-bold text-blue-800 mb-2">Enjoy Your Meal!</h2>
-              <p className="text-blue-600 font-sans">You&apos;re all settled in at Mr Jackson</p>
+              <div className="text-5xl mb-4 animate-confetti">🎉</div>
+              <h2 className="text-2xl font-bold text-green-800 mb-2">You&apos;re Seated!</h2>
+              {entry.assigned_table && (
+                <div className="bg-green-100 border-2 border-green-200 rounded-2xl px-5 py-3 mb-3">
+                  <p className="text-xs text-green-600 uppercase tracking-wide font-bold font-sans mb-0.5">Your Table</p>
+                  <p className="text-3xl font-bold text-green-800 font-sans">{entry.assigned_table}</p>
+                </div>
+              )}
+              <p className="text-green-700 font-sans">Head to your table — enjoy your meal! 🍽️</p>
             </>
           )}
 
@@ -218,6 +339,41 @@ export default function QueueStatusPage() {
             >
               Browse our menu →
             </Link>
+
+            {/* Cancel queue spot */}
+            {!showCancelConfirm && (
+              <button
+                onClick={() => setShowCancelConfirm(true)}
+                className="w-full text-center text-sm text-stone-400 font-sans hover:text-red-500 transition-colors py-2 mt-1"
+              >
+                Want to leave the queue?
+              </button>
+            )}
+
+            {showCancelConfirm && (
+              <div className="card border-2 border-red-200 bg-red-50/50 animate-slide-up">
+                <div className="text-center mb-3">
+                  <p className="text-2xl mb-1">👋</p>
+                  <p className="font-semibold text-stone-800 text-sm font-sans">Leave the queue?</p>
+                  <p className="text-xs text-stone-400 font-sans mt-1">Your spot will be released and given to the next person.</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowCancelConfirm(false)}
+                    className="btn-secondary flex-1 py-3 text-sm"
+                  >
+                    Stay in Queue
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    disabled={cancelling}
+                    className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-medium text-sm hover:bg-red-600 transition-all active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {cancelling ? 'Leaving...' : 'Yes, Leave'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -225,8 +381,8 @@ export default function QueueStatusPage() {
         {isSeated && (
           <div className="w-full max-w-sm mt-5 animate-slide-up-1">
             <Link
-              href={`/order/new?context=dine_in&name=${encodeURIComponent(entry.name)}&phone=${encodeURIComponent(entry.phone)}`}
-              className="btn-primary w-full flex items-center justify-center gap-2 py-4 text-base"
+              href={`/order/new?context=dine_in&table=${entry.assigned_table || ''}&name=${encodeURIComponent(entry.name)}&phone=${encodeURIComponent(entry.phone)}`}
+              className="btn-primary w-full flex items-center justify-center gap-2 py-5 text-lg"
             >
               <span>🍽️</span> Order & Pay
             </Link>

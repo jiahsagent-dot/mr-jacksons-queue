@@ -194,16 +194,24 @@ export default function MenuPage() {
               <span>DF = Dairy Free</span>
             </div>
 
-            <Link href="/order/new" className="btn-primary inline-block mt-5 px-8">
-              Order & Pay Online
-            </Link>
-
             <div className="mt-6 space-y-1">
               <p className="text-stone-400 text-xs font-sans font-medium">Mon–Fri 7:30AM – 2:30PM · Sat–Sun 7:30AM – 3PM</p>
               <p className="text-stone-300 text-xs font-sans">03 5909 8815</p>
             </div>
+            {/* spacer for sticky bar */}
+            <div className="h-20" />
           </div>
         </ScrollReveal>
+      </div>
+
+      {/* Sticky Order & Pay bar — always visible */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 pt-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom, 1.25rem))' }}>
+        <div className="max-w-2xl mx-auto">
+          <Link href="/order/new" className="btn-primary w-full flex items-center justify-center gap-2 py-4 text-base">
+            <span className="text-lg">🍽️</span>
+            <span>Order & Pay</span>
+          </Link>
+        </div>
       </div>
     </main>
   )

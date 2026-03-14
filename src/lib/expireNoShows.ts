@@ -5,15 +5,14 @@ import { notifyNextInQueue } from './notifyQueue'
 const CLICKSEND_USERNAME = process.env.CLICKSEND_USERNAME || 'jiahsagent@gmail.com'
 const CLICKSEND_API_KEY = process.env.CLICKSEND_API_KEY || '6A27AE52-866F-25C1-158C-C1D17531DBA7'
 
-async function sendSMS(to: string, body: string) {
-  try {
-    const credentials = Buffer.from(`${CLICKSEND_USERNAME}:${CLICKSEND_API_KEY}`).toString('base64')
-    await fetch('https://rest.clicksend.com/v3/sms/send', {
-      method: 'POST',
-      headers: { 'Authorization': `Basic ${credentials}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [{ source: 'mr-jacksons', to, body }] }),
-    })
-  } catch {}
+function sendSMS(to: string, body: string) {
+  // Fire-and-forget — never await
+  const credentials = Buffer.from(`${CLICKSEND_USERNAME}:${CLICKSEND_API_KEY}`).toString('base64')
+  fetch('https://rest.clicksend.com/v3/sms/send', {
+    method: 'POST',
+    headers: { 'Authorization': `Basic ${credentials}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages: [{ source: 'mr-jacksons', to, body }] }),
+  }).catch(() => {})
 }
 
 /**
@@ -35,7 +34,7 @@ export async function expireNoShows(admin: SupabaseClient, noShowMinutes: number
   const expiredNames: string[] = []
 
   for (const entry of expired) {
-    // Mark as left (no-show)
+    // Remove them from the queue (no-show)
     await admin
       .from('queue_entries')
       .update({ status: 'left' })
@@ -43,8 +42,21 @@ export async function expireNoShows(admin: SupabaseClient, noShowMinutes: number
 
     expiredNames.push(entry.name)
 
-    // Find their reserved table — prefer assigned_table column, fall back to name match
+    // Find their reserved table:
+    // 1. Try assigned_table column (most direct)
+    // 2. Try table_code = queue:<entry.id> (set by notifyNextInQueue, most reliable)
+    // 3. Fall back to name match on reserved tables
     let tableNumber: number | null = entry.assigned_table ?? null
+
+    if (!tableNumber) {
+      const { data: byCode } = await admin
+        .from('tables')
+        .select('table_number')
+        .eq('table_code', `queue:${entry.id}`)
+        .limit(1)
+        .single()
+      tableNumber = byCode?.table_number ?? null
+    }
 
     if (!tableNumber) {
       const { data: reservedTable } = await admin
@@ -58,10 +70,10 @@ export async function expireNoShows(admin: SupabaseClient, noShowMinutes: number
     }
 
     if (tableNumber) {
-      // Free the table
+      // Free the table (clear table_code too so stale queue refs don't linger)
       await admin
         .from('tables')
-        .update({ status: 'available', current_customer: null, occupied_at: null })
+        .update({ status: 'available', current_customer: null, occupied_at: null, table_code: null })
         .eq('table_number', tableNumber)
 
       // Call the next person in queue for this table

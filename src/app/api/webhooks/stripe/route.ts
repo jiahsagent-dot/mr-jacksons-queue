@@ -143,6 +143,9 @@ export async function POST(req: NextRequest) {
         if (date) smsBody += `${formatDate(date)}\n`
         if (timeSlot) smsBody += `${formatTime(timeSlot)}\n`
         smsBody += `\n`
+        smsBody += `Want to cancel or add to your order?\n`
+        smsBody += `👉 mr-jacksons.vercel.app\n`
+        smsBody += `Tap "Already have a booking?" and enter your phone number.\n\n`
         smsBody += `Questions? Call us: ${RESTAURANT_PHONE}\n`
         smsBody += `Mr Jackson, Mornington`
 

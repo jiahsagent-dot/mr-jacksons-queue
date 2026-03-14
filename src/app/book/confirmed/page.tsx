@@ -31,7 +31,7 @@ function buildCalendarUrl(booking: BookingDetails): string {
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: `Mr Jackson — Table Booking`,
-    details: `Booking for ${booking.party_size} ${booking.party_size === 1 ? 'person' : 'people'}\\nBooking code: ${booking.code || 'N/A'}\\n\\nWhen you arrive:\\n1. Find your table\\n2. Go to mr-jacksons.vercel.app\\n3. Tap "Have a booking code?"\\n4. Enter your booking code\\n5. Start ordering!`,
+    details: `Booking for ${booking.party_size} ${booking.party_size === 1 ? 'person' : 'people'}\\n\\nWhen you arrive:\\n1. Go to mr-jacksons.vercel.app\\n2. Tap "I have a booking"\\n3. Enter your phone number\\n4. Start ordering!`,
     location: '1/45 Main St, Mornington VIC 3931',
     dates: `${start}/${end}`,
   })
@@ -173,11 +173,10 @@ export default function BookingConfirmedPage() {
           <p className="text-xs font-bold text-stone-700 mb-3 font-sans">📍 When you arrive:</p>
           <div className="space-y-3">
             {[
-              { step: '1', text: 'Find your table' },
-              { step: '2', text: 'Go to mr-jacksons.vercel.app on your phone' },
-              { step: '3', text: 'Tap "Have a booking code?"' },
-              { step: '4', text: 'Enter your booking code from this SMS' },
-              { step: '5', text: 'Start ordering from your phone!' },
+              { step: '1', text: 'Go to mr-jacksons.vercel.app on your phone' },
+              { step: '2', text: 'Tap "I have a booking"' },
+              { step: '3', text: 'Enter your phone number to check in' },
+              { step: '4', text: 'Start ordering from your phone!' },
             ].map(({ step, text }) => (
               <div key={step} className="flex items-start gap-3">
                 <div className="w-6 h-6 rounded-full bg-stone-900 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{step}</div>

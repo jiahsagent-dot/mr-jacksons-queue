@@ -108,14 +108,12 @@ export async function POST(req: NextRequest) {
     const tableLabel = table_number ? ` · Table ${table_number}` : ''
     const smsBody = `Hi ${name}! Your booking at Mr Jackson's is confirmed ✅\n\n` +
       `📅 ${date} at ${formatTimeSlot(time_slot)}\n` +
-      `👥 ${party_size} people${tableLabel}\n` +
-      `🔑 Your code: ${code}\n\n` +
+      `👥 ${party_size} people${tableLabel}\n\n` +
       `WHEN YOU ARRIVE:\n` +
-      `1. Find your table\n` +
-      `2. Go to mr-jacksons.vercel.app\n` +
-      `3. Tap "Have a booking code?"\n` +
-      `4. Enter your code + the 4-digit code on your table\n` +
-      `5. Order from your phone!\n\n` +
+      `1. Go to mr-jacksons.vercel.app\n` +
+      `2. Tap "I have a booking"\n` +
+      `3. Enter your phone number to check in\n` +
+      `4. Order from your phone!\n\n` +
       `⚠️ If you don't check in within 15 minutes after your booking time, your table will be given to the next guest.\n\n` +
       `Can't make it? Call 03 5909 8815`
 

@@ -1,4 +1,6 @@
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { notifyNextInQueue } from '@/lib/notifyQueue'
@@ -26,24 +28,21 @@ async function sendSMS(to: string, body: string) {
   }
 }
 
-// Status-specific SMS messages
-function getStatusSMS(status: string, customerName: string, receiptNum: string): string | null {
+// Status-specific SMS messages — minimal to save costs
+// All status updates are shown live on the customer's order tracking page
+function getStatusSMS(status: string, customerName: string, receiptNum: string, tableNumber?: number | null): string | null {
   switch (status) {
-    case 'received':
-      return `✅ Hi ${customerName}! Your order #${receiptNum} has been ACCEPTED by Mr Jackson's kitchen.\n\nWe'll let you know when we start preparing it.\n\n📞 Questions? Call ${RESTAURANT_PHONE}`
-
     case 'preparing':
-      return `👨‍🍳 Great news ${customerName}! Your order #${receiptNum} is now being PREPARED.\n\nOur kitchen is working on your food right now!\n\n📞 Need to change anything? Call ${RESTAURANT_PHONE}`
-
-    case 'ready':
-      return `🎉 ${customerName}, your order #${receiptNum} is READY!\n\nYour food is freshly prepared and waiting for you.\n\n📞 ${RESTAURANT_PHONE}`
-
-    case 'served':
-      return `😋 Enjoy your meal ${customerName}!\n\nOrder #${receiptNum} has been served. We hope you love it!\n\nThank you for dining at Mr Jackson's 🙂\n📍 1/45 Main St, Mornington`
+      // Only send if they have a table assigned (queue customer who got seated)
+      if (tableNumber) {
+        return `👨‍🍳 Hi ${customerName}! Your food is now being prepared.\n\n🪑 Head to Table ${tableNumber} — it'll be ready soon!\n\n📍 Mr Jackson, Mornington`
+      }
+      return null
 
     case 'cancelled':
       return `❌ Hi ${customerName}, your order #${receiptNum} has been cancelled.\n\nIf you didn't request this, please call us immediately.\n\n📞 ${RESTAURANT_PHONE}`
 
+    // All other statuses — shown on website only, no SMS
     default:
       return null
   }
@@ -57,7 +56,14 @@ export async function GET() {
     .order('created_at', { ascending: true })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ orders: data || [] })
+  return NextResponse.json({ orders: data || [] }, {
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+      'CDN-Cache-Control': 'no-store',
+      'Surrogate-Control': 'no-store',
+      'Vercel-CDN-Cache-Control': 'no-store',
+    }
+  })
 }
 
 export async function PATCH(req: NextRequest) {
@@ -97,11 +103,13 @@ export async function PATCH(req: NextRequest) {
   const receiptNum = id.slice(0, 8).toUpperCase()
 
   if (phone) {
-    const smsBody = getStatusSMS(status, customerName, receiptNum)
+    const smsBody = getStatusSMS(status, customerName, receiptNum, order.table_number)
     if (smsBody) {
       await sendSMS(formatPhone(phone), smsBody)
     }
   }
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ success: true }, {
+    headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' }
+  })
 }

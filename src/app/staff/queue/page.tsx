@@ -6,9 +6,6 @@ import toast from 'react-hot-toast'
 import Link from 'next/link'
 import type { QueueEntry } from '@/lib/supabase'
 
-const WAIT_OPTIONS = [5, 10, 15, 20, 30]
-const NO_SHOW_OPTIONS = [5, 10, 15, 20]
-
 function minutesWaiting(iso: string) {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
 }
@@ -31,7 +28,7 @@ export default function StaffQueuePage() {
   const [called, setCalled] = useState<QueueEntry[]>([])
   const [isClosed, setIsClosed] = useState(false)
   const [waitTime, setWaitTime] = useState(20)
-  const [noShowMinutes, setNoShowMinutes] = useState(10)
+  const [noShowMinutes, setNoShowMinutes] = useState(1)
   const [tick, setTick] = useState(0) // for live countdown re-renders
   const [loading, setLoading] = useState(false)
 
@@ -50,7 +47,7 @@ export default function StaffQueuePage() {
       setCalled(data.called)
       setIsClosed(data.is_closed)
       setWaitTime(data.estimated_wait)
-      setNoShowMinutes(data.no_show_minutes ?? 10)
+      setNoShowMinutes(data.no_show_minutes ?? 1)
       // Toast any auto-expired no-shows
       if (data.expired?.length > 0) {
         data.expired.forEach((name: string) => {
@@ -137,18 +134,15 @@ export default function StaffQueuePage() {
       {/* Header */}
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-stone-900">Mr Jackson</h1>
-          <p className="text-stone-400 text-sm">Staff Dashboard</p>
+          <h1 className="text-2xl font-bold text-stone-900">Queue</h1>
+          <p className="text-stone-400 text-sm">Manage the waitlist</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Link href="/staff/orders" className="btn-secondary py-2 px-4 text-sm">Orders</Link>
-          <button
-            onClick={() => { sessionStorage.removeItem('staff_token'); router.push('/staff/login') }}
-            className="text-stone-400 text-sm hover:text-stone-700"
-          >
-            Sign out
-          </button>
-        </div>
+        <button
+          onClick={() => { sessionStorage.removeItem('staff_token'); router.push('/staff/login') }}
+          className="text-stone-400 text-sm hover:text-stone-700"
+        >
+          Sign out
+        </button>
       </div>
 
       {/* Queue Status Banner */}
@@ -172,7 +166,7 @@ export default function StaffQueuePage() {
       </div>
 
       {/* Controls */}
-      <div className="card mb-5 space-y-4">
+      <div className="card mb-5">
         <button
           onClick={callNext}
           disabled={loading || waiting.length === 0}
@@ -180,42 +174,6 @@ export default function StaffQueuePage() {
         >
           🔔 Call Next Table
         </button>
-        <div>
-          <p className="text-xs text-stone-500 mb-2">Estimated wait</p>
-          <div className="flex gap-2 flex-wrap">
-            {WAIT_OPTIONS.map(mins => (
-              <button
-                key={mins}
-                onClick={() => setWait(mins)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
-                  waitTime === mins
-                    ? 'bg-stone-800 text-white border-stone-800'
-                    : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'
-                }`}
-              >
-                {mins}m
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <p className="text-xs text-stone-500 mb-2">⏰ No-show timeout — auto-remove if not seated within</p>
-          <div className="flex gap-2 flex-wrap">
-            {NO_SHOW_OPTIONS.map(mins => (
-              <button
-                key={mins}
-                onClick={() => setNoShow(mins)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
-                  noShowMinutes === mins
-                    ? 'bg-red-700 text-white border-red-700'
-                    : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'
-                }`}
-              >
-                {mins}m
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Waiting Queue */}

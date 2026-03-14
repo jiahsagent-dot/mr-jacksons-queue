@@ -1,9 +1,10 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import toast from 'react-hot-toast'
 
 type OrderData = {
   id: string
@@ -21,21 +22,36 @@ type OrderData = {
 
 function ConfirmationContent() {
   const params = useSearchParams()
+  const router = useRouter()
   const orderId = params.get('order_id')
   const [order, setOrder] = useState<OrderData | null>(null)
   const [queuePosition, setQueuePosition] = useState<number | null>(null)
+  const [queueTable, setQueueTable] = useState<number | null>(null)
+  const [queueStatus, setQueueStatus] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [cancelling, setCancelling] = useState(false)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
   const fetchOrder = async () => {
     if (!orderId) { setLoading(false); return }
     try {
-      const res = await fetch(`/api/order/status?id=${orderId}`)
+      const res = await fetch(`/api/order/status?id=${orderId}&_t=${Date.now()}`, { cache: 'no-store' })
       const data = await res.json()
       const o = data.order
       setOrder(o)
       if (o?.queue_entry_id) {
-        const qRes = await fetch(`/api/queue/status?id=${o.queue_entry_id}`).then(r => r.json()).catch(() => null)
-        if (qRes?.position) setQueuePosition(qRes.position)
+        const qRes = await fetch(`/api/queue/status?id=${o.queue_entry_id}&_t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()).catch(() => null)
+        if (qRes?.entry) {
+          setQueueStatus(qRes.entry.status)
+          if (qRes.entry.status === 'waiting' && qRes.position) {
+            setQueuePosition(qRes.position)
+          } else {
+            setQueuePosition(null)
+          }
+          if (qRes.entry.assigned_table) {
+            setQueueTable(qRes.entry.assigned_table)
+          }
+        }
       }
     } catch {}
     setLoading(false)
@@ -43,8 +59,8 @@ function ConfirmationContent() {
 
   useEffect(() => {
     fetchOrder()
-    // Poll for status updates every 15 seconds
-    const interval = setInterval(fetchOrder, 15000)
+    // Poll for status updates every 5 seconds
+    const interval = setInterval(fetchOrder, 5000)
     return () => clearInterval(interval)
   }, [orderId])
 
@@ -95,8 +111,17 @@ function ConfirmationContent() {
           <p className="text-xs text-stone-400 font-sans mt-2">Keep this handy — our team will use it to find you</p>
         </div>
 
-        {/* Queue position — shown if they ordered while in the queue */}
-        {queuePosition !== null && (
+        {/* Table number card — shown for dine-in orders with a table assigned */}
+        {isDineIn && order.table_number && (
+          <div className="card text-center border-2 border-stone-200 bg-white animate-slide-up">
+            <p className="text-xs font-bold text-stone-400 uppercase tracking-widest font-sans mb-1">Your Table</p>
+            <p className="text-4xl font-bold text-stone-900 tracking-widest">{order.table_number}</p>
+            <p className="text-xs text-stone-400 font-sans mt-2">Sit back — your food will be brought to you</p>
+          </div>
+        )}
+
+        {/* Queue status — shows position while waiting, table number when seated */}
+        {queueStatus === 'waiting' && queuePosition !== null && (
           <div className="card border-2 border-amber-200 bg-amber-50/60 text-center">
             <p className="text-xs font-bold text-amber-600 uppercase tracking-widest font-sans mb-1">Your Queue Position</p>
             <p className="text-4xl font-bold text-stone-900 font-sans">#{queuePosition}</p>
@@ -104,6 +129,15 @@ function ConfirmationContent() {
               {queuePosition === 1 ? "You're next — a table won't be long!" : `${queuePosition - 1} ${queuePosition - 1 === 1 ? 'party' : 'parties'} ahead of you`}
             </p>
             <p className="text-xs text-stone-400 font-sans mt-1">We'll text you when your table is ready 📱</p>
+          </div>
+        )}
+
+        {/* Table assigned — shown when queue entry is called/seated */}
+        {queueTable && queueStatus !== 'waiting' && (
+          <div className="card border-2 border-green-200 bg-green-50/60 text-center animate-slide-up">
+            <p className="text-xs font-bold text-green-600 uppercase tracking-widest font-sans mb-1">Your Table is Ready!</p>
+            <p className="text-4xl font-bold text-green-800 font-sans">Table {queueTable}</p>
+            <p className="text-xs text-green-600 font-sans mt-2">🍽️ Your food is being prepared — head to your table!</p>
           </div>
         )}
 
@@ -150,7 +184,7 @@ function ConfirmationContent() {
           <span className="text-xl mt-0.5">📱</span>
           <div>
             <p className="text-sm font-semibold text-stone-800">Receipt sent via SMS</p>
-            <p className="text-xs text-stone-400 font-sans mt-0.5">A copy of your order has been sent to your phone. We'll also text you when your food is being prepared.</p>
+            <p className="text-xs text-stone-400 font-sans mt-0.5">A copy of your order has been sent to your phone. We'll text you when your food is ready. Track progress live above ☝️</p>
           </div>
         </div>
 
@@ -159,7 +193,7 @@ function ConfirmationContent() {
           <div className="flex items-start gap-3 bg-white rounded-2xl border border-stone-100 px-4 py-3 shadow-sm">
             <span className="text-xl mt-0.5">🍽️</span>
             <div>
-              <p className="text-sm font-semibold text-stone-800">Dine In{order.table_number ? ` · Table ${order.table_number}` : ''}</p>
+              <p className="text-sm font-semibold text-stone-800">Dine In</p>
               <p className="text-xs text-stone-400 font-sans mt-0.5">Sit back and relax — your food will be brought to you shortly.</p>
             </div>
           </div>
@@ -185,9 +219,105 @@ function ConfirmationContent() {
           </div>
         </div>
 
+        {/* Actions — Add more / Cancel */}
+        {order.status !== 'served' && order.status !== 'cancelled' && (
+          <div className="space-y-3">
+            {/* Add more items */}
+            <Link
+              href={`/order/new?context=${order.dining_option === 'dine_in' ? 'dine_in' : 'booking'}&table=${order.table_number || ''}&name=${encodeURIComponent(order.customer_name)}&phone=${encodeURIComponent(order.phone || '')}`}
+              className="card flex items-center gap-4 hover:border-stone-300 transition-all active:scale-[0.98]"
+            >
+              <div className="w-11 h-11 rounded-full bg-stone-100 flex items-center justify-center flex-shrink-0">
+                <span className="text-xl">➕</span>
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-stone-800 text-sm font-sans">Add More Items</p>
+                <p className="text-xs text-stone-400 font-sans">Order something else from the menu</p>
+              </div>
+              <svg className="w-4 h-4 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+            </Link>
+
+            {/* Cancel order */}
+            {order.status === 'received' && !showCancelConfirm && (
+              <button
+                onClick={() => setShowCancelConfirm(true)}
+                className="w-full text-center text-sm text-stone-400 font-sans hover:text-red-500 transition-colors py-2"
+              >
+                Need to cancel your order?
+              </button>
+            )}
+
+            {showCancelConfirm && (
+              <div className="card border-2 border-red-200 bg-red-50/50 animate-slide-up">
+                <div className="text-center mb-3">
+                  <p className="text-2xl mb-1">⚠️</p>
+                  <p className="font-semibold text-stone-800 text-sm font-sans">Cancel your order?</p>
+                  <p className="text-xs text-stone-400 font-sans mt-1">This can't be undone. You'll receive a refund.</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowCancelConfirm(false)}
+                    className="btn-secondary flex-1 py-3 text-sm"
+                  >
+                    Keep Order
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setCancelling(true)
+                      try {
+                        const res = await fetch('/api/order/cancel', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ order_id: orderId }),
+                        })
+                        if (res.ok) {
+                          toast.success('Order cancelled')
+                          fetchOrder()
+                          setShowCancelConfirm(false)
+                        } else {
+                          const data = await res.json()
+                          toast.error(data.error || 'Could not cancel — contact staff')
+                        }
+                      } catch {
+                        toast.error('Something went wrong')
+                      }
+                      setCancelling(false)
+                    }}
+                    disabled={cancelling}
+                    className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-medium text-sm hover:bg-red-600 transition-all active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {cancelling ? 'Cancelling...' : 'Yes, Cancel'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {order.status !== 'received' && !showCancelConfirm && (
+              <div className="text-center">
+                <p className="text-xs text-stone-300 font-sans">Order is being prepared — contact staff to make changes</p>
+                <a href="tel:0359098815" className="text-xs text-stone-400 font-sans font-semibold hover:text-stone-600">📞 03 5909 8815</a>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Cancelled state */}
+        {order.status === 'cancelled' && (
+          <div className="card border-2 border-red-200 bg-red-50/50 text-center">
+            <p className="text-2xl mb-2">❌</p>
+            <p className="font-semibold text-stone-800 font-sans">Order Cancelled</p>
+            <p className="text-xs text-stone-400 font-sans mt-1">Your refund will be processed shortly</p>
+            <Link href="/join" className="btn-primary inline-block mt-4 px-8">
+              Back to Home
+            </Link>
+          </div>
+        )}
+
         {/* Footer message */}
         <div className="text-center py-2 space-y-3">
-          <p className="text-stone-500 text-sm font-sans">We hope you enjoy every bite. 😊</p>
+          {order.status !== 'cancelled' && (
+            <p className="text-stone-500 text-sm font-sans">We hope you enjoy every bite. 😊</p>
+          )}
           <p className="text-stone-400 text-xs font-sans">Questions? Call us on <span className="font-semibold">03 5909 8815</span></p>
           <Link href="/join" className="block text-stone-400 text-xs font-sans underline underline-offset-2 mt-2">
             Back to home

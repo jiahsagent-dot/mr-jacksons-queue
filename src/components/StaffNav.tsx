@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: '/staff/orders', label: 'Orders', icon: '🍳' },
   { href: '/staff/tables', label: 'Tables', icon: '🪑' },
   { href: '/staff/menu', label: 'Menu', icon: '📋' },
+  { href: '/staff/settings', label: 'Settings', icon: '⚙️' },
 ]
 
 export function StaffNav() {

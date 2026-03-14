@@ -119,7 +119,7 @@ export default function StaffOrdersPage() {
   }, [router])
 
   const fetchOrders = async () => {
-    const res = await fetch(`/api/staff/orders?_t=${Date.now()}`)
+    const res = await fetch(`/api/staff/orders?_t=${Date.now()}`, { cache: 'no-store' })
     if (res.ok) {
       const data = await res.json()
       setOrders(data.orders || [])
@@ -268,6 +268,26 @@ export default function StaffOrdersPage() {
           </div>
         </div>
 
+        {/* Action buttons — top of card for easy access */}
+        {canAct && (
+          <div className="flex gap-2 mb-3">
+            <button
+              onClick={() => advance(order.id, STATUS_FLOW[order.status], order.customer_name)}
+              className="btn-primary flex-1 py-3 text-sm"
+            >
+              {NEXT_BTN[order.status]}
+            </button>
+            {order.status !== 'ready' && (
+              <button
+                onClick={() => cancelOrder(order.id, order.customer_name)}
+                className="text-xs bg-white text-red-500 px-3 py-2 rounded-xl border border-red-200 font-medium hover:bg-red-50 transition-all font-sans"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Items */}
         <div className="bg-white/60 rounded-xl p-3 mb-3">
           {order.items.length > 1 && canAct && (
@@ -309,26 +329,7 @@ export default function StaffOrdersPage() {
           </div>
         )}
 
-        <p className="text-[10px] text-stone-300 font-mono mb-3">#{order.id.replace(/-/g,'').slice(0,6).toUpperCase()}</p>
-
-        {canAct && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => advance(order.id, STATUS_FLOW[order.status], order.customer_name)}
-              className="btn-primary flex-1 py-3 text-sm"
-            >
-              {NEXT_BTN[order.status]}
-            </button>
-            {order.status !== 'ready' && (
-              <button
-                onClick={() => cancelOrder(order.id, order.customer_name)}
-                className="text-xs bg-white text-red-500 px-3 py-2 rounded-xl border border-red-200 font-medium hover:bg-red-50 transition-all font-sans"
-              >
-                Cancel
-              </button>
-            )}
-          </div>
-        )}
+        <p className="text-[10px] text-stone-300 font-mono">#{order.id.replace(/-/g,'').slice(0,6).toUpperCase()}</p>
       </div>
     )
   }

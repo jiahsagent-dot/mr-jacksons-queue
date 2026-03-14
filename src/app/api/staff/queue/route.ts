@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 export const fetchCache = 'force-no-store'
 
-const DEFAULT_NO_SHOW_MINUTES = 10
+const DEFAULT_NO_SHOW_MINUTES = 1
 
 export async function GET() {
   const admin = supabaseAdmin()
