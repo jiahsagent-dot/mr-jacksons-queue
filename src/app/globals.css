@@ -27,32 +27,34 @@ h1, h2, h3 {
 }
 
 .btn-primary {
-  background-color: var(--green-deep);
+  background-color: #0D0D0D;
   color: #fff;
   @apply font-medium py-3 px-6 rounded-2xl transition-all duration-200 active:scale-[0.98] text-[15px] shadow-sm;
 }
 .btn-primary:hover {
-  background-color: var(--green-mid);
+  background-color: #262626;
 }
 
 .btn-secondary {
-  background-color: #fff;
+  background-color: #FAF5EC;
   color: #374151;
   @apply font-medium py-3 px-6 rounded-2xl transition-all duration-200 active:scale-[0.98] text-[15px];
   border: 1px solid var(--parchment);
 }
 .btn-secondary:hover {
-  background-color: var(--cream);
+  background-color: var(--parchment);
   border-color: var(--gold);
 }
 
 .card {
-  @apply bg-white rounded-2xl shadow-sm p-5;
+  background-color: #FAF5EC;
+  @apply rounded-2xl shadow-sm p-5;
   border: 1px solid var(--parchment);
 }
 
 .input-field {
-  @apply w-full rounded-2xl px-4 py-3.5 text-stone-900 bg-white focus:outline-none text-[15px] transition-all placeholder-stone-400;
+  background-color: #FAF5EC;
+  @apply w-full rounded-2xl px-4 py-3.5 text-stone-900 focus:outline-none text-[15px] transition-all placeholder-stone-400;
   border: 1px solid var(--parchment);
 }
 .input-field:focus {
@@ -222,10 +224,10 @@ h1, h2, h3 {
 
 /* ── Glassmorphism card ── */
 .glass-card {
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(250, 245, 236, 0.82);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(201, 168, 76, 0.15);
+  border: 1px solid rgba(201, 168, 76, 0.2);
   box-shadow: 0 8px 32px rgba(27, 67, 50, 0.07), 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 

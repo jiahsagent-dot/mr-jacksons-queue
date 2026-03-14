@@ -384,7 +384,7 @@ export default function JoinPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {FEATURES.map((f, i) => (
               <div key={i} className="glass-card rounded-xl px-3 py-3 border border-white/60 shadow-sm flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-[#D8EFE3] flex items-center justify-center flex-shrink-0 text-[#1B4332]">
+                <div className="w-7 h-7 rounded-lg bg-[#EDE5D8] flex items-center justify-center flex-shrink-0 text-[#0D0D0D]">
                   {f.icon}
                 </div>
                 <span className="text-[11px] font-medium text-stone-700 font-sans leading-tight">{f.label}</span>
@@ -421,7 +421,7 @@ export default function JoinPage() {
               },
             ].map((step, i) => (
               <div key={i} className="text-center step-connector">
-                <div className="w-11 h-11 rounded-2xl bg-[#1B4332] text-white flex items-center justify-center mx-auto mb-2.5 shadow-sm">
+                <div className="w-11 h-11 rounded-2xl bg-[#0D0D0D] text-white flex items-center justify-center mx-auto mb-2.5 shadow-sm">
                   {step.icon}
                 </div>
                 <p className="font-semibold text-stone-800 text-xs font-sans">{step.title}</p>
