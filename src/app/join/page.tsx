@@ -161,7 +161,7 @@ export default function JoinPage() {
               className="rounded-full shadow-2xl mb-3 ring-2 ring-white/10 mx-auto"
             />
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight drop-shadow-lg">Mr Jackson</h1>
-            <div className="h-0.5 bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto mt-3 mb-2 animate-expand-line" />
+            <div className="h-0.5 bg-gradient-to-r from-transparent via-[#C9A84C] to-transparent mx-auto mt-3 mb-2 animate-expand-line" />
             <p className="text-white/60 text-[12px] tracking-[0.2em] uppercase font-sans font-medium">Asian Inspired Café · Mornington</p>
             <p className="text-white/40 text-[11px] font-sans mt-1.5 max-w-[280px] mx-auto leading-relaxed">Beneath the plane tree on Main Street</p>
 
@@ -170,10 +170,10 @@ export default function JoinPage() {
               <div className={`mt-5 inline-flex items-center gap-2.5 backdrop-blur-md text-sm px-5 py-2.5 rounded-full border transition-all duration-500 ${
                 tableInfo.has_availability
                   ? 'bg-green-500/15 text-green-200 border-green-400/20'
-                  : 'bg-amber-500/15 text-amber-200 border-amber-400/20'
+                  : 'bg-[#1B4332]/20 text-[#F0E0A8] border-[#C9A84C]/20'
               }`}>
                 <span className={`w-2 h-2 rounded-full animate-breathe ${
-                  tableInfo.has_availability ? 'bg-green-400' : 'bg-amber-400'
+                  tableInfo.has_availability ? 'bg-green-400' : 'bg-[#C9A84C]'
                 }`} />
                 {tableInfo.has_availability
                   ? `${tableInfo.available_count} table${tableInfo.available_count === 1 ? '' : 's'} available`
@@ -215,7 +215,7 @@ export default function JoinPage() {
           </h2>
           <p className="text-stone-400 text-sm mb-1.5 text-center font-sans">How would you like to dine today?</p>
           <div className="ornament mb-5">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400/60" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C]/60" />
           </div>
 
           <div className="space-y-3">
@@ -303,7 +303,7 @@ export default function JoinPage() {
                 Asian-inspired café committed to delivering an unparalleled dining experience.
               </p>
               <div className="ornament mt-4 mb-4">
-                <span className="w-1 h-1 rounded-full bg-amber-400/50" />
+                <span className="w-1 h-1 rounded-full bg-[#C9A84C]/50" />
               </div>
               <p className="text-stone-500 text-[13px] leading-relaxed font-sans italic text-center">
                 &ldquo;Fresh, colourful & made with love — every single morning.&rdquo;
@@ -384,7 +384,7 @@ export default function JoinPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {FEATURES.map((f, i) => (
               <div key={i} className="glass-card rounded-xl px-3 py-3 border border-white/60 shadow-sm flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-stone-100 flex items-center justify-center flex-shrink-0 text-stone-500">
+                <div className="w-7 h-7 rounded-lg bg-[#D8EFE3] flex items-center justify-center flex-shrink-0 text-[#1B4332]">
                   {f.icon}
                 </div>
                 <span className="text-[11px] font-medium text-stone-700 font-sans leading-tight">{f.label}</span>
@@ -421,7 +421,7 @@ export default function JoinPage() {
               },
             ].map((step, i) => (
               <div key={i} className="text-center step-connector">
-                <div className="w-11 h-11 rounded-2xl bg-stone-900 text-white flex items-center justify-center mx-auto mb-2.5 shadow-sm">
+                <div className="w-11 h-11 rounded-2xl bg-[#1B4332] text-white flex items-center justify-center mx-auto mb-2.5 shadow-sm">
                   {step.icon}
                 </div>
                 <p className="font-semibold text-stone-800 text-xs font-sans">{step.title}</p>
@@ -435,7 +435,7 @@ export default function JoinPage() {
       {/* ── Divider ── */}
       <div className="flex items-center justify-center mt-10 px-8 max-w-lg mx-auto w-full">
         <div className="h-px flex-1 bg-gradient-to-r from-transparent to-stone-200/40" />
-        <span className="mx-3 w-1.5 h-1.5 rounded-full bg-amber-300/40" />
+        <span className="mx-3 w-1.5 h-1.5 rounded-full bg-[#C9A84C]/30" />
         <div className="h-px flex-1 bg-gradient-to-l from-transparent to-stone-200/40" />
       </div>
 
@@ -489,7 +489,7 @@ export default function JoinPage() {
         <ScrollReveal delay={140} direction="up" className="mt-6">
           <div className="flex flex-wrap items-center justify-center gap-2">
             {['Australian Breakfast', 'Asian Inspired', 'Brunch', 'Burgers', 'Salads', 'Nourish Bowls', 'Boba'].map((tag, i) => (
-              <span key={i} className="text-[10px] font-medium px-3 py-1.5 rounded-full bg-stone-100 text-stone-500 border border-stone-200/60 font-sans">
+              <span key={i} className="text-[10px] font-medium px-3 py-1.5 rounded-full bg-[#F0E0A8]/40 text-[#7A5C1E] border border-[#C9A84C]/30 font-sans">
                 {tag}
               </span>
             ))}
