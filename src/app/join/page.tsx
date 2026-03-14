@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ScrollReveal } from '@/components/ScrollReveal'
+import { formatAusPhone, stripPhone } from '@/lib/format'
 
 const GALLERY = [
   '/images/food1.jpg',
@@ -38,6 +39,11 @@ export default function JoinPage() {
   const [showBookingEntry, setShowBookingEntry] = useState(false)
   const [bookingPhone, setBookingPhone] = useState('')
   const [bookingLoading, setBookingLoading] = useState(false)
+  const [showQueueForm, setShowQueueForm] = useState(false)
+  const [queueName, setQueueName] = useState('')
+  const [queuePhone, setQueuePhone] = useState('')
+  const [queuePartySize, setQueuePartySize] = useState(2)
+  const [queueJoining, setQueueJoining] = useState(false)
 
   useEffect(() => {
     // Check if customer is already seated at a table
@@ -95,6 +101,27 @@ export default function JoinPage() {
       toast.error('Something went wrong')
     } finally {
       setBookingLoading(false)
+    }
+  }
+
+  const handleJoinQueue = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!queueName.trim()) return toast.error('Please enter your name')
+    if (!queuePhone.trim()) return toast.error('Please enter your phone number')
+    setQueueJoining(true)
+    try {
+      const res = await fetch('/api/queue/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: queueName.trim(), party_size: queuePartySize, phone: stripPhone(queuePhone) }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Something went wrong')
+      router.push(`/queue/${data.id}`)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setQueueJoining(false)
     }
   }
 
@@ -193,20 +220,64 @@ export default function JoinPage() {
           <p className="text-stone-400 text-sm mb-5 text-center font-sans">How would you like to dine today?</p>
 
           <div className="space-y-3">
-            {/* Dine In — shows queue option when full */}
+            {/* Dine In — shows inline queue form when full */}
             {tableInfo?.has_availability === false ? (
               <div className="space-y-2">
-                <div className="w-full flex items-center gap-3 py-4 px-4 rounded-2xl bg-amber-50 border-2 border-amber-200 text-amber-800 text-sm font-semibold font-sans">
+                <div className="w-full flex items-center gap-3 py-3 px-4 rounded-2xl bg-amber-50 border-2 border-amber-200 text-amber-800 text-sm font-semibold font-sans">
                   <span className="text-xl">🪑</span>
-                  <span>We're currently full</span>
+                  <div>
+                    <span>We're currently full</span>
+                    <span className="block text-xs font-normal text-amber-600 mt-0.5">~{settings?.estimated_wait || 15} min wait</span>
+                  </div>
                 </div>
-                <button
-                  onClick={() => router.push('/full')}
-                  className="btn-primary w-full flex items-center justify-center gap-3 py-4 text-base"
-                >
-                  <span className="text-xl">⏳</span>
-                  <span>Join the Waitlist</span>
-                </button>
+                {!showQueueForm ? (
+                  <button
+                    onClick={() => setShowQueueForm(true)}
+                    className="btn-primary w-full flex items-center justify-center gap-3 py-4 text-base"
+                  >
+                    <span className="text-xl">⏳</span>
+                    <span>Join the Waitlist</span>
+                  </button>
+                ) : (
+                  <div className="card border-2 border-amber-300 shadow-lg animate-slide-up">
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="text-2xl">⏳</span>
+                      <h3 className="font-bold text-stone-900">Join the Waitlist</h3>
+                    </div>
+                    <form onSubmit={handleJoinQueue} className="space-y-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 font-sans">Name</label>
+                        <input type="text" className="input-field" placeholder="e.g. Sarah"
+                          value={queueName} onChange={e => setQueueName(e.target.value)}
+                          autoComplete="given-name" required autoFocus />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 font-sans">Party Size</label>
+                        <div className="flex items-center gap-4 py-2">
+                          <button type="button" onClick={() => setQueuePartySize(Math.max(1, queuePartySize - 1))}
+                            className="w-11 h-11 rounded-full border border-stone-200 bg-white text-stone-600 font-bold text-lg flex items-center justify-center hover:border-stone-400 transition-all active:scale-95">−</button>
+                          <span className="text-2xl font-bold text-stone-900 w-8 text-center font-sans">{queuePartySize}</span>
+                          <button type="button" onClick={() => setQueuePartySize(Math.min(12, queuePartySize + 1))}
+                            className="w-11 h-11 rounded-full border border-stone-200 bg-white text-stone-600 font-bold text-lg flex items-center justify-center hover:border-stone-400 transition-all active:scale-95">+</button>
+                          <span className="text-sm text-stone-400 font-sans">{queuePartySize === 1 ? 'person' : 'people'}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 font-sans">Mobile Number</label>
+                        <input type="tel" className="input-field" placeholder="04XX XXX XXX"
+                          value={queuePhone} onChange={e => setQueuePhone(formatAusPhone(e.target.value))}
+                          autoComplete="tel" inputMode="tel" required />
+                      </div>
+                      <button type="submit" disabled={queueJoining} className="btn-primary w-full py-4 text-base disabled:opacity-50">
+                        {queueJoining ? 'Joining...' : 'Join Waitlist'}
+                      </button>
+                    </form>
+                    <button onClick={() => setShowQueueForm(false)}
+                      className="w-full text-center text-xs text-stone-400 mt-2 py-1 hover:text-stone-600 font-sans">
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <button
