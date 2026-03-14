@@ -6,32 +6,31 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const admin = supabaseAdmin()
 
-  // Only update the fields that were sent — never wipe other columns
-  const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  const update: Record<string, unknown> = { id: 1, updated_at: new Date().toISOString() }
   if (body.minutes !== undefined) update.estimated_wait = body.minutes
   if (body.is_closed !== undefined) update.is_closed = body.is_closed
   if (body.no_show_minutes !== undefined) update.no_show_minutes = body.no_show_minutes
 
+  // Try upsert (insert or update) so it works even if row doesn't exist yet
   const { data, error } = await admin
     .from('queue_settings')
-    .update(update)
-    .eq('id', 1)
+    .upsert(update, { onConflict: 'id' })
     .select()
 
   if (error) {
-    // If error is due to missing column (migration not yet run), retry without that field
+    // no_show_minutes column may not exist yet — retry without it
     if (error.code === '42703' && update.no_show_minutes !== undefined) {
       const { no_show_minutes: _, ...safeUpdate } = update
-      const { data: d2, error: e2 } = await admin
-        .from('queue_settings').update(safeUpdate).eq('id', 1).select()
+      const { error: e2 } = await admin
+        .from('queue_settings')
+        .upsert(safeUpdate, { onConflict: 'id' })
+        .select()
       if (e2) return NextResponse.json({ error: e2.message }, { status: 500 })
-      return NextResponse.json({ success: true, settings: d2?.[0], note: 'no_show_minutes not persisted — run DB migration' })
+      return NextResponse.json({ success: true, note: 'no_show_minutes column missing — run DB migration' })
     }
+    console.error('set-wait error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
-  if (!data || data.length === 0) {
-    return NextResponse.json({ error: 'No rows updated' }, { status: 500 })
-  }
 
-  return NextResponse.json({ success: true, settings: data[0] })
+  return NextResponse.json({ success: true, settings: data?.[0] })
 }
