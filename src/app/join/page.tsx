@@ -189,7 +189,7 @@ export default function JoinPage() {
       <div className="flex flex-col items-center px-4 -mt-10 relative z-10 w-full">
         {/* Already seated banner */}
         {seated && (
-          <div className="glass-card rounded-2xl w-full max-w-sm p-5 mb-3 border-2 border-green-300/60 bg-gradient-to-br from-green-50/80 to-white/90 shadow-2xl animate-reveal">
+          <div className="glass-card rounded-2xl w-full max-w-md p-5 mb-3 border-2 border-green-300/60 bg-gradient-to-br from-green-50/80 to-white/90 shadow-2xl animate-reveal">
             <div className="text-center">
               <p className="text-green-800 font-semibold text-[15px]">You&apos;re at Table {seated.table_number}</p>
               <p className="text-green-600 text-xs font-sans mt-1">Ready to order, {seated.customer_name}?</p>
@@ -210,7 +210,7 @@ export default function JoinPage() {
           </div>
         )}
 
-        <div className="glass-card rounded-3xl w-full max-w-sm p-6 shadow-2xl border-2 border-white/60 animate-reveal-1 gold-shimmer-border">
+        <div className="glass-card rounded-3xl w-full max-w-md p-6 shadow-2xl border-2 border-white/60 animate-reveal-1 gold-shimmer-border">
           <h2 className="text-xl font-semibold text-stone-900 mb-1 text-center">
             {seated ? 'Or start fresh' : 'Welcome'}
           </h2>
@@ -229,23 +229,23 @@ export default function JoinPage() {
               <span>Dine In Now</span>
             </button>
 
-            {/* Book a Table */}
-            <Link
-              href="/book"
-              className="btn-secondary w-full flex items-center justify-center gap-3 py-4 text-base card-hover"
-            >
-              <span className="text-xl">📅</span>
-              <span>Book a Table</span>
-            </Link>
-
-            {/* Browse menu */}
-            <Link
-              href="/menu"
-              className="btn-secondary w-full flex items-center justify-center gap-3 py-4 text-base card-hover"
-            >
-              <span className="text-xl">📋</span>
-              <span>View Our Menu</span>
-            </Link>
+            {/* Book & Menu side by side */}
+            <div className="grid grid-cols-2 gap-3">
+              <Link
+                href="/book"
+                className="btn-secondary flex items-center justify-center gap-2 py-4 text-sm card-hover"
+              >
+                <span className="text-lg">📅</span>
+                <span>Book a Table</span>
+              </Link>
+              <Link
+                href="/menu"
+                className="btn-secondary flex items-center justify-center gap-2 py-4 text-sm card-hover"
+              >
+                <span className="text-lg">📋</span>
+                <span>View Menu</span>
+              </Link>
+            </div>
 
             {/* I have a booking — check in by phone */}
             {!seated && !showBookingEntry && (
@@ -295,33 +295,42 @@ export default function JoinPage() {
         </div>
       </div>
 
-      {/* ── About Section ── */}
+      {/* ── About + Interior side by side ── */}
       <ScrollReveal delay={80} direction="up" className="mt-12 px-4">
-        <div className="max-w-sm mx-auto">
+        <div className="max-w-2xl mx-auto">
           <div className="flex items-center gap-3 mb-5">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent to-stone-200/60" />
             <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">Our Story</p>
             <div className="h-px flex-1 bg-gradient-to-l from-transparent to-stone-200/60" />
           </div>
-          <div className="glass-card rounded-2xl p-6 border border-white/60 shadow-lg">
-            <p className="text-stone-600 text-[14px] leading-relaxed font-sans text-center">
-              Nestled beneath a majestic plane tree on Mornington&apos;s Main Street, Mr Jackson is an
-              Asian-inspired café committed to delivering an unparalleled dining experience. Our modern menu
-              features innovative dishes using locally sourced ingredients and passionate support for local suppliers.
-            </p>
-            <div className="ornament mt-4 mb-4">
-              <span className="w-1 h-1 rounded-full bg-amber-400/50" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="glass-card rounded-2xl p-6 border border-white/60 shadow-lg flex flex-col justify-center">
+              <p className="text-stone-600 text-[14px] leading-relaxed font-sans">
+                Nestled beneath a majestic plane tree on Mornington&apos;s Main Street, Mr Jackson is an
+                Asian-inspired café committed to delivering an unparalleled dining experience.
+              </p>
+              <div className="ornament mt-4 mb-4">
+                <span className="w-1 h-1 rounded-full bg-amber-400/50" />
+              </div>
+              <p className="text-stone-500 text-[13px] leading-relaxed font-sans italic text-center">
+                &ldquo;Fresh, colourful & made with love — every single morning.&rdquo;
+              </p>
             </div>
-            <p className="text-stone-500 text-[13px] leading-relaxed font-sans text-center italic">
-              &ldquo;Fresh, colourful & made with love — every single morning.&rdquo;
-            </p>
+            <div className="relative h-56 sm:h-auto rounded-2xl overflow-hidden shadow-lg ring-1 ring-black/5">
+              <Image src="/images/interior.webp" alt="Mr Jackson interior" fill className="object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <p className="text-white text-sm font-semibold drop-shadow-lg">Warm, Contemporary Setting</p>
+                <p className="text-white/70 text-[11px] font-sans mt-0.5">Indoor & alfresco · 90 seats</p>
+              </div>
+            </div>
           </div>
         </div>
       </ScrollReveal>
 
       {/* ── Gallery strip ── */}
       <ScrollReveal delay={100} direction="up" className="mt-10 w-full">
-        <div className="flex items-center gap-3 px-4 mb-4">
+        <div className="flex items-center gap-3 px-4 mb-4 max-w-2xl mx-auto">
           <div className="h-px flex-1 bg-gradient-to-r from-transparent to-stone-200/60" />
           <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">From the kitchen</p>
           <div className="h-px flex-1 bg-gradient-to-l from-transparent to-stone-200/60" />
@@ -331,7 +340,7 @@ export default function JoinPage() {
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
           {GALLERY.map((src, i) => (
-            <div key={i} className="relative w-36 h-44 rounded-2xl overflow-hidden flex-shrink-0 shadow-lg hover:scale-[1.03] transition-transform duration-300 ring-1 ring-black/5">
+            <div key={i} className="relative w-40 h-48 rounded-2xl overflow-hidden flex-shrink-0 shadow-lg hover:scale-[1.03] transition-transform duration-300 ring-1 ring-black/5">
               <Image src={src} alt="Mr Jackson dish" fill className="object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
             </div>
@@ -342,13 +351,13 @@ export default function JoinPage() {
 
       {/* ── Menu Highlights ── */}
       <ScrollReveal delay={60} direction="up" className="mt-10 px-4">
-        <div className="max-w-sm mx-auto">
+        <div className="max-w-2xl mx-auto">
           <div className="flex items-center gap-3 mb-5">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent to-stone-200/60" />
             <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">Menu Highlights</p>
             <div className="h-px flex-1 bg-gradient-to-l from-transparent to-stone-200/60" />
           </div>
-          <div className="space-y-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {MENU_HIGHLIGHTS.map((item, i) => (
               <div key={i} className="glass-card rounded-xl px-4 py-3.5 border border-white/60 shadow-sm flex items-center gap-3">
                 <div className="flex-1 min-w-0">
@@ -363,7 +372,7 @@ export default function JoinPage() {
           </div>
           <Link
             href="/menu"
-            className="btn-secondary w-full flex items-center justify-center gap-2 py-3.5 text-sm mt-4 card-hover"
+            className="btn-secondary flex items-center justify-center gap-2 py-3.5 text-sm mt-4 card-hover max-w-xs mx-auto w-full"
           >
             <span>View Full Menu</span>
             <span className="text-stone-400">→</span>
@@ -373,13 +382,13 @@ export default function JoinPage() {
 
       {/* ── Features & Amenities ── */}
       <ScrollReveal delay={40} direction="up" className="mt-10 px-4">
-        <div className="max-w-sm mx-auto">
+        <div className="max-w-2xl mx-auto">
           <div className="flex items-center gap-3 mb-5">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent to-stone-200/60" />
             <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">What We Offer</p>
             <div className="h-px flex-1 bg-gradient-to-l from-transparent to-stone-200/60" />
           </div>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
             {FEATURES.map((f, i) => (
               <div key={i} className="glass-card rounded-xl p-3 border border-white/60 shadow-sm text-center">
                 <span className="text-xl block mb-1">{f.icon}</span>
@@ -390,29 +399,15 @@ export default function JoinPage() {
         </div>
       </ScrollReveal>
 
-      {/* ── Interior Shot ── */}
-      <ScrollReveal delay={60} direction="up" className="mt-10 px-4">
-        <div className="max-w-sm mx-auto">
-          <div className="relative h-48 rounded-2xl overflow-hidden shadow-lg ring-1 ring-black/5">
-            <Image src="/images/interior.webp" alt="Mr Jackson interior" fill className="object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-4">
-              <p className="text-white text-sm font-semibold drop-shadow-lg">Warm, Contemporary Setting</p>
-              <p className="text-white/70 text-[11px] font-sans mt-0.5">Indoor & alfresco seating for 90 guests</p>
-            </div>
-          </div>
-        </div>
-      </ScrollReveal>
-
       {/* ── How It Works ── */}
       <ScrollReveal delay={0} direction="up" className="mt-10 px-4">
-        <div className="max-w-sm mx-auto">
+        <div className="max-w-lg mx-auto">
           <div className="flex items-center gap-3 mb-5">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent to-stone-200/60" />
             <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">How it works</p>
             <div className="h-px flex-1 bg-gradient-to-l from-transparent to-stone-200/60" />
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-6">
             {[
               { icon: '🪑', title: 'Choose', desc: 'Pick your table or join the queue' },
               { icon: '📱', title: 'Order', desc: 'Browse the menu & order from your phone' },
@@ -431,69 +426,66 @@ export default function JoinPage() {
       </ScrollReveal>
 
       {/* ── Divider ── */}
-      <div className="flex items-center justify-center mt-10 px-8">
+      <div className="flex items-center justify-center mt-10 px-8 max-w-lg mx-auto w-full">
         <div className="h-px flex-1 bg-gradient-to-r from-transparent to-stone-200/40" />
         <span className="mx-3 w-1.5 h-1.5 rounded-full bg-amber-300/40" />
         <div className="h-px flex-1 bg-gradient-to-l from-transparent to-stone-200/40" />
       </div>
 
       {/* ── Footer info ── */}
-      <div className="px-4 pt-6 pb-12 flex flex-col items-center gap-4">
-        <ScrollReveal delay={0} direction="up" className="w-full max-w-sm">
-          <div className="glass-card rounded-2xl p-5 border border-white/60 shadow-lg">
-            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-3">Hours</p>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between text-stone-700">
-                <span className="text-stone-500 font-sans">Every Day</span>
-                <span className="font-medium font-sans">7:00 AM – 3:00 PM</span>
+      <div className="px-4 pt-6 pb-12 w-full max-w-2xl mx-auto">
+        {/* Hours + Find Us + Social side by side */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <ScrollReveal delay={0} direction="up" className="w-full">
+            <div className="glass-card rounded-2xl p-5 border border-white/60 shadow-lg h-full">
+              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-3">Hours</p>
+              <div className="text-sm">
+                <div className="flex justify-between text-stone-700">
+                  <span className="text-stone-500 font-sans">Every Day</span>
+                  <span className="font-medium font-sans">7 AM – 3 PM</span>
+                </div>
               </div>
             </div>
-          </div>
-        </ScrollReveal>
+          </ScrollReveal>
 
-        <ScrollReveal delay={80} direction="up" className="w-full max-w-sm">
-          <div className="glass-card rounded-2xl p-5 border border-white/60 shadow-lg space-y-2.5">
-            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-3">Find Us</p>
-            <a href="https://maps.google.com/?q=1/45+Main+St+Mornington+VIC" target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2.5 text-sm text-stone-600 hover:text-stone-900 transition-colors duration-300 font-sans">
-              <span className="text-base">📍</span>
-              <span>1/45 Main St, Mornington VIC 3931</span>
-            </a>
-            <div className="h-px bg-gradient-to-r from-transparent via-stone-200 to-transparent" />
-            <a href="tel:0359098815" className="flex items-center gap-2.5 text-sm text-stone-600 hover:text-stone-900 transition-colors duration-300 font-sans">
-              <span className="text-base">📞</span>
-              <span>(03) 5909 8815</span>
-            </a>
-            <div className="h-px bg-gradient-to-r from-transparent via-stone-200 to-transparent" />
-            <a href="https://www.mrjackson.com.au" target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2.5 text-sm text-stone-600 hover:text-stone-900 transition-colors duration-300 font-sans">
-              <span className="text-base">🌐</span>
-              <span>mrjackson.com.au</span>
-            </a>
-          </div>
-        </ScrollReveal>
-
-        <ScrollReveal delay={120} direction="up" className="w-full max-w-sm">
-          <div className="glass-card rounded-2xl p-5 border border-white/60 shadow-lg">
-            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-3">Follow Us</p>
-            <div className="flex items-center justify-center gap-6">
-              <a href="https://www.facebook.com/mrjacksonmornington/" target="_blank" rel="noopener noreferrer"
-                className="flex flex-col items-center gap-1.5 text-stone-500 hover:text-stone-800 transition-colors duration-300">
-                <span className="text-2xl">📘</span>
-                <span className="text-[10px] font-sans font-medium">Facebook</span>
+          <ScrollReveal delay={80} direction="up" className="w-full">
+            <div className="glass-card rounded-2xl p-5 border border-white/60 shadow-lg space-y-2.5 h-full">
+              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-3">Find Us</p>
+              <a href="https://maps.google.com/?q=1/45+Main+St+Mornington+VIC" target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-stone-600 hover:text-stone-900 transition-colors duration-300 font-sans">
+                <span className="text-base">📍</span>
+                <span>1/45 Main St, Mornington</span>
               </a>
-              <a href="https://www.instagram.com/mrjacksonmornington/" target="_blank" rel="noopener noreferrer"
-                className="flex flex-col items-center gap-1.5 text-stone-500 hover:text-stone-800 transition-colors duration-300">
-                <span className="text-2xl">📸</span>
-                <span className="text-[10px] font-sans font-medium">Instagram</span>
+              <div className="h-px bg-gradient-to-r from-transparent via-stone-200 to-transparent" />
+              <a href="tel:0359098815" className="flex items-center gap-2 text-sm text-stone-600 hover:text-stone-900 transition-colors duration-300 font-sans">
+                <span className="text-base">📞</span>
+                <span>(03) 5909 8815</span>
               </a>
             </div>
-          </div>
-        </ScrollReveal>
+          </ScrollReveal>
+
+          <ScrollReveal delay={120} direction="up" className="w-full">
+            <div className="glass-card rounded-2xl p-5 border border-white/60 shadow-lg h-full">
+              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-3">Follow Us</p>
+              <div className="flex items-center gap-4">
+                <a href="https://www.facebook.com/mrjacksonmornington/" target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-stone-500 hover:text-stone-800 transition-colors duration-300 text-sm font-sans">
+                  <span className="text-lg">📘</span>
+                  <span>Facebook</span>
+                </a>
+                <a href="https://www.instagram.com/mrjacksonmornington/" target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-stone-500 hover:text-stone-800 transition-colors duration-300 text-sm font-sans">
+                  <span className="text-lg">📸</span>
+                  <span>Instagram</span>
+                </a>
+              </div>
+            </div>
+          </ScrollReveal>
+        </div>
 
         {/* Cuisine tags */}
-        <ScrollReveal delay={140} direction="up" className="w-full max-w-sm">
-          <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
+        <ScrollReveal delay={140} direction="up" className="mt-6">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             {['Australian Breakfast', 'Asian Inspired', 'Brunch', 'Burgers', 'Salads', 'Nourish Bowls', 'Boba'].map((tag, i) => (
               <span key={i} className="text-[10px] font-medium px-3 py-1.5 rounded-full bg-stone-100 text-stone-500 border border-stone-200/60 font-sans">
                 {tag}
@@ -502,7 +494,7 @@ export default function JoinPage() {
           </div>
         </ScrollReveal>
 
-        <p className="text-stone-300 text-[10px] font-sans mt-4">© Mr Jackson · Mornington</p>
+        <p className="text-stone-300 text-[10px] font-sans mt-6 text-center">© Mr Jackson · Mornington</p>
       </div>
     </main>
   )
