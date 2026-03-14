@@ -29,14 +29,14 @@ const MENU_HIGHLIGHTS = [
 ]
 
 const FEATURES = [
-  { label: 'Toby Estate Coffee' },
-  { label: 'Vegan & GF Options' },
-  { label: 'Fully Licensed' },
-  { label: 'Free WiFi' },
-  { label: 'Child Friendly' },
-  { label: 'Indoor Fireplace' },
-  { label: 'Alfresco Dining' },
-  { label: 'Disabled Access' },
+  { label: 'Toby Estate Coffee', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg> },
+  { label: 'Vegan & GF Options', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><path d="M12 2a10 10 0 0 1 0 20"/><path d="M12 2C6.5 2 2 6.5 2 12"/><path d="M2 12c0 3.5 1.5 6.5 4 8.5"/><path d="M12 12c0-5 3-8 8-10"/></svg> },
+  { label: 'Fully Licensed', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><path d="M8 22h8"/><path d="M12 11v11"/><path d="M20 2H4l2 7a6 6 0 0 0 12 0l2-7z"/></svg> },
+  { label: 'Free WiFi', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></svg> },
+  { label: 'Child Friendly', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg> },
+  { label: 'Indoor Fireplace', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><path d="M12 2c0 6-4 8-4 12a4 4 0 0 0 8 0c0-4-4-6-4-12z"/><path d="M12 12c0 3-2 4-2 6a2 2 0 0 0 4 0c0-2-2-3-2-6z"/></svg> },
+  { label: 'Alfresco Dining', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg> },
+  { label: 'Disabled Access', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><circle cx="16" cy="4" r="1"/><path d="m18 19 1-7-6 1"/><path d="m5 8 3-3 5.5 3-2.36 3.5"/><path d="M4.24 14.5a5 5 0 0 0 6.88 6"/><path d="M13.76 17.5a5 5 0 0 0-6.88-6"/></svg> },
 ]
 
 type TableInfo = {
@@ -381,11 +381,14 @@ export default function JoinPage() {
             <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">What We Offer</p>
             <div className="h-px flex-1 bg-gradient-to-l from-transparent to-stone-200/60" />
           </div>
-          <div className="flex flex-wrap justify-center gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {FEATURES.map((f, i) => (
-              <span key={i} className="text-[11px] font-medium px-3.5 py-2 rounded-full bg-white text-stone-600 border border-stone-200/80 font-sans shadow-sm">
-                {f.label}
-              </span>
+              <div key={i} className="glass-card rounded-xl px-3 py-3 border border-white/60 shadow-sm flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-stone-100 flex items-center justify-center flex-shrink-0 text-stone-500">
+                  {f.icon}
+                </div>
+                <span className="text-[11px] font-medium text-stone-700 font-sans leading-tight">{f.label}</span>
+              </div>
             ))}
           </div>
         </div>
@@ -399,15 +402,27 @@ export default function JoinPage() {
             <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">How it works</p>
             <div className="h-px flex-1 bg-gradient-to-l from-transparent to-stone-200/60" />
           </div>
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 gap-4">
             {[
-              { num: '1', title: 'Choose', desc: 'Pick your table or join the queue' },
-              { num: '2', title: 'Order', desc: 'Browse the menu & order from your phone' },
-              { num: '3', title: 'Enjoy', desc: 'Food served right to your table' },
+              {
+                title: 'Choose',
+                desc: 'Pick your table or join the queue',
+                icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/></svg>
+              },
+              {
+                title: 'Order',
+                desc: 'Browse & pay from your phone',
+                icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18" strokeLinecap="round" strokeWidth="2"/></svg>
+              },
+              {
+                title: 'Enjoy',
+                desc: 'Food served right to your table',
+                icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+              },
             ].map((step, i) => (
               <div key={i} className="text-center step-connector">
-                <div className="w-12 h-12 rounded-full bg-stone-900 text-white flex items-center justify-center mx-auto mb-2.5 shadow-sm text-sm font-semibold font-sans">
-                  {step.num}
+                <div className="w-11 h-11 rounded-2xl bg-stone-900 text-white flex items-center justify-center mx-auto mb-2.5 shadow-sm">
+                  {step.icon}
                 </div>
                 <p className="font-semibold text-stone-800 text-xs font-sans">{step.title}</p>
                 <p className="text-[10px] text-stone-400 font-sans mt-0.5 leading-tight">{step.desc}</p>
