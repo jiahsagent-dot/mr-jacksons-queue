@@ -29,14 +29,14 @@ const MENU_HIGHLIGHTS = [
 ]
 
 const FEATURES = [
-  { icon: '☕', label: 'Toby Estate Coffee' },
-  { icon: '🌿', label: 'Vegan & GF Options' },
-  { icon: '🍷', label: 'Fully Licensed' },
-  { icon: '📶', label: 'Free WiFi' },
-  { icon: '👶', label: 'Child Friendly' },
-  { icon: '🔥', label: 'Indoor Fireplace' },
-  { icon: '🌤️', label: 'Alfresco Dining' },
-  { icon: '♿', label: 'Disabled Access' },
+  { label: 'Toby Estate Coffee' },
+  { label: 'Vegan & GF Options' },
+  { label: 'Fully Licensed' },
+  { label: 'Free WiFi' },
+  { label: 'Child Friendly' },
+  { label: 'Indoor Fireplace' },
+  { label: 'Alfresco Dining' },
+  { label: 'Disabled Access' },
 ]
 
 type TableInfo = {
@@ -198,8 +198,7 @@ export default function JoinPage() {
               href={`/order/new?context=dine_in&table=${seated.table_number}&name=${encodeURIComponent(seated.customer_name)}`}
               className="btn-primary btn-shine w-full flex items-center justify-center gap-3 py-4 text-base mt-3 shadow-lg shadow-stone-900/10"
             >
-              <span className="text-xl">🍽️</span>
-              <span>Order &amp; Pay</span>
+              Order &amp; Pay
             </Link>
             <button
               onClick={() => { sessionStorage.removeItem('mr_jackson_table'); setSeated(null) }}
@@ -220,34 +219,28 @@ export default function JoinPage() {
           </div>
 
           <div className="space-y-3">
-            {/* Dine In */}
             <button
               onClick={handleDineIn}
               className="btn-primary btn-shine w-full flex items-center justify-center gap-3 py-4 text-base shadow-lg shadow-stone-900/10"
             >
-              <span className="text-xl">🍽️</span>
-              <span>Dine In Now</span>
+              Dine In Now
             </button>
 
-            {/* Book & Menu side by side */}
             <div className="grid grid-cols-2 gap-3">
               <Link
                 href="/book"
                 className="btn-secondary flex items-center justify-center gap-2 py-4 text-sm card-hover"
               >
-                <span className="text-lg">📅</span>
-                <span>Book a Table</span>
+                Book a Table
               </Link>
               <Link
                 href="/menu"
                 className="btn-secondary flex items-center justify-center gap-2 py-4 text-sm card-hover"
               >
-                <span className="text-lg">📋</span>
-                <span>View Menu</span>
+                View Menu
               </Link>
             </div>
 
-            {/* I have a booking — check in by phone */}
             {!seated && !showBookingEntry && (
               <button
                 onClick={() => setShowBookingEntry(true)}
@@ -375,7 +368,7 @@ export default function JoinPage() {
             className="btn-secondary flex items-center justify-center gap-2 py-3.5 text-sm mt-4 card-hover max-w-xs mx-auto w-full"
           >
             <span>View Full Menu</span>
-            <span className="text-stone-400">→</span>
+            <span className="text-stone-400">&rarr;</span>
           </Link>
         </div>
       </ScrollReveal>
@@ -388,12 +381,11 @@ export default function JoinPage() {
             <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">What We Offer</p>
             <div className="h-px flex-1 bg-gradient-to-l from-transparent to-stone-200/60" />
           </div>
-          <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+          <div className="flex flex-wrap justify-center gap-2">
             {FEATURES.map((f, i) => (
-              <div key={i} className="glass-card rounded-xl p-3 border border-white/60 shadow-sm text-center">
-                <span className="text-xl block mb-1">{f.icon}</span>
-                <p className="text-[10px] text-stone-500 font-sans font-medium leading-tight">{f.label}</p>
-              </div>
+              <span key={i} className="text-[11px] font-medium px-3.5 py-2 rounded-full bg-white text-stone-600 border border-stone-200/80 font-sans shadow-sm">
+                {f.label}
+              </span>
             ))}
           </div>
         </div>
@@ -409,13 +401,13 @@ export default function JoinPage() {
           </div>
           <div className="grid grid-cols-3 gap-6">
             {[
-              { icon: '🪑', title: 'Choose', desc: 'Pick your table or join the queue' },
-              { icon: '📱', title: 'Order', desc: 'Browse the menu & order from your phone' },
-              { icon: '🍽️', title: 'Enjoy', desc: 'Food served right to your table' },
+              { num: '1', title: 'Choose', desc: 'Pick your table or join the queue' },
+              { num: '2', title: 'Order', desc: 'Browse the menu & order from your phone' },
+              { num: '3', title: 'Enjoy', desc: 'Food served right to your table' },
             ].map((step, i) => (
               <div key={i} className="text-center step-connector">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-50 to-stone-50 border border-amber-200/40 flex items-center justify-center mx-auto mb-2.5 shadow-sm">
-                  <span className="text-xl">{step.icon}</span>
+                <div className="w-12 h-12 rounded-full bg-stone-900 text-white flex items-center justify-center mx-auto mb-2.5 shadow-sm text-sm font-semibold font-sans">
+                  {step.num}
                 </div>
                 <p className="font-semibold text-stone-800 text-xs font-sans">{step.title}</p>
                 <p className="text-[10px] text-stone-400 font-sans mt-0.5 leading-tight">{step.desc}</p>
@@ -434,7 +426,6 @@ export default function JoinPage() {
 
       {/* ── Footer info ── */}
       <div className="px-4 pt-6 pb-12 w-full max-w-2xl mx-auto">
-        {/* Hours + Find Us + Social side by side */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <ScrollReveal delay={0} direction="up" className="w-full">
             <div className="glass-card rounded-2xl p-5 border border-white/60 shadow-lg h-full">
@@ -453,12 +444,10 @@ export default function JoinPage() {
               <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-3">Find Us</p>
               <a href="https://maps.google.com/?q=1/45+Main+St+Mornington+VIC" target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 text-sm text-stone-600 hover:text-stone-900 transition-colors duration-300 font-sans">
-                <span className="text-base">📍</span>
                 <span>1/45 Main St, Mornington</span>
               </a>
               <div className="h-px bg-gradient-to-r from-transparent via-stone-200 to-transparent" />
               <a href="tel:0359098815" className="flex items-center gap-2 text-sm text-stone-600 hover:text-stone-900 transition-colors duration-300 font-sans">
-                <span className="text-base">📞</span>
                 <span>(03) 5909 8815</span>
               </a>
             </div>
@@ -469,14 +458,12 @@ export default function JoinPage() {
               <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-3">Follow Us</p>
               <div className="flex items-center gap-4">
                 <a href="https://www.facebook.com/mrjacksonmornington/" target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-stone-500 hover:text-stone-800 transition-colors duration-300 text-sm font-sans">
-                  <span className="text-lg">📘</span>
-                  <span>Facebook</span>
+                  className="text-sm text-stone-500 hover:text-stone-800 transition-colors duration-300 font-sans underline underline-offset-2">
+                  Facebook
                 </a>
                 <a href="https://www.instagram.com/mrjacksonmornington/" target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-stone-500 hover:text-stone-800 transition-colors duration-300 text-sm font-sans">
-                  <span className="text-lg">📸</span>
-                  <span>Instagram</span>
+                  className="text-sm text-stone-500 hover:text-stone-800 transition-colors duration-300 font-sans underline underline-offset-2">
+                  Instagram
                 </a>
               </div>
             </div>
