@@ -275,3 +275,50 @@ h1, h2, h3 {
   animation: shineSweep 3s ease-in-out infinite;
   pointer-events: none;
 }
+
+/* ── Decorative ornament ── */
+.ornament {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.ornament::before,
+.ornament::after {
+  content: '';
+  height: 1px;
+  width: 40px;
+  background: linear-gradient(90deg, transparent, rgba(180, 160, 130, 0.4), transparent);
+}
+
+/* ── Subtle noise texture overlay ── */
+.texture-overlay {
+  position: relative;
+}
+.texture-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Step connector line ── */
+.step-connector {
+  position: relative;
+}
+.step-connector::after {
+  content: '';
+  position: absolute;
+  top: 28px;
+  right: -8px;
+  width: 16px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(180,160,130,0.3), rgba(180,160,130,0.1));
+}
+.step-connector:last-child::after {
+  display: none;
+}

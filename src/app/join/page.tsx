@@ -117,10 +117,10 @@ export default function JoinPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col overflow-x-hidden bg-gradient-to-b from-stone-50 via-stone-50 to-stone-100/50">
+    <main className="min-h-screen flex flex-col overflow-x-hidden bg-gradient-to-b from-stone-50 via-stone-50 to-stone-100/50 texture-overlay">
 
       {/* ── Hero ── */}
-      <div className="relative h-[340px] sm:h-[400px] w-full flex-shrink-0">
+      <div className="relative h-[360px] sm:h-[420px] w-full flex-shrink-0">
         <Image
           src="/images/hero.jpg"
           alt="Mr Jackson Mornington"
@@ -189,11 +189,14 @@ export default function JoinPage() {
           </div>
         )}
 
-        <div className="glass-card rounded-3xl w-full max-w-sm p-6 shadow-2xl border-2 border-white/60 animate-reveal-1">
-          <h2 className="text-[18px] font-semibold text-stone-900 mb-1 text-center">
+        <div className="glass-card rounded-3xl w-full max-w-sm p-6 shadow-2xl border-2 border-white/60 animate-reveal-1 gold-shimmer-border">
+          <h2 className="text-xl font-semibold text-stone-900 mb-1 text-center">
             {seated ? 'Or start fresh' : 'Welcome'}
           </h2>
-          <p className="text-stone-400 text-sm mb-5 text-center font-sans">How would you like to dine today?</p>
+          <p className="text-stone-400 text-sm mb-1.5 text-center font-sans">How would you like to dine today?</p>
+          <div className="ornament mb-5">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400/60" />
+          </div>
 
           <div className="space-y-3">
             {/* Dine In */}
@@ -273,32 +276,53 @@ export default function JoinPage() {
 
       {/* ── Gallery strip ── */}
       <ScrollReveal delay={100} direction="up" className="mt-10 w-full">
-        <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] px-4 mb-3">From the kitchen</p>
+        <div className="flex items-center gap-3 px-4 mb-4">
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent to-stone-200/60" />
+          <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">From the kitchen</p>
+          <div className="h-px flex-1 bg-gradient-to-l from-transparent to-stone-200/60" />
+        </div>
         <div
           className="flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-hide"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
           {GALLERY.map((src, i) => (
-            <div key={i} className="relative w-36 h-36 rounded-2xl overflow-hidden flex-shrink-0 shadow-lg hover:scale-[1.03] transition-transform duration-300 ring-1 ring-black/5">
+            <div key={i} className="relative w-36 h-44 rounded-2xl overflow-hidden flex-shrink-0 shadow-lg hover:scale-[1.03] transition-transform duration-300 ring-1 ring-black/5">
               <Image src={src} alt="Mr Jackson dish" fill className="object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
             </div>
           ))}
           <div className="w-2 flex-shrink-0" />
         </div>
       </ScrollReveal>
 
+      {/* ── Tagline ── */}
+      <ScrollReveal delay={80} direction="up" className="mt-10 px-6">
+        <div className="max-w-xs mx-auto text-center">
+          <p className="text-stone-700 text-[15px] leading-relaxed italic">
+            &ldquo;Fresh, local, made with love — every single morning.&rdquo;
+          </p>
+          <div className="ornament mt-3">
+            <span className="w-1 h-1 rounded-full bg-amber-400/50" />
+          </div>
+        </div>
+      </ScrollReveal>
+
       {/* ── How It Works ── */}
-      <ScrollReveal delay={0} direction="up" className="mt-10 px-4">
+      <ScrollReveal delay={0} direction="up" className="mt-8 px-4">
         <div className="max-w-sm mx-auto">
-          <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-5 text-center">How it works</p>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent to-stone-200/60" />
+            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">How it works</p>
+            <div className="h-px flex-1 bg-gradient-to-l from-transparent to-stone-200/60" />
+          </div>
           <div className="grid grid-cols-3 gap-4">
             {[
               { icon: '🪑', title: 'Choose', desc: 'Pick your table or join the queue' },
               { icon: '📱', title: 'Order', desc: 'Browse the menu & order from your phone' },
               { icon: '🍽️', title: 'Enjoy', desc: 'Food served right to your table' },
             ].map((step, i) => (
-              <div key={i} className="text-center">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-stone-100 to-stone-50 border border-stone-200/60 flex items-center justify-center mx-auto mb-2.5 shadow-sm">
+              <div key={i} className="text-center step-connector">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-50 to-stone-50 border border-amber-200/40 flex items-center justify-center mx-auto mb-2.5 shadow-sm">
                   <span className="text-xl">{step.icon}</span>
                 </div>
                 <p className="font-semibold text-stone-800 text-xs font-sans">{step.title}</p>
@@ -310,7 +334,11 @@ export default function JoinPage() {
       </ScrollReveal>
 
       {/* ── Divider ── */}
-      <div className="mx-8 mt-8 h-px bg-gradient-to-r from-transparent via-stone-200 to-transparent" />
+      <div className="flex items-center justify-center mt-8 px-8">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent to-stone-200/40" />
+        <span className="mx-3 w-1.5 h-1.5 rounded-full bg-amber-300/40" />
+        <div className="h-px flex-1 bg-gradient-to-l from-transparent to-stone-200/40" />
+      </div>
 
       {/* ── Footer info ── */}
       <div className="px-4 pt-6 pb-12 flex flex-col items-center gap-4">
