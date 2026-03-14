@@ -53,11 +53,20 @@ export default function QueueStatusPage() {
       return
     }
     const windowMs = noShowMinutes * 60 * 1000
+    let expireCalled = false
     const updateTimer = () => {
       const calledAt = new Date(entry.called_at!).getTime()
       const remaining = Math.max(0, windowMs - (Date.now() - calledAt))
       setTimeLeft(remaining)
-      if (remaining <= 0) fetchStatus()
+      if (remaining <= 0 && !expireCalled) {
+        expireCalled = true
+        // Trigger server-side expiry so the table gets freed immediately
+        fetch('/api/queue/expire', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        }).finally(() => fetchStatus())
+      }
     }
     updateTimer()
     const interval = setInterval(updateTimer, 1000)
