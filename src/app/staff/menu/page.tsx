@@ -132,11 +132,13 @@ export default function StaffMenuPage() {
             <h1 className="text-xl font-bold text-stone-900" style={{ fontFamily: "'Playfair Display', serif" }}>Menu Manager</h1>
             <p className="text-xs text-stone-400 font-sans">{items.length} items · {categories.length} categories</p>
           </div>
-          <p className="text-[10px] text-stone-300 font-sans">
-            {items.filter(i => !i.available).length > 0
-              ? `⚠️ ${items.filter(i => !i.available).length} items off`
-              : '✓ All items on'}
-          </p>
+          <button
+            onClick={startAdd}
+            className="btn-primary px-4 py-2 text-sm flex items-center gap-1.5"
+          >
+            <span className="text-lg leading-none">+</span>
+            <span>Add Item</span>
+          </button>
         </div>
       </div>
 
@@ -316,16 +318,6 @@ export default function StaffMenuPage() {
         )}
       </div>
 
-      {/* Add Button */}
-      {!adding && !editing && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-3 z-50" style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}>
-          <div className="max-w-4xl mx-auto">
-            <button onClick={startAdd} className="btn-primary w-full py-3 text-sm">
-              + Add Menu Item
-            </button>
-          </div>
-        </div>
-      )}
       <StaffNav />
     </main>
   )
