@@ -36,26 +36,26 @@ h1, h2, h3 {
 }
 
 .btn-secondary {
-  background-color: #FAF5EC;
+  background-color: #F2F2F2;
   color: #374151;
   @apply font-medium py-3 px-6 rounded-2xl transition-all duration-200 active:scale-[0.98] text-[15px];
-  border: 1px solid var(--parchment);
+  border: 1px solid #E4E4E4;
 }
 .btn-secondary:hover {
-  background-color: var(--parchment);
-  border-color: var(--gold);
+  background-color: #E8E8E8;
+  border-color: #C8C8C8;
 }
 
 .card {
-  background-color: #FAF5EC;
+  background-color: #F2F2F2;
   @apply rounded-2xl shadow-sm p-5;
-  border: 1px solid var(--parchment);
+  border: 1px solid #E4E4E4;
 }
 
 .input-field {
-  background-color: #FAF5EC;
+  background-color: #F2F2F2;
   @apply w-full rounded-2xl px-4 py-3.5 text-stone-900 focus:outline-none text-[15px] transition-all placeholder-stone-400;
-  border: 1px solid var(--parchment);
+  border: 1px solid #E4E4E4;
 }
 .input-field:focus {
   outline: none;
@@ -224,11 +224,11 @@ h1, h2, h3 {
 
 /* ── Glassmorphism card ── */
 .glass-card {
-  background: rgba(250, 245, 236, 0.82);
+  background: rgba(242, 242, 242, 0.88);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(201, 168, 76, 0.2);
-  box-shadow: 0 8px 32px rgba(27, 67, 50, 0.07), 0 1px 3px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(228, 228, 228, 0.8);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 /* ── Ambient glow behind position badge ── */
