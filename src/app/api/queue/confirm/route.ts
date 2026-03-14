@@ -6,8 +6,6 @@ import { notifyNextInQueue } from '@/lib/notifyQueue'
 const SUPABASE_URL = 'https://qducoenvjaotympjedrl.supabase.co'
 const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU'
 
-const CONFIRM_WINDOW_MS = 10 * 60 * 1000 // 10 minutes
-
 export async function POST(req: NextRequest) {
   try {
     const { id } = await req.json()
@@ -16,6 +14,14 @@ export async function POST(req: NextRequest) {
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
       auth: { persistSession: false },
     })
+
+    // Read no_show_minutes from settings (fallback to 10)
+    const { data: settings } = await admin
+      .from('queue_settings')
+      .select('no_show_minutes')
+      .eq('id', 1)
+      .single()
+    const confirmWindowMs = ((settings as any)?.no_show_minutes ?? 10) * 60 * 1000
 
     const { data: entry, error } = await admin
       .from('queue_entries')
@@ -41,10 +47,10 @@ export async function POST(req: NextRequest) {
 
     const assignedTable = table?.table_number || null
 
-    // Check if within 5 minute window
+    // Check if within the confirm window (driven by settings)
     const calledAt = new Date(entry.called_at).getTime()
     const now = Date.now()
-    if (now - calledAt > CONFIRM_WINDOW_MS) {
+    if (now - calledAt > confirmWindowMs) {
       // Expired — mark as left, free the table, notify next person
       await admin.from('queue_entries').update({ status: 'left' }).eq('id', id)
 

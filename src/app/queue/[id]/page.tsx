@@ -7,14 +7,13 @@ import Image from 'next/image'
 import toast from 'react-hot-toast'
 import type { QueueEntry } from '@/lib/supabase'
 
-const CONFIRM_WINDOW_MS = 10 * 60 * 1000 // 10 minutes
-
 export default function QueueStatusPage() {
   const { id } = useParams()
   const router = useRouter()
   const [entry, setEntry] = useState<(QueueEntry & { assigned_table?: number }) | null>(null)
   const [position, setPosition] = useState(0)
   const [estimatedWait, setEstimatedWait] = useState(0)
+  const [noShowMinutes, setNoShowMinutes] = useState(10)
   const [loading, setLoading] = useState(true)
   const [lastRefresh, setLastRefresh] = useState(Date.now())
   const [confirming, setConfirming] = useState(false)
@@ -23,13 +22,19 @@ export default function QueueStatusPage() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
   const fetchStatus = async () => {
-    // Cache-bust every request so position always reflects live DB state
-    const res = await fetch(`/api/queue/status?id=${id}&_t=${Date.now()}`)
-    if (res.ok) {
-      const data = await res.json()
+    const [statusRes, settingsRes] = await Promise.all([
+      fetch(`/api/queue/status?id=${id}&_t=${Date.now()}`),
+      fetch(`/api/queue/settings?_t=${Date.now()}`),
+    ])
+    if (statusRes.ok) {
+      const data = await statusRes.json()
       setEntry(data.entry)
       setPosition(data.position)
       setEstimatedWait(data.estimated_wait)
+    }
+    if (settingsRes.ok) {
+      const s = await settingsRes.json()
+      if (s.no_show_minutes) setNoShowMinutes(s.no_show_minutes)
     }
     setLastRefresh(Date.now())
     setLoading(false)
@@ -41,22 +46,23 @@ export default function QueueStatusPage() {
     return () => clearInterval(interval)
   }, [id])
 
-  // Countdown timer when called
+  // Countdown timer when called — uses live no_show_minutes from settings
   useEffect(() => {
     if (entry?.status !== 'called' || !entry.called_at) {
       setTimeLeft(null)
       return
     }
+    const windowMs = noShowMinutes * 60 * 1000
     const updateTimer = () => {
       const calledAt = new Date(entry.called_at!).getTime()
-      const remaining = Math.max(0, CONFIRM_WINDOW_MS - (Date.now() - calledAt))
+      const remaining = Math.max(0, windowMs - (Date.now() - calledAt))
       setTimeLeft(remaining)
-      if (remaining <= 0) fetchStatus() // refresh to check if expired
+      if (remaining <= 0) fetchStatus()
     }
     updateTimer()
     const interval = setInterval(updateTimer, 1000)
     return () => clearInterval(interval)
-  }, [entry?.status, entry?.called_at])
+  }, [entry?.status, entry?.called_at, noShowMinutes])
 
   const handleConfirm = async () => {
     setConfirming(true)
