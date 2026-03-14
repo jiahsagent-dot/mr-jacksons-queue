@@ -243,9 +243,12 @@ export default function QueueStatusPage() {
               )}
 
               {timeLeft !== null && timeLeft <= 0 && (
-                <div className="mt-3 mb-4 bg-red-50 border-2 border-red-200 rounded-2xl px-5 py-3">
+                <div className="mt-3 mb-4 bg-red-50 border-2 border-red-200 rounded-2xl px-5 py-4">
                   <p className="text-red-600 font-semibold font-sans text-sm">⏰ Time expired</p>
-                  <p className="text-red-400 text-xs font-sans mt-0.5">Your spot may have been given to the next person</p>
+                  <p className="text-red-400 text-xs font-sans mt-0.5 mb-3">Your spot may have been given to the next person</p>
+                  <Link href="/join" className="btn-primary block text-center py-3 text-sm">
+                    Back to Home
+                  </Link>
                 </div>
               )}
 
