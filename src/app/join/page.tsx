@@ -246,7 +246,7 @@ export default function JoinPage() {
                 onClick={() => setShowBookingEntry(true)}
                 className="w-full text-center text-sm text-stone-400 font-sans hover:text-stone-600 transition-colors duration-300 pt-1"
               >
-                Already have a booking? <span className="font-semibold text-stone-600 underline underline-offset-2">Check in here</span>
+                Have a booking, queue spot or active order? <span className="font-semibold text-stone-600 underline underline-offset-2">Check in here</span>
               </button>
             )}
 
