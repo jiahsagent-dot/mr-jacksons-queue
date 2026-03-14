@@ -223,13 +223,6 @@ export default function JoinPage() {
             {/* Dine In — shows inline queue form when full */}
             {tableInfo?.has_availability === false ? (
               <div className="space-y-2">
-                <div className="w-full flex items-center gap-3 py-3 px-4 rounded-2xl bg-amber-50 border-2 border-amber-200 text-amber-800 text-sm font-semibold font-sans">
-                  <span className="text-xl">🪑</span>
-                  <div>
-                    <span>We're currently full</span>
-                    <span className="block text-xs font-normal text-amber-600 mt-0.5">~{settings?.estimated_wait || 15} min wait</span>
-                  </div>
-                </div>
                 {!showQueueForm ? (
                   <button
                     onClick={() => setShowQueueForm(true)}
