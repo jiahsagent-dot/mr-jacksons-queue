@@ -3,8 +3,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import Link from 'next/link'
 import type { QueueEntry } from '@/lib/supabase'
+import { StaffNav } from '@/components/StaffNav'
 
 function minutesWaiting(iso: string) {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
@@ -275,6 +275,7 @@ export default function StaffQueuePage() {
           </div>
         </section>
       )}
+      <StaffNav />
     </main>
   )
 }
