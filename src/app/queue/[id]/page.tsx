@@ -78,7 +78,6 @@ export default function QueueStatusPage() {
         fetchStatus()
       } else {
         toast.success('Table confirmed!')
-        // Store table info for ordering
         if (data.table_number) {
           sessionStorage.setItem('mr_jackson_table', JSON.stringify({
             table_number: data.table_number,
@@ -124,11 +123,11 @@ export default function QueueStatusPage() {
   if (loading) {
     return (
       <main className="min-h-screen flex flex-col bg-stone-50">
-        {/* Skeleton header */}
-        <div className="h-[160px] skeleton" />
+        <div className="h-[220px] skeleton" />
         <div className="flex-1 flex flex-col items-center px-4 pt-8 gap-4">
-          <div className="w-full max-w-sm h-48 skeleton" />
-          <div className="w-full max-w-sm h-24 skeleton" />
+          <div className="w-full max-w-sm h-56 skeleton" />
+          <div className="w-full max-w-sm h-20 skeleton" />
+          <div className="w-full max-w-sm h-32 skeleton" />
         </div>
       </main>
     )
@@ -136,9 +135,11 @@ export default function QueueStatusPage() {
 
   if (!entry) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-4">
-        <p className="text-stone-400 font-sans">Queue entry not found</p>
-        <Link href="/join" className="btn-primary mt-4">Back to Home</Link>
+      <main className="min-h-screen flex flex-col items-center justify-center px-4 bg-stone-50">
+        <div className="animate-reveal text-center">
+          <p className="text-stone-400 font-sans text-lg">Queue entry not found</p>
+          <Link href="/join" className="btn-primary mt-6 inline-block">Back to Home</Link>
+        </div>
       </main>
     )
   }
@@ -148,105 +149,115 @@ export default function QueueStatusPage() {
   const isSeated = entry.status === 'seated'
   const isLeft = entry.status === 'left'
 
-  // Calculate progress (max 5 positions, 100% when position is 1)
   const progressPercent = isWaiting ? Math.min(100, Math.max(10, (1 - (position - 1) / 5) * 100)) : 100
 
   return (
-    <main className="min-h-screen flex flex-col">
-      {/* Header */}
-      <div className="relative h-[160px] overflow-hidden">
-        <Image src="/images/hero.jpg" alt="Mr Jackson" fill className="object-cover" priority />
+    <main className="min-h-screen flex flex-col bg-gradient-to-b from-stone-50 via-stone-50 to-stone-100/50">
+      {/* ── Hero Header ── */}
+      <div className="relative h-[220px] overflow-hidden">
+        <Image
+          src="/images/hero.jpg"
+          alt="Mr Jackson"
+          fill
+          className="object-cover animate-hero-zoom"
+          priority
+        />
         <div className={`absolute inset-0 ${
-          isCalled ? 'bg-gradient-to-b from-green-900/50 via-green-900/60 to-green-900/90' :
-          isSeated ? 'bg-gradient-to-b from-blue-900/50 via-blue-900/60 to-blue-900/90' :
-          'bg-gradient-to-b from-black/30 via-black/50 to-black/85'
+          isCalled ? 'bg-gradient-to-b from-green-900/40 via-green-900/60 to-green-950/95' :
+          isSeated ? 'bg-gradient-to-b from-blue-900/40 via-blue-900/60 to-blue-950/95' :
+          'bg-gradient-to-b from-black/20 via-black/40 to-stone-950/95'
         }`} />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.3)_100%)]" />
+
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4">
-          <Link href="/join" className="absolute top-4 left-4 text-white/70 text-sm hover:text-white font-sans">← Home</Link>
-          <Image src="/images/logo.png" alt="Mr Jackson" width={48} height={48} className="rounded-full shadow-lg mb-2" />
-          <h1 className="text-2xl font-bold drop-shadow-lg">Mr Jackson</h1>
-          <div className="w-6 h-0.5 bg-amber-500 mx-auto mt-1.5" />
-          <p className="text-white/50 text-xs tracking-widest uppercase font-sans mt-1">Queue Status</p>
+          <Link href="/join" className="absolute top-5 left-5 text-white/50 text-sm hover:text-white transition-colors duration-300 font-sans tracking-wide">
+            ← Home
+          </Link>
+          <div className="animate-header-reveal">
+            <Image src="/images/logo.png" alt="Mr Jackson" width={52} height={52} className="rounded-full shadow-2xl mb-3 mx-auto ring-2 ring-white/10" />
+            <h1 className="text-3xl font-bold drop-shadow-lg tracking-tight">Mr Jackson</h1>
+            <div className="h-0.5 bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto mt-2 animate-expand-line" />
+            <p className="text-white/40 text-[11px] tracking-[0.2em] uppercase font-sans mt-2 font-medium">Queue Status</p>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center px-4 -mt-5 pb-10">
-        {/* Status Card */}
-        <div className={`card w-full max-w-sm text-center animate-slide-up border-2 shadow-xl ${
-          isCalled ? 'border-green-200 bg-gradient-to-b from-green-50/50 to-white' :
-          isSeated ? 'border-blue-200 bg-gradient-to-b from-blue-50/50 to-white' :
-          isLeft ? 'border-stone-200 bg-stone-50' :
-          'border-stone-100'
+      <div className="flex-1 flex flex-col items-center px-4 -mt-8 pb-12 relative z-10">
+        {/* ── Status Card ── */}
+        <div className={`glass-card rounded-3xl w-full max-w-sm text-center p-6 animate-reveal border-2 shadow-2xl ${
+          isCalled ? 'border-green-200/60 bg-gradient-to-b from-green-50/80 to-white/90' :
+          isSeated ? 'border-blue-200/60 bg-gradient-to-b from-blue-50/80 to-white/90' :
+          isLeft ? 'border-stone-200/60 bg-stone-50/90' :
+          'border-white/60'
         }`}>
           {isWaiting && (
             <>
-              <div className="w-20 h-20 rounded-full bg-amber-50 border-2 border-amber-200 flex items-center justify-center mx-auto mb-4 animate-count-in">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-200 flex items-center justify-center mx-auto mb-5 animate-count-in animate-ambient-glow">
                 <span className="text-4xl font-bold text-amber-800 font-sans">#{position}</span>
               </div>
-              <h2 className="text-xl font-bold text-stone-900 mb-1">You&apos;re in the Queue</h2>
-              <p className="text-stone-400 text-sm font-sans mb-4">
-                {position === 1 ? "You're next! 🎉" : `${position - 1} ${position - 1 === 1 ? 'party' : 'parties'} ahead of you`}
+
+              <h2 className="text-2xl font-bold text-stone-900 mb-1.5">You&apos;re in the Queue</h2>
+              <p className="text-stone-400 text-sm font-sans mb-5">
+                {position === 1 ? "You're next!" : `${position - 1} ${position - 1 === 1 ? 'party' : 'parties'} ahead of you`}
               </p>
 
-              {/* Progress Bar */}
-              <div className="mb-4">
-                <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
+              <div className="mb-5 px-1">
+                <div className="h-2.5 bg-stone-100 rounded-full overflow-hidden shadow-inner">
                   <div
-                    className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-1000 ease-out animate-progress-pulse"
+                    className="h-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-400 rounded-full transition-all duration-1000 ease-out animate-progress-glow"
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
-                <div className="flex justify-between mt-1.5">
-                  <span className="text-[10px] text-stone-300 font-sans">Joined</span>
-                  <span className="text-[10px] text-stone-300 font-sans">Your turn</span>
+                <div className="flex justify-between mt-2">
+                  <span className="text-[10px] text-stone-300 font-sans font-medium tracking-wide">Joined</span>
+                  <span className="text-[10px] text-stone-300 font-sans font-medium tracking-wide">Your turn</span>
                 </div>
               </div>
 
               {estimatedWait > 0 && (
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-4">
-                  <p className="text-xs text-amber-600 uppercase tracking-wide font-semibold font-sans">Estimated Wait</p>
-                  <p className="text-2xl font-bold text-amber-800 font-sans animate-count-in">~{estimatedWait} min</p>
+                <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-200/80 rounded-2xl px-5 py-4 mb-5 gold-shimmer-border">
+                  <p className="text-[10px] text-amber-600 uppercase tracking-[0.15em] font-bold font-sans">Estimated Wait</p>
+                  <p className="text-3xl font-bold text-amber-800 font-sans animate-count-in mt-0.5">~{estimatedWait} min</p>
                 </div>
               )}
-              <p className="text-stone-400 text-sm font-sans">📱 We&apos;ll text you when your table is ready</p>
 
-              {/* Live indicator */}
-              <div className="flex items-center justify-center gap-1.5 mt-3">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                <span className="text-[10px] text-stone-300 font-sans">Live · updates every 15s</span>
+              <p className="text-stone-400 text-sm font-sans">We&apos;ll text you when your table is ready</p>
+
+              <div className="flex items-center justify-center gap-2 mt-4">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-breathe" />
+                <span className="text-[10px] text-stone-300 font-sans font-medium tracking-wide">Live · updates every 15s</span>
               </div>
             </>
           )}
 
           {isCalled && (
             <>
-              <div className="w-20 h-20 rounded-full bg-green-100 border-2 border-green-300 flex items-center justify-center mx-auto mb-4 animate-confetti">
-                <span className="text-4xl">🎉</span>
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-100 to-green-200/50 border-2 border-green-300 flex items-center justify-center mx-auto mb-5 animate-confetti">
+                <span className="text-5xl">🎉</span>
               </div>
               <h2 className="text-2xl font-bold text-green-800 mb-2">Your Table is Ready!</h2>
               {entry.assigned_table && (
                 <p className="text-green-700 font-sans font-semibold text-lg mb-1">Table {entry.assigned_table}</p>
               )}
 
-              {/* Countdown timer */}
               {timeLeft !== null && timeLeft > 0 && (
-                <div className={`mt-3 mb-4 rounded-2xl px-5 py-3 border-2 ${
-                  timeLeft < 60000 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'
+                <div className={`mt-4 mb-5 rounded-2xl px-5 py-4 border-2 ${
+                  timeLeft < 60000 ? 'bg-gradient-to-br from-red-50 to-red-100/50 border-red-200' : 'bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200'
                 }`}>
-                  <p className={`text-xs uppercase tracking-wide font-bold font-sans mb-1 ${
+                  <p className={`text-[10px] uppercase tracking-[0.15em] font-bold font-sans mb-1 ${
                     timeLeft < 60000 ? 'text-red-500' : 'text-amber-600'
                   }`}>Confirm within</p>
-                  <p className={`text-3xl font-bold font-sans tabular-nums ${
+                  <p className={`text-4xl font-bold font-sans tabular-nums ${
                     timeLeft < 60000 ? 'text-red-700' : 'text-amber-800'
                   }`}>{formatCountdown(timeLeft)}</p>
                 </div>
               )}
 
               {timeLeft !== null && timeLeft <= 0 && (
-                <div className="mt-3 mb-4 bg-red-50 border-2 border-red-200 rounded-2xl px-5 py-4">
-                  <p className="text-red-600 font-semibold font-sans text-sm">⏰ Time expired</p>
-                  <p className="text-red-400 text-xs font-sans mt-0.5 mb-3">Your spot may have been given to the next person</p>
-                  <Link href="/join" className="btn-primary block text-center py-3 text-sm">
+                <div className="mt-4 mb-5 bg-gradient-to-br from-red-50 to-red-100/50 border-2 border-red-200 rounded-2xl px-5 py-4">
+                  <p className="text-red-600 font-semibold font-sans text-sm">Time expired</p>
+                  <p className="text-red-400 text-xs font-sans mt-1 mb-3">Your spot may have been given to the next person</p>
+                  <Link href="/join" className="btn-primary btn-shine block text-center py-3 text-sm">
                     Back to Home
                   </Link>
                 </div>
@@ -255,52 +266,53 @@ export default function QueueStatusPage() {
               <button
                 onClick={handleConfirm}
                 disabled={confirming || (timeLeft !== null && timeLeft <= 0)}
-                className="btn-primary w-full py-5 text-lg mt-2 disabled:opacity-50"
+                className="btn-primary btn-shine w-full py-5 text-lg mt-3 disabled:opacity-50 shadow-lg shadow-stone-900/10"
               >
                 {confirming ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" />
                     Confirming...
                   </span>
-                ) : '✅ Confirm My Table'}
+                ) : 'Confirm My Table'}
               </button>
-              <p className="text-stone-400 text-xs font-sans mt-3">Tap to confirm and head to your table</p>
+              <p className="text-stone-400 text-xs font-sans mt-4 tracking-wide">Tap to confirm and head to your table</p>
             </>
           )}
 
           {isSeated && (
             <>
-              <div className="text-5xl mb-4 animate-confetti">🎉</div>
-              <h2 className="text-2xl font-bold text-green-800 mb-2">You&apos;re Seated!</h2>
+              <div className="text-5xl mb-5 animate-confetti">🎉</div>
+              <h2 className="text-2xl font-bold text-green-800 mb-3">You&apos;re Seated!</h2>
               {entry.assigned_table && (
-                <div className="bg-green-100 border-2 border-green-200 rounded-2xl px-5 py-3 mb-3">
-                  <p className="text-xs text-green-600 uppercase tracking-wide font-bold font-sans mb-0.5">Your Table</p>
+                <div className="bg-gradient-to-br from-green-100 to-green-50 border-2 border-green-200 rounded-2xl px-5 py-4 mb-4">
+                  <p className="text-[10px] text-green-600 uppercase tracking-[0.15em] font-bold font-sans mb-0.5">Your Table</p>
                   <p className="text-3xl font-bold text-green-800 font-sans">{entry.assigned_table}</p>
                 </div>
               )}
-              <p className="text-green-700 font-sans">Head to your table — enjoy your meal! 🍽️</p>
+              <p className="text-green-700 font-sans">Head to your table — enjoy your meal!</p>
             </>
           )}
 
           {isLeft && (
             <>
-              <div className="text-5xl mb-4">👋</div>
+              <div className="text-5xl mb-5">👋</div>
               <h2 className="text-xl font-bold text-stone-700 mb-2">See You Next Time</h2>
-              <p className="text-stone-400 font-sans mb-4">You&apos;ve been removed from the queue</p>
-              <Link href="/join" className="btn-primary inline-block">Back Home</Link>
+              <p className="text-stone-400 font-sans mb-5">You&apos;ve been removed from the queue</p>
+              <Link href="/join" className="btn-primary btn-shine inline-block">Back Home</Link>
             </>
           )}
         </div>
 
-        {/* Guest Info */}
+        {/* ── Guest Info ── */}
         {!isLeft && (
-          <div className="card w-full max-w-sm mt-3 animate-slide-up-1">
+          <div className="glass-card rounded-2xl w-full max-w-sm mt-4 p-5 animate-reveal-2 border border-white/60 shadow-lg">
             <div className="flex justify-between text-sm font-sans">
-              <span className="text-stone-400">Name</span>
+              <span className="text-stone-400 font-medium">Name</span>
               <span className="font-semibold text-stone-800">{entry.name}</span>
             </div>
-            <div className="flex justify-between text-sm font-sans mt-2">
-              <span className="text-stone-400">Party</span>
+            <div className="h-px bg-gradient-to-r from-transparent via-stone-200 to-transparent my-3" />
+            <div className="flex justify-between text-sm font-sans">
+              <span className="text-stone-400 font-medium">Party</span>
               <span className="font-semibold text-stone-800">{entry.party_size} {entry.party_size === 1 ? 'person' : 'people'}</span>
             </div>
           </div>
@@ -308,17 +320,16 @@ export default function QueueStatusPage() {
 
         {/* ── Order Options (while waiting) ── */}
         {isWaiting && (
-          <div className="w-full max-w-sm mt-5 space-y-3 animate-slide-up-2">
-            <p className="text-center text-stone-400 text-sm font-sans font-medium">While you wait...</p>
+          <div className="w-full max-w-sm mt-6 space-y-3">
+            <p className="text-center text-stone-400 text-sm font-sans font-medium tracking-wide animate-reveal-3">While you wait...</p>
 
-            {/* Order Now — Highlighted */}
             <Link
               href={`/order/new?context=queue&name=${encodeURIComponent(entry.name)}&phone=${encodeURIComponent(entry.phone)}&queue_id=${entry.id}`}
-              className="block"
+              className="block animate-reveal-3"
             >
-              <div className="card border-2 border-amber-300 bg-amber-50/30 hover:border-amber-400 transition-all active:scale-[0.98] card-hover">
+              <div className="glass-card rounded-2xl p-5 border-2 border-amber-300/70 bg-gradient-to-br from-amber-50/80 to-white/90 hover:border-amber-400 transition-all duration-300 active:scale-[0.98] card-hover gold-shimmer-border">
                 <div className="flex items-start gap-4">
-                  <span className="text-3xl">🚀</span>
+                  <span className="text-3xl animate-gentle-float">🚀</span>
                   <div>
                     <h3 className="font-bold text-stone-900 text-[16px]">Order &amp; Pay Now</h3>
                     <p className="text-stone-500 text-sm mt-1 font-sans leading-relaxed">
@@ -329,11 +340,10 @@ export default function QueueStatusPage() {
               </div>
             </Link>
 
-            {/* Browse Menu */}
-            <Link href="/menu" className="block">
-              <div className="card border-2 border-transparent hover:border-stone-200 transition-all active:scale-[0.98] card-hover">
+            <Link href="/menu" className="block animate-reveal-4">
+              <div className="glass-card rounded-2xl p-5 border-2 border-transparent hover:border-stone-200 transition-all duration-300 active:scale-[0.98] card-hover">
                 <div className="flex items-start gap-4">
-                  <span className="text-3xl">⏰</span>
+                  <span className="text-3xl">📋</span>
                   <div>
                     <h3 className="font-bold text-stone-900 text-[16px]">Browse the Menu</h3>
                     <p className="text-stone-400 text-sm mt-1 font-sans leading-relaxed">
@@ -344,24 +354,23 @@ export default function QueueStatusPage() {
               </div>
             </Link>
 
-            {/* Cancel queue spot */}
             {!showCancelConfirm && (
               <button
                 onClick={() => setShowCancelConfirm(true)}
-                className="w-full text-center text-sm text-stone-400 font-sans hover:text-red-500 transition-colors py-2 mt-1"
+                className="w-full text-center text-sm text-stone-400 font-sans hover:text-red-500 transition-colors duration-300 py-3 mt-2 animate-reveal-4"
               >
                 Want to leave the queue?
               </button>
             )}
 
             {showCancelConfirm && (
-              <div className="card border-2 border-red-200 bg-red-50/50 animate-slide-up">
-                <div className="text-center mb-3">
-                  <p className="text-2xl mb-1">👋</p>
+              <div className="glass-card rounded-2xl p-5 border-2 border-red-200/60 bg-gradient-to-br from-red-50/80 to-white/90 animate-slide-up">
+                <div className="text-center mb-4">
+                  <p className="text-2xl mb-1.5">👋</p>
                   <p className="font-semibold text-stone-800 text-sm font-sans">Leave the queue?</p>
-                  <p className="text-xs text-stone-400 font-sans mt-1">Your spot will be released and given to the next person.</p>
+                  <p className="text-xs text-stone-400 font-sans mt-1.5 leading-relaxed">Your spot will be released and given to the next person.</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2.5">
                   <button
                     onClick={() => setShowCancelConfirm(false)}
                     className="btn-secondary flex-1 py-3 text-sm"
@@ -371,7 +380,7 @@ export default function QueueStatusPage() {
                   <button
                     onClick={handleCancel}
                     disabled={cancelling}
-                    className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-medium text-sm hover:bg-red-600 transition-all active:scale-[0.98] disabled:opacity-50"
+                    className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-medium text-sm hover:bg-red-600 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-red-500/20"
                   >
                     {cancelling ? 'Leaving...' : 'Yes, Leave'}
                   </button>
@@ -383,12 +392,12 @@ export default function QueueStatusPage() {
 
         {/* When seated, offer ordering */}
         {isSeated && (
-          <div className="w-full max-w-sm mt-5 animate-slide-up-1">
+          <div className="w-full max-w-sm mt-6 animate-reveal-2">
             <Link
               href={`/order/new?context=dine_in&table=${entry.assigned_table || ''}&name=${encodeURIComponent(entry.name)}&phone=${encodeURIComponent(entry.phone)}`}
-              className="btn-primary w-full flex items-center justify-center gap-2 py-5 text-lg"
+              className="btn-primary btn-shine w-full flex items-center justify-center gap-2 py-5 text-lg shadow-lg shadow-stone-900/10"
             >
-              <span>🍽️</span> Order & Pay
+              Order &amp; Pay
             </Link>
           </div>
         )}

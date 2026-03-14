@@ -42,7 +42,7 @@ h1, h2, h3 {
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Subtle animations */
+/* ── Subtle animations ── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
@@ -62,27 +62,28 @@ h1, h2, h3 {
 }
 
 /* Staggered slide-up variants */
-.animate-slide-up-1 { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 50ms both; }
-.animate-slide-up-2 { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 120ms both; }
-.animate-slide-up-3 { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 200ms both; }
+.animate-slide-up-1 { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 100ms both; }
+.animate-slide-up-2 { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 220ms both; }
+.animate-slide-up-3 { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 340ms both; }
+.animate-slide-up-4 { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 460ms both; }
 
 /* Hero zoom-in */
 @keyframes heroZoom {
-  from { transform: scale(1.06); }
+  from { transform: scale(1.08); }
   to { transform: scale(1); }
 }
 
 .animate-hero-zoom {
-  animation: heroZoom 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: heroZoom 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Card hover lift */
+/* ── Premium card hover lift ── */
 .card-hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.04);
 }
 
 /* Loading skeleton shimmer */
@@ -101,11 +102,21 @@ h1, h2, h3 {
 /* Progress bar animation */
 @keyframes progressPulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  50% { opacity: 0.7; }
 }
 
 .animate-progress-pulse {
-  animation: progressPulse 2s ease-in-out infinite;
+  animation: progressPulse 2.5s ease-in-out infinite;
+}
+
+/* ── Progress bar glow ── */
+@keyframes progressGlow {
+  0%, 100% { box-shadow: 0 0 8px rgba(245, 158, 11, 0.3); }
+  50% { box-shadow: 0 0 16px rgba(245, 158, 11, 0.6); }
+}
+
+.animate-progress-glow {
+  animation: progressGlow 2.5s ease-in-out infinite;
 }
 
 /* Confetti burst for confirmations */
@@ -152,4 +163,115 @@ h1, h2, h3 {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: gradientShift 3s ease infinite;
+}
+
+/* ── Premium gold shimmer border ── */
+@keyframes goldShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.gold-shimmer-border {
+  position: relative;
+  overflow: hidden;
+}
+.gold-shimmer-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(90deg, transparent 20%, rgba(245,158,11,0.4) 50%, transparent 80%);
+  background-size: 200% 100%;
+  animation: goldShimmer 4s linear infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ── Glassmorphism card ── */
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Ambient glow behind position badge ── */
+@keyframes ambientGlow {
+  0%, 100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.15), 0 0 40px rgba(245, 158, 11, 0.05); }
+  50% { box-shadow: 0 0 30px rgba(245, 158, 11, 0.25), 0 0 60px rgba(245, 158, 11, 0.1); }
+}
+
+.animate-ambient-glow {
+  animation: ambientGlow 3s ease-in-out infinite;
+}
+
+/* ── Fade in from below (slow, elegant) ── */
+@keyframes revealUp {
+  from { opacity: 0; transform: translateY(32px) scale(0.98); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+.animate-reveal {
+  animation: revealUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+.animate-reveal-1 { animation: revealUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 80ms both; }
+.animate-reveal-2 { animation: revealUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 180ms both; }
+.animate-reveal-3 { animation: revealUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 300ms both; }
+.animate-reveal-4 { animation: revealUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 420ms both; }
+
+/* ── Header text reveal ── */
+@keyframes headerReveal {
+  from { opacity: 0; transform: translateY(12px); filter: blur(6px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+.animate-header-reveal {
+  animation: headerReveal 0.9s cubic-bezier(0.16, 1, 0.3, 1) 200ms both;
+}
+
+/* ── Subtle breathing glow for live indicator ── */
+@keyframes breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
+
+.animate-breathe {
+  animation: breathe 2s ease-in-out infinite;
+}
+
+/* ── Gold divider line animation ── */
+@keyframes expandLine {
+  from { width: 0; opacity: 0; }
+  to { width: 24px; opacity: 1; }
+}
+
+.animate-expand-line {
+  animation: expandLine 0.8s cubic-bezier(0.16, 1, 0.3, 1) 400ms both;
+}
+
+/* ── Button shine sweep ── */
+@keyframes shineSweep {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  animation: shineSweep 3s ease-in-out infinite;
+  pointer-events: none;
 }
