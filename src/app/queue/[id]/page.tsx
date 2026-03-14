@@ -320,24 +320,19 @@ export default function QueueStatusPage() {
               </div>
             </Link>
 
-            {/* Order Later */}
-            <div className="card border-2 border-transparent">
-              <div className="flex items-start gap-4">
-                <span className="text-3xl">⏰</span>
-                <div>
-                  <h3 className="font-bold text-stone-900 text-[16px]">Order When Seated</h3>
-                  <p className="text-stone-400 text-sm mt-1 font-sans leading-relaxed">
-                    Browse the menu and order at your own pace once you&apos;re comfortable.
-                  </p>
+            {/* Browse Menu */}
+            <Link href="/menu" className="block">
+              <div className="card border-2 border-transparent hover:border-stone-200 transition-all active:scale-[0.98] card-hover">
+                <div className="flex items-start gap-4">
+                  <span className="text-3xl">⏰</span>
+                  <div>
+                    <h3 className="font-bold text-stone-900 text-[16px]">Browse the Menu</h3>
+                    <p className="text-stone-400 text-sm mt-1 font-sans leading-relaxed">
+                      Check out what&apos;s on offer and order when you&apos;re seated.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <Link
-              href="/menu"
-              className="block text-center text-stone-400 text-sm font-sans hover:text-stone-700 transition-colors py-2"
-            >
-              Browse our menu →
             </Link>
 
             {/* Cancel queue spot */}
