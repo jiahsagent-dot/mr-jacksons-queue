@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 
 // Auto-cancel pending orders older than 30 minutes (abandoned before payment)
 export async function POST() {
-  const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL , process.env.SUPABASE_SERVICE_ROLE_KEY )
   const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString()
 
   const { error } = await admin
