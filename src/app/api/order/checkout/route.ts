@@ -19,49 +19,6 @@ export async function POST(req: NextRequest) {
 
     const admin = createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU' || SUPABASE_SERVICE_KEY)
 
-    // ── Lock the table at checkout time, before Stripe ──────────────────
-    if (dining_option === 'dine_in' && table_number) {
-      if (queue_entry_id) {
-        // Queue customer: their queue entry ID is the key — the table must be reserved specifically for them.
-        // table_code = 'queue:<queue_entry_id>' means this table belongs to this person.
-        const { data: theirTable } = await admin
-          .from('tables')
-          .select('table_number, status, table_code')
-          .eq('table_number', table_number)
-          .eq('table_code', `queue:${queue_entry_id}`)
-          .maybeSingle()
-
-        if (!theirTable) {
-          // Table is not reserved under their queue code — it was freed or given to someone else
-          return NextResponse.json(
-            { error: 'Your table reservation has expired. Please speak to staff.' },
-            { status: 409 }
-          )
-        }
-        // Table is confirmed as theirs — no status update needed here, webhook will mark it occupied after payment
-      } else {
-        // Walk-in customer: atomically claim the table only if still available
-        const { data: locked } = await admin
-          .from('tables')
-          .update({
-            status: 'reserved',
-            current_customer: name,
-            occupied_at: new Date().toISOString(),
-          })
-          .eq('table_number', table_number)
-          .eq('status', 'available')
-          .select('table_number')
-
-        if (!locked || locked.length === 0) {
-          return NextResponse.json(
-            { error: 'Sorry, that table has just been taken. Please go back and choose another.' },
-            { status: 409 }
-          )
-        }
-      }
-    }
-    // ─────────────────────────────────────────────────────────────────────
-
     let order: any
     let dbError: any
 

@@ -138,12 +138,6 @@ function NewOrderPage() {
       const text = await res.text()
       let data
       try { data = JSON.parse(text) } catch { throw new Error('Server error — please try again') }
-      if (res.status === 409) {
-        // Table was taken between selection and checkout — send back to choose again
-        toast.error(data.error || 'That table is no longer available. Please choose another.', { duration: 6000 })
-        setTimeout(() => { window.location.href = '/tables' }, 2000)
-        return
-      }
       if (!res.ok) throw new Error(data.error || 'Something went wrong')
       if (!data.checkout_url) throw new Error('No checkout URL returned — please try again')
       window.location.href = data.checkout_url

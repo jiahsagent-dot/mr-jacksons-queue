@@ -93,7 +93,6 @@ export async function POST(req: NextRequest) {
           .eq('id', orderId)
 
         // Mark table as occupied after payment (dine-in only)
-        // Table should already be 'reserved' from checkout — upgrade to 'occupied'
         if (diningOption === 'dine_in' && tableNumber) {
           const now = new Date()
           await admin
@@ -104,7 +103,6 @@ export async function POST(req: NextRequest) {
               occupied_at: now.toISOString(),
             })
             .eq('table_number', tableNumber)
-            .in('status', ['reserved', 'available']) // don't clobber if staff already handled it
 
           // Create booking record for staff timeline
           const todayDate = now.toISOString().split('T')[0]
