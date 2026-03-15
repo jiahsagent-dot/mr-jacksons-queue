@@ -272,10 +272,31 @@ function ConfirmationContent() {
         {/* Actions — Add more / Cancel */}
         {order.status !== 'served' && order.status !== 'cancelled' && (
           <div className="space-y-3">
-            {/* Add more items — hidden for booking orders within 1 hour */}
-            {canEditBookingOrder ? (
+            {/* Booking: Edit Order (full add/remove) — locked 1hr before */}
+            {isBooking ? (
+              canEditBookingOrder ? (
+                <Link
+                  href={`/order/edit?order_id=${order.id}`}
+                  className="card flex items-center gap-4 hover:border-stone-300 transition-all active:scale-[0.98]"
+                >
+                  <div className="w-11 h-11 rounded-full bg-stone-100 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xl">✏️</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-stone-800 text-sm font-sans">Edit Order</p>
+                    <p className="text-xs text-stone-400 font-sans">Add or remove items from your pre-order</p>
+                  </div>
+                  <svg className="w-4 h-4 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                </Link>
+              ) : (
+                <div className="card border-stone-100 bg-stone-50">
+                  <p className="text-xs text-stone-400 font-sans text-center">⏰ Order editing closed — less than 1 hour until your booking.</p>
+                </div>
+              )
+            ) : (
+              /* Dine-in / Queue: Add More Items only */
               <Link
-                href={`/order/new?context=${order.dining_option === 'dine_in' ? 'dine_in' : 'booking'}&table=${order.table_number || ''}&name=${encodeURIComponent(order.customer_name)}&phone=${encodeURIComponent(order.phone || '')}`}
+                href={`/order/new?context=dine_in&table=${order.table_number || ''}&name=${encodeURIComponent(order.customer_name)}&phone=${encodeURIComponent(order.phone || '')}`}
                 className="card flex items-center gap-4 hover:border-stone-300 transition-all active:scale-[0.98]"
               >
                 <div className="w-11 h-11 rounded-full bg-stone-100 flex items-center justify-center flex-shrink-0">
@@ -287,10 +308,6 @@ function ConfirmationContent() {
                 </div>
                 <svg className="w-4 h-4 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
               </Link>
-            ) : isBooking && (
-              <div className="card border-stone-100 bg-stone-50">
-                <p className="text-xs text-stone-400 font-sans text-center">⏰ Order editing closed — less than 1 hour until your booking.</p>
-              </div>
             )}
 
             {/* Cancel order */}
