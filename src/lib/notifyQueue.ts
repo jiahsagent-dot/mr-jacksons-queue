@@ -4,15 +4,22 @@ import { formatPhone } from './phone'
 const CLICKSEND_USERNAME = process.env.CLICKSEND_USERNAME || 'jiahsagent@gmail.com'
 const CLICKSEND_API_KEY = process.env.CLICKSEND_API_KEY || '6A27AE52-866F-25C1-158C-C1D17531DBA7'
 
-function sendSMS(to: string, body: string) {
-  // Fire-and-forget — never await this so callers aren't blocked
+async function sendSMS(to: string, body: string) {
+  // Awaited — in Vercel serverless, fire-and-forget gets killed before the fetch completes
   const credentials = Buffer.from(`${CLICKSEND_USERNAME}:${CLICKSEND_API_KEY}`).toString('base64')
-  fetch('https://rest.clicksend.com/v3/sms/send', {
-    method: 'POST',
-    headers: { 'Authorization': `Basic ${credentials}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages: [{ source: 'mr-jacksons', to, body }] }),
-  }).then(r => { if (!r.ok) r.json().then(e => console.error('SMS failed:', JSON.stringify(e))).catch(() => {}) })
-    .catch(err => console.error('SMS failed:', err))
+  try {
+    const r = await fetch('https://rest.clicksend.com/v3/sms/send', {
+      method: 'POST',
+      headers: { 'Authorization': `Basic ${credentials}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [{ source: 'mr-jacksons', to, body }] }),
+    })
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}))
+      console.error('SMS failed:', JSON.stringify(e))
+    }
+  } catch (err) {
+    console.error('SMS failed:', err)
+  }
 }
 
 /**
@@ -21,6 +28,10 @@ function sendSMS(to: string, body: string) {
  * Returns the queue entry if one was found, null otherwise.
  */
 export async function notifyNextInQueue(admin: SupabaseClient, tableNumber: number) {
+  // Read no_show_minutes from settings
+  const { data: settingsRow } = await admin.from('queue_settings').select('no_show_minutes').eq('id', 1).maybeSingle()
+  const noShowMinutes: number = (settingsRow as any)?.no_show_minutes ?? 10
+
   // Get the seat count for this table
   const { data: table } = await admin
     .from('tables')
@@ -38,7 +49,7 @@ export async function notifyNextInQueue(admin: SupabaseClient, tableNumber: numb
     .lte('party_size', seats)
     .order('created_at', { ascending: true })
     .limit(1)
-    .single()
+    .maybeSingle()
 
   if (!next) return null
 
@@ -77,10 +88,10 @@ export async function notifyNextInQueue(admin: SupabaseClient, tableNumber: numb
     if (hasPaidOrder) {
       // They've already ordered & paid — auto-seat, just tell them to come
       msg =
-        `Hi ${next.name}! 🎉 Your table is ready at Mr Jackson's!\n\n` +
-        `🪑 Table ${tableNumber} is waiting for you.\n` +
-        `🍽️ Your food is being prepared — please head over now!\n\n` +
-        `📍 1/45 Main St, Mornington`
+        `Hi ${next.name}, your table is ready at Mr Jackson's!\n\n` +
+        `Table ${tableNumber} is waiting for you.\n` +
+        `Your food is being prepared - please head over now!\n\n` +
+        `1/45 Main St, Mornington`
 
       // Auto-confirm — seat them immediately
       await admin
@@ -93,14 +104,13 @@ export async function notifyNextInQueue(admin: SupabaseClient, tableNumber: numb
         .update({ status: 'occupied', current_customer: next.name, occupied_at: new Date().toISOString() })
         .eq('table_number', tableNumber)
     } else {
-      // Haven't paid — must confirm within 10 minutes or lose their spot
+      // Haven't paid — must confirm within the no_show window or lose their spot
       msg =
-        `Hi ${next.name}! 🎉 A table is ready for you at Mr Jackson's!\n\n` +
-        `🪑 Table ${tableNumber} is being held for you.\n\n` +
-        `⏱️ You have 10 minutes to confirm your spot.\n` +
-        `If you don't confirm in time, your table will be given to the next person in the queue.\n\n` +
-        `👉 Confirm now:\n${queueUrl}\n\n` +
-        `📍 1/45 Main St, Mornington`
+        `Hi ${next.name}, a table is ready for you at Mr Jackson's!\n\n` +
+        `Table ${tableNumber} is being held for you.\n` +
+        `You have ${noShowMinutes} minutes to confirm your spot before it is given to the next person.\n\n` +
+        `Confirm here: ${queueUrl}\n\n` +
+        `1/45 Main St, Mornington`
     }
 
     await sendSMS(formatPhone(next.phone), msg)

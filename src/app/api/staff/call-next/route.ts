@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { notifyNextInQueue } from '@/lib/notifyQueue'
+import { formatPhone } from '@/lib/phone'
 
 export async function POST(req: NextRequest) {
   const { id } = await req.json()
@@ -62,23 +63,30 @@ export async function POST(req: NextRequest) {
   const noShowMins = (settings as any)?.no_show_minutes ?? 10
 
   const smsBody = table
-    ? `Hi ${entry.name}! 🎉 A table is ready for you at Mr Jackson's!\n\n` +
-      `🪑 Table ${table.table_number} is being held for you.\n\n` +
-      `⏱️ You have ${noShowMins} minutes to confirm your spot.\n` +
-      `If you don't confirm in time, your table will be given to the next person in the queue.\n\n` +
-      `👉 Confirm now:\n${confirmUrl}\n\n` +
-      `📍 1/45 Main St, Mornington`
-    : `Hi ${entry.name}! 🎉 A table is ready for you at Mr Jackson's!\n\n` +
-      `⏱️ You have ${noShowMins} minutes to confirm your spot.\n` +
-      `👉 Confirm now:\n${confirmUrl}\n\n` +
-      `📍 1/45 Main St, Mornington`
+    ? `Hi ${entry.name}, a table is ready for you at Mr Jackson's!\n\n` +
+      `Table ${table.table_number} is being held for you.\n` +
+      `You have ${noShowMins} minutes to confirm your spot before it is given to the next person.\n\n` +
+      `Confirm here: ${confirmUrl}\n\n` +
+      `1/45 Main St, Mornington`
+    : `Hi ${entry.name}, a table is ready for you at Mr Jackson's!\n\n` +
+      `You have ${noShowMins} minutes to confirm your spot.\n\n` +
+      `Confirm here: ${confirmUrl}\n\n` +
+      `1/45 Main St, Mornington`
 
-  fetch('https://rest.clicksend.com/v3/sms/send', {
-    method: 'POST',
-    headers: { 'Authorization': `Basic ${credentials}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages: [{ source: 'mr-jacksons', to: entry.phone, body: smsBody }] }),
-  }).then(r => { if (!r.ok) r.json().then(e => console.error('ClickSend error:', JSON.stringify(e))).catch(() => {}) })
-    .catch(err => console.error('SMS failed:', err))
+  // Await the SMS so Vercel doesn't kill the request before it sends
+  try {
+    const smsRes = await fetch('https://rest.clicksend.com/v3/sms/send', {
+      method: 'POST',
+      headers: { 'Authorization': `Basic ${credentials}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [{ source: 'mr-jacksons', to: formatPhone(entry.phone), body: smsBody }] }),
+    })
+    if (!smsRes.ok) {
+      const smsErr = await smsRes.json().catch(() => ({}))
+      console.error('ClickSend error:', JSON.stringify(smsErr))
+    }
+  } catch (err) {
+    console.error('SMS failed:', err)
+  }
 
   return NextResponse.json({ success: true, table_number: table?.table_number ?? null })
 }
