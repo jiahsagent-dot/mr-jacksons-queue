@@ -24,6 +24,26 @@ type ActiveOrder = {
   items_count: number
 } | null
 
+function buildICSUrl(booking: Booking): string {
+  const params = new URLSearchParams({
+    name: booking.customer_name,
+    date: booking.date,
+    time: booking.time_slot,
+    party: String(booking.party_size),
+    ...(booking.id ? { id: booking.id } : {}),
+  })
+  return `/api/calendar/booking?${params.toString()}`
+}
+
+function addToCalendar(booking: Booking) {
+  const a = document.createElement('a')
+  a.href = buildICSUrl(booking)
+  a.style.display = 'none'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+}
+
 function formatTimeSlot(slot: string) {
   if (!slot) return ''
   const [h, m] = slot.split(':').map(Number)
@@ -200,6 +220,17 @@ function ManageContent() {
             </div>
           </div>
         </div>
+
+        {/* Add to Calendar */}
+        {!isCancelled && !isPast && (
+          <button
+            onClick={() => addToCalendar(booking)}
+            className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white border border-stone-200 hover:border-stone-400 text-stone-600 text-sm font-medium font-sans transition-all active:scale-[0.98]"
+          >
+            <span>📅</span>
+            <span>Add to Calendar</span>
+          </button>
+        )}
 
         {!isCancelled && !isPast && (
           <>
