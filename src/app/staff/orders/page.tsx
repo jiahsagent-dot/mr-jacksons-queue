@@ -44,8 +44,8 @@ function formatTime(slot: string): string {
   return `${hour12}:${m.toString().padStart(2, '0')} ${ampm}`
 }
 
-// How many minutes before a booking/takeaway slot to add it to the kitchen queue
-const PREP_WINDOW_MINUTES = 60
+// How many minutes before a booking slot to add it to the kitchen queue
+const PREP_WINDOW_MINUTES = 15
 
 function shouldShowInKitchen(order: Order): boolean {
   if (!['received', 'preparing'].includes(order.status)) return false
@@ -463,7 +463,7 @@ export default function StaffOrdersPage() {
                   })}
                 </div>
                 <p className="text-xs text-stone-300 font-sans mt-2 text-center">
-                  Orders appear in kitchen queue {PREP_WINDOW_MINUTES} min before pickup
+                  Booking orders drop into kitchen queue 15 min before booking time
                 </p>
               </div>
             )}
