@@ -124,12 +124,14 @@ function ConfirmationContent() {
           <p className="text-xs text-stone-400 font-sans mt-2">Keep this handy — our team will use it to find you</p>
         </div>
 
-        {/* Table number card — shown for dine-in orders with a table assigned (not bookings) */}
-        {isDineIn && !isBooking && order.table_number && (
+        {/* Table number card — shown for any order with a table assigned */}
+        {order.table_number && (
           <div className="card text-center border-2 border-stone-200 bg-white animate-slide-up">
             <p className="text-xs font-bold text-stone-400 uppercase tracking-widest font-sans mb-1">Your Table</p>
-            <p className="text-4xl font-bold text-stone-900 tracking-widest">{order.table_number}</p>
-            <p className="text-xs text-stone-400 font-sans mt-2">Sit back — your food will be brought to you</p>
+            <p className="text-4xl font-bold text-stone-900 tracking-widest">Table {order.table_number}</p>
+            <p className="text-xs text-stone-400 font-sans mt-2">
+              {isBooking ? 'Your table has been pre-assigned for your booking' : 'Sit back — your food will be brought to you'}
+            </p>
           </div>
         )}
 
@@ -229,12 +231,7 @@ function ConfirmationContent() {
                   <span className="font-semibold text-stone-800">{formatTimeSlot(order.time_slot)}</span>
                 </div>
               )}
-              {order.table_number && (
-                <div className="flex justify-between text-sm font-sans">
-                  <span className="text-stone-400">🪑 Table</span>
-                  <span className="font-semibold text-stone-800">Table {order.table_number}</span>
-                </div>
-              )}
+
             </div>
             <div className="mt-3 pt-3 border-t border-amber-200">
               <p className="text-xs text-amber-700 font-sans">
