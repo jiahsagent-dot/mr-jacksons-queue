@@ -79,7 +79,9 @@ export default function TablesPage() {
       }))
 
       // Go straight to menu — order number shows in the banner
-      router.push(`/order/new?context=dine_in&table=${selected}&name=${encodeURIComponent(name.trim())}&phone=${encodeURIComponent(phone.trim())}&order_id=${orderData.order_id}&order_ref=${orderData.order_ref}`)
+      const selectedTable = tables.find(t => t.table_number === selected)
+      const tableLabel = selectedTable?.label || `Table ${selected}`
+      router.push(`/order/new?context=dine_in&table=${selected}&table_label=${encodeURIComponent(tableLabel)}&name=${encodeURIComponent(name.trim())}&phone=${encodeURIComponent(phone.trim())}&order_id=${orderData.order_id}&order_ref=${orderData.order_ref}`)
     } catch {
       toast.error('Failed to reserve table')
     } finally {

@@ -50,6 +50,7 @@ function NewOrderPage() {
   const searchParams = useSearchParams()
   const context = searchParams.get('context') || ''
   const tableNum = searchParams.get('table') || ''
+  const tableLabel = searchParams.get('table_label') || (tableNum ? `Table ${tableNum}` : '')
   const banner = CONTEXT_BANNERS[context]
 
   const { items, addItem, removeItem, total, count } = useCart()
@@ -163,6 +164,16 @@ function NewOrderPage() {
       </div>
 
       <div className="flex-1 max-w-2xl mx-auto w-full px-4 -mt-4">
+        {/* Table Badge — dine-in from table selection (not queue) */}
+        {context === 'dine_in' && !queueId && tableLabel && (
+          <div className="sticky top-2 z-30 flex justify-center mb-3 animate-slide-up pointer-events-none">
+            <div className="inline-flex items-center gap-2 bg-stone-900 text-white px-4 py-2 rounded-full shadow-lg text-sm font-semibold font-sans">
+              <span>🪑</span>
+              <span>{tableLabel}</span>
+            </div>
+          </div>
+        )}
+
         {/* Context Banner */}
         {banner && (
           <div className="card border-2 border-amber-200 bg-amber-50/50 mb-4 animate-slide-up">
