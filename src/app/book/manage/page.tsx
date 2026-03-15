@@ -24,6 +24,15 @@ type ActiveOrder = {
   items_count: number
 } | null
 
+// Returns true if it's still more than 1 hour before the booking
+function canEditOrder(date: string, timeSlot: string): boolean {
+  const [h, m] = timeSlot.split(':').map(Number)
+  const bookingTime = new Date(date)
+  bookingTime.setHours(h, m, 0, 0)
+  const cutoff = new Date(bookingTime.getTime() - 60 * 60 * 1000)
+  return new Date() < cutoff
+}
+
 function buildICSUrl(booking: Booking): string {
   const params = new URLSearchParams({
     name: booking.customer_name,
@@ -234,44 +243,66 @@ function ManageContent() {
 
         {!isCancelled && !isPast && (
           <>
-            {/* Active Order — if already paid */}
-            {activeOrder ? (
-              <div className="card border-2 border-green-200 bg-green-50/40 animate-slide-up">
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">✅</span>
-                  <div className="flex-1">
-                    <p className="font-bold text-stone-800 text-sm">Pre-Order Placed!</p>
-                    <p className="text-stone-500 text-xs font-sans mt-0.5">
-                      {activeOrder.items_count} item{activeOrder.items_count !== 1 ? 's' : ''} ordered — your food will be ready when you arrive.
-                    </p>
-                  </div>
-                </div>
-                <Link
-                  href={`/order/confirmation?order_id=${activeOrder.id}`}
-                  className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 mt-3 text-sm"
-                >
-                  View My Order
-                </Link>
-              </div>
-            ) : (
-              /* No order yet — offer to pre-order */
-              <Link
-                href={`/order/new?context=booking&name=${encodeURIComponent(booking.customer_name)}&phone=${encodeURIComponent(booking.phone)}&date=${booking.date}&time=${booking.time_slot}`}
-                className="block animate-slide-up"
-              >
-                <div className="card border-2 border-amber-300 bg-amber-50/30 hover:border-amber-400 transition-all active:scale-[0.98]">
-                  <div className="flex items-start gap-4">
-                    <span className="text-3xl">🍽️</span>
-                    <div>
-                      <h3 className="font-bold text-stone-900 text-[15px]">Pre-Order Your Food</h3>
-                      <p className="text-stone-500 text-xs mt-1 font-sans leading-relaxed">
-                        Order & pay now — food freshly prepared and ready at {formatTimeSlot(booking.time_slot)}. No waiting!
+            {(() => {
+              const editable = canEditOrder(booking.date, booking.time_slot)
+              return activeOrder ? (
+                <div className="card border-2 border-green-200 bg-green-50/40 animate-slide-up">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl">✅</span>
+                    <div className="flex-1">
+                      <p className="font-bold text-stone-800 text-sm">Pre-Order Placed!</p>
+                      <p className="text-stone-500 text-xs font-sans mt-0.5">
+                        {activeOrder.items_count} item{activeOrder.items_count !== 1 ? 's' : ''} ordered — your food will be ready when you arrive.
                       </p>
+                      {!editable && (
+                        <p className="text-amber-600 text-xs font-sans mt-1 font-medium">
+                          ⏰ Order editing closed — less than 1 hour until your booking.
+                        </p>
+                      )}
                     </div>
                   </div>
+                  <Link
+                    href={`/order/confirmation?order_id=${activeOrder.id}`}
+                    className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 mt-3 text-sm"
+                  >
+                    View My Order
+                  </Link>
+                  {editable && (
+                    <Link
+                      href={`/order/new?context=booking&name=${encodeURIComponent(booking.customer_name)}&phone=${encodeURIComponent(booking.phone)}&date=${booking.date}&time=${booking.time_slot}`}
+                      className="btn-secondary w-full flex items-center justify-center gap-2 py-3 mt-2 text-sm"
+                    >
+                      + Add More Items
+                    </Link>
+                  )}
                 </div>
-              </Link>
-            )}
+              ) : editable ? (
+                /* No order yet and still time — offer to pre-order */
+                <Link
+                  href={`/order/new?context=booking&name=${encodeURIComponent(booking.customer_name)}&phone=${encodeURIComponent(booking.phone)}&date=${booking.date}&time=${booking.time_slot}`}
+                  className="block animate-slide-up"
+                >
+                  <div className="card border-2 border-amber-300 bg-amber-50/30 hover:border-amber-400 transition-all active:scale-[0.98]">
+                    <div className="flex items-start gap-4">
+                      <span className="text-3xl">🍽️</span>
+                      <div>
+                        <h3 className="font-bold text-stone-900 text-[15px]">Pre-Order Your Food</h3>
+                        <p className="text-stone-500 text-xs mt-1 font-sans leading-relaxed">
+                          Order & pay now — food freshly prepared and ready at {formatTimeSlot(booking.time_slot)}. No waiting!
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ) : (
+                /* No order and within 1 hour — too late to pre-order */
+                <div className="card border-2 border-stone-200 bg-stone-50 animate-slide-up text-center">
+                  <p className="text-2xl mb-2">⏰</p>
+                  <p className="font-semibold text-stone-800 text-sm font-sans">Pre-ordering is now closed</p>
+                  <p className="text-stone-400 text-xs font-sans mt-1">You can order from the menu when you arrive. See you soon!</p>
+                </div>
+              )
+            })()}
 
             {/* Cancel Booking */}
             {!showCancelConfirm ? (

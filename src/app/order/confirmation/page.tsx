@@ -86,6 +86,14 @@ function ConfirmationContent() {
   const isDineIn = order.dining_option === 'dine_in'
   const isBooking = order.dining_option === 'booking'
 
+  const canEditBookingOrder = (() => {
+    if (!isBooking || !order.date || !order.time_slot) return true
+    const [h, m] = order.time_slot.split(':').map(Number)
+    const bookingTime = new Date(order.date)
+    bookingTime.setHours(h, m, 0, 0)
+    return new Date() < new Date(bookingTime.getTime() - 60 * 60 * 1000)
+  })()
+
   function formatTimeSlot(slot: string) {
     if (!slot) return ''
     const [h, m] = slot.split(':').map(Number)
@@ -264,20 +272,26 @@ function ConfirmationContent() {
         {/* Actions — Add more / Cancel */}
         {order.status !== 'served' && order.status !== 'cancelled' && (
           <div className="space-y-3">
-            {/* Add more items */}
-            <Link
-              href={`/order/new?context=${order.dining_option === 'dine_in' ? 'dine_in' : 'booking'}&table=${order.table_number || ''}&name=${encodeURIComponent(order.customer_name)}&phone=${encodeURIComponent(order.phone || '')}`}
-              className="card flex items-center gap-4 hover:border-stone-300 transition-all active:scale-[0.98]"
-            >
-              <div className="w-11 h-11 rounded-full bg-stone-100 flex items-center justify-center flex-shrink-0">
-                <span className="text-xl">➕</span>
+            {/* Add more items — hidden for booking orders within 1 hour */}
+            {canEditBookingOrder ? (
+              <Link
+                href={`/order/new?context=${order.dining_option === 'dine_in' ? 'dine_in' : 'booking'}&table=${order.table_number || ''}&name=${encodeURIComponent(order.customer_name)}&phone=${encodeURIComponent(order.phone || '')}`}
+                className="card flex items-center gap-4 hover:border-stone-300 transition-all active:scale-[0.98]"
+              >
+                <div className="w-11 h-11 rounded-full bg-stone-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xl">➕</span>
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-stone-800 text-sm font-sans">Add More Items</p>
+                  <p className="text-xs text-stone-400 font-sans">Order something else from the menu</p>
+                </div>
+                <svg className="w-4 h-4 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </Link>
+            ) : isBooking && (
+              <div className="card border-stone-100 bg-stone-50">
+                <p className="text-xs text-stone-400 font-sans text-center">⏰ Order editing closed — less than 1 hour until your booking.</p>
               </div>
-              <div className="flex-1">
-                <p className="font-semibold text-stone-800 text-sm font-sans">Add More Items</p>
-                <p className="text-xs text-stone-400 font-sans">Order something else from the menu</p>
-              </div>
-              <svg className="w-4 h-4 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-            </Link>
+            )}
 
             {/* Cancel order */}
             {order.status === 'received' && !showCancelConfirm && (
