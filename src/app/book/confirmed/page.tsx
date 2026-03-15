@@ -93,6 +93,18 @@ function buildICSContent(booking: BookingDetails): string {
   ].join('\r\n')
 }
 
+function buildICSUrl(booking: BookingDetails): string {
+  const params = new URLSearchParams({
+    name: booking.name,
+    date: booking.date,
+    time: booking.time_slot,
+    party: String(booking.party_size),
+    ...(booking.table_label ? { table: booking.table_label } : {}),
+    ...(booking.id ? { id: booking.id } : {}),
+  })
+  return `/api/calendar/booking?${params.toString()}`
+}
+
 function isAppleDevice(): boolean {
   if (typeof navigator === 'undefined') return false
   return /iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)
@@ -100,17 +112,9 @@ function isAppleDevice(): boolean {
 
 function addToCalendar(booking: BookingDetails) {
   if (isAppleDevice()) {
-    // Apple Calendar — download .ics
-    const ics = buildICSContent(booking)
-    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'mr-jackson-booking.ics'
-    a.click()
-    URL.revokeObjectURL(url)
+    // Serve .ics via API route — Safari opens it directly in Apple Calendar
+    window.location.href = buildICSUrl(booking)
   } else {
-    // Google Calendar for Android / other
     window.open(buildGoogleCalendarUrl(booking), '_blank')
   }
 }
