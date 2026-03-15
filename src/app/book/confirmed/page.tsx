@@ -18,25 +18,101 @@ type BookingDetails = {
   code?: string
 }
 
-function buildCalendarUrl(booking: BookingDetails): string {
-  // Build Google Calendar URL
-  const [h, m] = booking.time_slot.split(':').map(Number)
+function buildGoogleCalendarUrl(booking: BookingDetails): string {
   const startDate = new Date(`${booking.date}T${booking.time_slot}:00`)
-  const endDate = new Date(startDate.getTime() + 90 * 60 * 1000) // 1.5hr slot
-
+  const endDate = new Date(startDate.getTime() + 90 * 60 * 1000)
   const formatCal = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
-  const start = formatCal(startDate)
-  const end = formatCal(endDate)
+  const details = [
+    `Booking for ${booking.party_size} ${booking.party_size === 1 ? 'person' : 'people'}`,
+    booking.table_label ? `Table: ${booking.table_label}` : '',
+    ``,
+    `⚠️ Haven't pre-ordered your food? You'll receive an SMS before your booking asking you to confirm you're coming. Tap the link in that SMS or your table may be released.`,
+    ``,
+    `When you arrive:`,
+    `1. Go to mr-jacksons.vercel.app`,
+    `2. Tap "I have a booking"`,
+    `3. Enter your phone number to check in`,
+    `4. Start ordering!`,
+  ].filter(l => l !== null).join('\\n')
 
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: `Mr Jackson — Table Booking`,
-    details: `Booking for ${booking.party_size} ${booking.party_size === 1 ? 'person' : 'people'}\\n\\nWhen you arrive:\\n1. Go to mr-jacksons.vercel.app\\n2. Tap "I have a booking"\\n3. Enter your phone number\\n4. Start ordering!`,
-    location: '1/45 Main St, Mornington VIC 3931',
-    dates: `${start}/${end}`,
+    details,
+    location: 'Mr Jackson, 1/45 Main St, Mornington VIC 3931',
+    dates: `${formatCal(startDate)}/${formatCal(endDate)}`,
   })
-
   return `https://calendar.google.com/calendar/render?${params.toString()}`
+}
+
+function buildICSContent(booking: BookingDetails): string {
+  const startDate = new Date(`${booking.date}T${booking.time_slot}:00`)
+  const endDate = new Date(startDate.getTime() + 90 * 60 * 1000)
+  const formatICS = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+  const uid = `${booking.id || Date.now()}@mr-jacksons.vercel.app`
+
+  const description = [
+    `Booking for ${booking.party_size} ${booking.party_size === 1 ? 'person' : 'people'}`,
+    booking.table_label ? `Table: ${booking.table_label}` : '',
+    ``,
+    `⚠️ Haven't pre-ordered your food? You'll receive an SMS before your booking asking you to confirm you're coming. Tap the link in that SMS or your table may be released.`,
+    ``,
+    `When you arrive:`,
+    `1. Go to mr-jacksons.vercel.app`,
+    `2. Tap "I have a booking"`,
+    `3. Enter your phone number to check in`,
+    `4. Start ordering!`,
+  ].join('\\n')
+
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Mr Jackson//Booking//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTAMP:${formatICS(new Date())}`,
+    `DTSTART:${formatICS(startDate)}`,
+    `DTEND:${formatICS(endDate)}`,
+    `SUMMARY:Mr Jackson — Table Booking`,
+    `DESCRIPTION:${description}`,
+    `LOCATION:Mr Jackson\\, 1/45 Main St\\, Mornington VIC 3931`,
+    'BEGIN:VALARM',
+    'TRIGGER:-PT24H',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Your Mr Jackson booking is tomorrow — confirm if you haven\'t pre-ordered!',
+    'END:VALARM',
+    'BEGIN:VALARM',
+    'TRIGGER:-PT1H',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Your Mr Jackson booking is in 1 hour — see you soon!',
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n')
+}
+
+function isAppleDevice(): boolean {
+  if (typeof navigator === 'undefined') return false
+  return /iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)
+}
+
+function addToCalendar(booking: BookingDetails) {
+  if (isAppleDevice()) {
+    // Apple Calendar — download .ics
+    const ics = buildICSContent(booking)
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'mr-jackson-booking.ics'
+    a.click()
+    URL.revokeObjectURL(url)
+  } else {
+    // Google Calendar for Android / other
+    window.open(buildGoogleCalendarUrl(booking), '_blank')
+  }
 }
 
 export default function BookingConfirmedPage() {
@@ -142,15 +218,13 @@ export default function BookingConfirmedPage() {
 
           {/* Action Buttons */}
           <div className="mt-4 grid grid-cols-2 gap-2">
-            <a
-              href={buildCalendarUrl(booking)}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => addToCalendar(booking)}
               className="inline-flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-white border border-stone-200 hover:border-stone-400 text-stone-600 text-sm font-medium font-sans transition-all active:scale-[0.98]"
             >
               <span>📅</span>
               <span>Calendar</span>
-            </a>
+            </button>
             <button
               onClick={async () => {
                 const text = `Mr Jackson Booking\n${formatDate(booking.date)} at ${formatTimeSlot(booking.time_slot)}\n${booking.party_size} people\nCode: ${booking.code || 'N/A'}\n\n📍 1/45 Main St, Mornington`
