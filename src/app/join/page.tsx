@@ -85,15 +85,13 @@ export default function JoinPage() {
 
   const lookupBooking = async () => {
     const input = bookingPhone.trim()
-    if (!input) return toast.error('Enter your booking code or phone number')
+    if (!input) return toast.error('Enter your phone number')
+    const cleaned = input.replace(/\D/g, '')
+    if (cleaned.length < 10) return toast.error('Please enter a valid phone number')
 
     setBookingLoading(true)
     try {
-      // Detect if it's a booking code (letters+numbers, short) or a phone number
-      const isCode = /^[A-Za-z0-9]{4,10}$/.test(input.replace(/\s/g, '')) && !/^\d{10,}$/.test(input.replace(/\D/g, ''))
-      const query = isCode
-        ? `code=${encodeURIComponent(input.toUpperCase())}`
-        : `phone=${encodeURIComponent(input.replace(/\D/g, ''))}`
+      const query = `phone=${encodeURIComponent(cleaned)}`
 
       const res = await fetch(`/api/bookings/lookup?${query}`)
       const data = await res.json()
@@ -254,17 +252,17 @@ export default function JoinPage() {
             {!seated && showBookingEntry && (
               <div className="bg-gradient-to-br from-stone-50 to-stone-100/50 rounded-2xl p-4 space-y-3 border border-stone-200/60 animate-slide-up">
                 <div className="text-center">
-                  <p className="font-semibold text-stone-800 text-sm font-sans">Enter your booking code or phone number</p>
-                  <p className="text-stone-400 text-xs font-sans mt-1">Your booking code is on your confirmation</p>
+                  <p className="font-semibold text-stone-800 text-sm font-sans">Enter your phone number</p>
+                  <p className="text-stone-400 text-xs font-sans mt-1">We'll find your upcoming booking</p>
                 </div>
                 <input
-                  type="text"
-                  className="input-field text-center text-lg tracking-widest uppercase"
-                  placeholder="e.g. MJ-A3B4 or 04XX XXX XXX"
+                  type="tel"
+                  className="input-field text-center text-lg tracking-wide"
+                  placeholder="04XX XXX XXX"
                   value={bookingPhone}
                   onChange={e => setBookingPhone(e.target.value)}
+                  inputMode="tel"
                   autoFocus
-                  autoCapitalize="characters"
                 />
                 <button
                   onClick={lookupBooking}
