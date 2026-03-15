@@ -212,19 +212,34 @@ function ConfirmationContent() {
           </div>
         )}
 
-        {/* Booking pre-order info */}
+        {/* Booking details card */}
         {isBooking && (
-          <div className="flex items-start gap-3 bg-white rounded-2xl border border-stone-100 px-4 py-3 shadow-sm">
-            <span className="text-xl mt-0.5">📅</span>
-            <div>
-              <p className="text-sm font-semibold text-stone-800">Booking Pre-Order</p>
-              {order.date && order.time_slot ? (
-                <p className="text-xs text-stone-400 font-sans mt-0.5">
-                  Your food will be freshly prepared and ready at {formatTimeSlot(order.time_slot)} on {formatDate(order.date)}.
-                </p>
-              ) : (
-                <p className="text-xs text-stone-400 font-sans mt-0.5">Your food will be freshly prepared and ready when you arrive.</p>
+          <div className="card border-2 border-amber-200 bg-amber-50/40 animate-slide-up">
+            <p className="text-xs font-bold text-amber-600 uppercase tracking-widest font-sans mb-3">Your Booking</p>
+            <div className="space-y-2.5">
+              {order.date && (
+                <div className="flex justify-between text-sm font-sans">
+                  <span className="text-stone-400">📅 Date</span>
+                  <span className="font-semibold text-stone-800">{formatDate(order.date)}</span>
+                </div>
               )}
+              {order.time_slot && (
+                <div className="flex justify-between text-sm font-sans">
+                  <span className="text-stone-400">🕐 Time</span>
+                  <span className="font-semibold text-stone-800">{formatTimeSlot(order.time_slot)}</span>
+                </div>
+              )}
+              {order.table_number && (
+                <div className="flex justify-between text-sm font-sans">
+                  <span className="text-stone-400">🪑 Table</span>
+                  <span className="font-semibold text-stone-800">Table {order.table_number}</span>
+                </div>
+              )}
+            </div>
+            <div className="mt-3 pt-3 border-t border-amber-200">
+              <p className="text-xs text-amber-700 font-sans">
+                🍽️ Your food will be freshly prepared and ready at {order.time_slot ? formatTimeSlot(order.time_slot) : 'arrival'} — no waiting!
+              </p>
             </div>
           </div>
         )}
