@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
 
     // ── Lock the table at checkout time, before Stripe ──────────────────
     // This prevents two customers racing to pay for the same table.
-    if (dining_option === 'dine_in' && table_number) {
+    // Skip for queue orders — their table is already reserved by the queue system.
+    if (dining_option === 'dine_in' && table_number && !queue_entry_id) {
       const { data: locked } = await admin
         .from('tables')
         .update({
