@@ -112,18 +112,17 @@ function buildICSUrl(booking: BookingDetails): string {
   return `/api/calendar/booking?${params.toString()}`
 }
 
-function isAppleDevice(): boolean {
-  if (typeof navigator === 'undefined') return false
-  return /iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)
-}
-
 function addToCalendar(booking: BookingDetails) {
-  if (isAppleDevice()) {
-    // Serve .ics via API route — Safari opens it directly in Apple Calendar
-    window.location.href = buildICSUrl(booking)
-  } else {
-    window.open(buildGoogleCalendarUrl(booking), '_blank')
-  }
+  const url = buildICSUrl(booking)
+  // Use a hidden anchor — lets the browser handle the .ics by MIME type
+  // iOS Safari opens text/calendar directly in Apple Calendar
+  // Android/desktop downloads the file which can be imported into any calendar
+  const a = document.createElement('a')
+  a.href = url
+  a.style.display = 'none'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
 }
 
 export default function BookingConfirmedPage() {

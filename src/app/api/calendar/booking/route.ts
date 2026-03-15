@@ -73,7 +73,6 @@ export async function GET(req: NextRequest) {
   return new NextResponse(ics, {
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="mr-jackson-booking.ics"',
       'Cache-Control': 'no-store',
     },
   })
