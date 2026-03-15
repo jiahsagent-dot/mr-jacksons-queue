@@ -83,33 +83,27 @@ export default function JoinPage() {
   }, [])
 
   const lookupBooking = async () => {
-    const cleaned = bookingPhone.replace(/\D/g, '')
-    if (!cleaned) return toast.error('Enter your phone number')
-    if (cleaned.length < 10) return toast.error('Please enter a valid phone number')
+    const input = bookingPhone.trim()
+    if (!input) return toast.error('Enter your booking code or phone number')
+
     setBookingLoading(true)
     try {
-      const res = await fetch(`/api/bookings/lookup?phone=${encodeURIComponent(cleaned)}`)
+      // Detect if it's a booking code (letters+numbers, short) or a phone number
+      const isCode = /^[A-Za-z0-9]{4,10}$/.test(input.replace(/\s/g, '')) && !/^\d{10,}$/.test(input.replace(/\D/g, ''))
+      const query = isCode
+        ? `code=${encodeURIComponent(input.toUpperCase())}`
+        : `phone=${encodeURIComponent(input.replace(/\D/g, ''))}`
+
+      const res = await fetch(`/api/bookings/lookup?${query}`)
       const data = await res.json()
       if (!res.ok) {
-        toast.error(data.error || 'No booking found for this number')
+        toast.error(data.error || 'No booking found')
         return
       }
-      const b = data.booking
-      sessionStorage.setItem('mr_jackson_booking', JSON.stringify(b))
-      if (b.table_number) {
-        sessionStorage.setItem('mr_jackson_table', JSON.stringify({
-          table_number: b.table_number,
-          customer_name: b.customer_name,
-        }))
-      }
 
-      if (data.active_order) {
-        router.push(`/order/confirmation?order_id=${data.active_order.id}`)
-      } else {
-        router.push(
-          `/order/new?context=booking&name=${encodeURIComponent(b.customer_name)}&phone=${encodeURIComponent(b.phone)}&table=${b.table_number || ''}&date=${b.date}&time=${b.time_slot}`
-        )
-      }
+      // Route to booking management page
+      const b = data.booking
+      router.push(`/book/manage?code=${encodeURIComponent(b.code || '')}`)
     } catch {
       toast.error('Something went wrong')
     } finally {
@@ -253,16 +247,17 @@ export default function JoinPage() {
             {!seated && showBookingEntry && (
               <div className="bg-gradient-to-br from-stone-50 to-stone-100/50 rounded-2xl p-4 space-y-3 border border-stone-200/60 animate-slide-up">
                 <div className="text-center">
-                  <p className="font-semibold text-stone-800 text-sm font-sans">Check in with your phone number</p>
+                  <p className="font-semibold text-stone-800 text-sm font-sans">Enter your booking code or phone number</p>
+                  <p className="text-stone-400 text-xs font-sans mt-1">Your booking code is on your confirmation</p>
                 </div>
                 <input
-                  type="tel"
-                  className="input-field text-center text-lg tracking-wide"
-                  placeholder="04XX XXX XXX"
+                  type="text"
+                  className="input-field text-center text-lg tracking-widest uppercase"
+                  placeholder="e.g. MJ-A3B4 or 04XX XXX XXX"
                   value={bookingPhone}
                   onChange={e => setBookingPhone(e.target.value)}
-                  inputMode="tel"
                   autoFocus
+                  autoCapitalize="characters"
                 />
                 <button
                   onClick={lookupBooking}

@@ -68,14 +68,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: code ? 'Booking not found. Check your code and try again.' : 'No booking found for this phone number.' }, { status: 404 })
   }
 
-  // Mark as confirmed/seated on first check-in
-  if (!booking.confirmed_at) {
-    await admin
-      .from('bookings')
-      .update({ confirmed_at: new Date().toISOString(), status: 'seated' })
-      .eq('id', booking.id)
-  }
-
   // Check if this customer already has an active order
   const bookingPhone = booking.phone
   const { data: orders } = await admin
@@ -97,7 +89,7 @@ export async function GET(req: NextRequest) {
       date: booking.date,
       time_slot: booking.time_slot,
       table_number: booking.table_number,
-      status: 'seated',
+      status: booking.status,
       code: booking.code,
     },
     active_order: activeOrder ? {
