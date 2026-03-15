@@ -289,8 +289,15 @@ function ConfirmationContent() {
                   <svg className="w-4 h-4 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                 </Link>
               ) : (
-                <div className="card border-stone-100 bg-stone-50">
-                  <p className="text-xs text-stone-400 font-sans text-center">⏰ Order editing closed — less than 1 hour until your booking.</p>
+                <div className="card border-2 border-stone-100 bg-stone-50 space-y-3">
+                  <p className="text-xs text-stone-400 font-sans text-center">⏰ Editing closed — less than 1 hour until your booking. But you can still add to your order!</p>
+                  <Link
+                    href={`/order/new?context=booking&name=${encodeURIComponent(order.customer_name)}&phone=${encodeURIComponent(order.phone || '')}&date=${order.date || ''}&time=${order.time_slot || ''}`}
+                    className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-stone-900 text-white text-sm font-medium font-sans transition-all active:scale-[0.98]"
+                  >
+                    <span>➕</span>
+                    <span>Add More Items</span>
+                  </Link>
                 </div>
               )
             ) : (

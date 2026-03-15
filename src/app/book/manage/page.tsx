@@ -267,14 +267,12 @@ function ManageContent() {
                   >
                     View My Order
                   </Link>
-                  {editable && (
-                    <Link
-                      href={`/order/new?context=booking&name=${encodeURIComponent(booking.customer_name)}&phone=${encodeURIComponent(booking.phone)}&date=${booking.date}&time=${booking.time_slot}`}
-                      className="btn-secondary w-full flex items-center justify-center gap-2 py-3 mt-2 text-sm"
-                    >
-                      + Add More Items
-                    </Link>
-                  )}
+                  <Link
+                    href={editable ? `/order/edit?order_id=${activeOrder!.id}` : `/order/new?context=booking&name=${encodeURIComponent(booking.customer_name)}&phone=${encodeURIComponent(booking.phone)}&date=${booking.date}&time=${booking.time_slot}`}
+                    className="btn-secondary w-full flex items-center justify-center gap-2 py-3 mt-2 text-sm"
+                  >
+                    {editable ? '✏️ Edit Order' : '➕ Add More Items'}
+                  </Link>
                 </div>
               ) : editable ? (
                 /* No order yet and still time — offer to pre-order */
@@ -295,11 +293,20 @@ function ManageContent() {
                   </div>
                 </Link>
               ) : (
-                /* No order and within 1 hour — too late to pre-order */
-                <div className="card border-2 border-stone-200 bg-stone-50 animate-slide-up text-center">
-                  <p className="text-2xl mb-2">⏰</p>
-                  <p className="font-semibold text-stone-800 text-sm font-sans">Pre-ordering is now closed</p>
-                  <p className="text-stone-400 text-xs font-sans mt-1">You can order from the menu when you arrive. See you soon!</p>
+                /* No order and within 1 hour — can still add, just not edit */
+                <div className="card border-2 border-stone-200 bg-stone-50 animate-slide-up space-y-3">
+                  <div className="text-center">
+                    <p className="text-2xl mb-2">⏰</p>
+                    <p className="font-semibold text-stone-800 text-sm font-sans">Almost time!</p>
+                    <p className="text-stone-400 text-xs font-sans mt-1">Pre-order editing is closed, but you can still add items to your order!</p>
+                  </div>
+                  <Link
+                    href={`/order/new?context=booking&name=${encodeURIComponent(booking.customer_name)}&phone=${encodeURIComponent(booking.phone)}&date=${booking.date}&time=${booking.time_slot}`}
+                    className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-stone-900 text-white text-sm font-medium font-sans transition-all active:scale-[0.98]"
+                  >
+                    <span>➕</span>
+                    <span>Add to Your Order</span>
+                  </Link>
                 </div>
               )
             })()}
