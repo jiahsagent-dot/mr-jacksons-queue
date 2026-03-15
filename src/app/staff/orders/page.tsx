@@ -109,6 +109,7 @@ export default function StaffOrdersPage() {
   const router = useRouter()
   const [orders, setOrders] = useState<Order[]>([])
   const [allTables, setAllTables] = useState<number[]>([])
+  const [upcomingBookings, setUpcomingBookings] = useState<any[]>([])
   const [view, setView] = useState<'kitchen' | 'all'>('kitchen')
   const [loading, setLoading] = useState(true)
   const [tableFilter, setTableFilter] = useState<number | null>(null)
@@ -127,6 +128,19 @@ export default function StaffOrdersPage() {
     setLoading(false)
   }
 
+  const fetchUpcomingBookings = async () => {
+    try {
+      const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local time
+      const res = await fetch(`/api/bookings?date=${today}&_t=${Date.now()}`, { cache: 'no-store' })
+      if (res.ok) {
+        const data = await res.json()
+        // Only confirmed bookings not yet seated
+        const confirmed = (data.bookings || []).filter((b: any) => b.status === 'confirmed')
+        setUpcomingBookings(confirmed)
+      }
+    } catch {}
+  }
+
   const fetchTables = async () => {
     const res = await fetch(`/api/tables?_t=${Date.now()}`)
     if (res.ok) {
@@ -139,7 +153,8 @@ export default function StaffOrdersPage() {
   useEffect(() => {
     fetchOrders()
     fetchTables()
-    const interval = setInterval(fetchOrders, 8000)
+    fetchUpcomingBookings()
+    const interval = setInterval(() => { fetchOrders(); fetchUpcomingBookings() }, 8000)
     return () => clearInterval(interval)
   }, [])
 
@@ -435,6 +450,46 @@ export default function StaffOrdersPage() {
                 {kitchenQueue.map(o => renderOrderCard(o))}
               </div>
             )}
+
+            {/* Upcoming bookings arriving soon — even if no pre-order placed */}
+            {(() => {
+              const arrivingSoon = upcomingBookings.filter(b => {
+                const mins = minutesUntilSlot(b.date, b.time_slot)
+                return mins !== null && mins <= 20 && mins > -30
+              }).sort((a, b) => {
+                const ma = minutesUntilSlot(a.date, a.time_slot) ?? 0
+                const mb = minutesUntilSlot(b.date, b.time_slot) ?? 0
+                return ma - mb
+              })
+              if (arrivingSoon.length === 0) return null
+              return (
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs font-bold text-amber-600 uppercase tracking-wider font-sans">🔔 Arriving Soon</p>
+                  {arrivingSoon.map(b => {
+                    const mins = minutesUntilSlot(b.date, b.time_slot)
+                    return (
+                      <div key={b.id} className="bg-amber-50 border-2 border-amber-200 rounded-2xl px-4 py-3 flex justify-between items-center">
+                        <div>
+                          <p className="font-semibold text-stone-800 text-sm">{b.customer_name}</p>
+                          <p className="text-xs text-stone-500 font-sans">
+                            📅 Booking · {b.party_size} {b.party_size === 1 ? 'person' : 'people'}
+                            {b.table_number ? ` · Table ${b.table_number}` : ''}
+                          </p>
+                          {b.has_order && <p className="text-xs text-green-600 font-sans mt-0.5">✓ Pre-order placed</p>}
+                          {!b.has_order && <p className="text-xs text-stone-400 font-sans mt-0.5">No pre-order</p>}
+                        </div>
+                        <div className="text-right flex-shrink-0 ml-3">
+                          <p className={`text-sm font-bold font-sans ${mins !== null && mins <= 5 ? 'text-red-500' : 'text-amber-600'}`}>
+                            {mins !== null && mins > 0 ? `${mins}m` : 'NOW'}
+                          </p>
+                          <p className="text-xs text-stone-400 font-sans">{formatTime(b.time_slot)}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
 
             {/* Upcoming — bookings/takeaways not yet in window */}
             {upcoming.length > 0 && (
