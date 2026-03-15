@@ -84,6 +84,19 @@ function ConfirmationContent() {
   const total = order.items.reduce((sum, i) => sum + i.price * i.quantity, 0)
   const orderRef = order.id.replace(/-/g, '').slice(0, 6).toUpperCase()
   const isDineIn = order.dining_option === 'dine_in'
+  const isBooking = order.dining_option === 'booking'
+
+  function formatTimeSlot(slot: string) {
+    if (!slot) return ''
+    const [h, m] = slot.split(':').map(Number)
+    const ampm = h >= 12 ? 'PM' : 'AM'
+    const hour = h > 12 ? h - 12 : h === 0 ? 12 : h
+    return `${hour}:${m.toString().padStart(2, '0')} ${ampm}`
+  }
+  function formatDate(d: string) {
+    if (!d) return ''
+    return new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-50">
@@ -111,8 +124,8 @@ function ConfirmationContent() {
           <p className="text-xs text-stone-400 font-sans mt-2">Keep this handy — our team will use it to find you</p>
         </div>
 
-        {/* Table number card — shown for dine-in orders with a table assigned */}
-        {isDineIn && order.table_number && (
+        {/* Table number card — shown for dine-in orders with a table assigned (not bookings) */}
+        {isDineIn && !isBooking && order.table_number && (
           <div className="card text-center border-2 border-stone-200 bg-white animate-slide-up">
             <p className="text-xs font-bold text-stone-400 uppercase tracking-widest font-sans mb-1">Your Table</p>
             <p className="text-4xl font-bold text-stone-900 tracking-widest">{order.table_number}</p>
@@ -188,13 +201,30 @@ function ConfirmationContent() {
           </div>
         </div>
 
-        {/* Dine-in / table info */}
+        {/* Dine-in info */}
         {isDineIn && (
           <div className="flex items-start gap-3 bg-white rounded-2xl border border-stone-100 px-4 py-3 shadow-sm">
             <span className="text-xl mt-0.5">🍽️</span>
             <div>
               <p className="text-sm font-semibold text-stone-800">Dine In</p>
               <p className="text-xs text-stone-400 font-sans mt-0.5">Sit back and relax — your food will be brought to you shortly.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Booking pre-order info */}
+        {isBooking && (
+          <div className="flex items-start gap-3 bg-white rounded-2xl border border-stone-100 px-4 py-3 shadow-sm">
+            <span className="text-xl mt-0.5">📅</span>
+            <div>
+              <p className="text-sm font-semibold text-stone-800">Booking Pre-Order</p>
+              {order.date && order.time_slot ? (
+                <p className="text-xs text-stone-400 font-sans mt-0.5">
+                  Your food will be freshly prepared and ready at {formatTimeSlot(order.time_slot)} on {formatDate(order.date)}.
+                </p>
+              ) : (
+                <p className="text-xs text-stone-400 font-sans mt-0.5">Your food will be freshly prepared and ready when you arrive.</p>
+              )}
             </div>
           </div>
         )}

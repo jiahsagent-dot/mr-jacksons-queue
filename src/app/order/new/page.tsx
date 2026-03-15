@@ -128,7 +128,7 @@ function NewOrderPage() {
           phone: phone.trim(),
           date: selectedDate,
           time_slot: timeSlot,
-          dining_option: diningOption,
+          dining_option: context === 'booking' ? 'booking' : diningOption,
           items: items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
           notes: notes.trim() || undefined,
           ...(orderId ? { order_id: orderId } : {}),
