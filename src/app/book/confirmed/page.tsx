@@ -18,10 +18,17 @@ type BookingDetails = {
   code?: string
 }
 
+function floatingTime(date: string, time: string, offsetMinutes = 0): string {
+  const [h, m] = time.split(':').map(Number)
+  const total = h * 60 + m + offsetMinutes
+  const hh = Math.floor(total / 60) % 24
+  const mm = total % 60
+  return `${date.replace(/-/g, '')}T${String(hh).padStart(2, '0')}${String(mm).padStart(2, '0')}00`
+}
+
 function buildGoogleCalendarUrl(booking: BookingDetails): string {
-  const startDate = new Date(`${booking.date}T${booking.time_slot}:00`)
-  const endDate = new Date(startDate.getTime() + 90 * 60 * 1000)
-  const formatCal = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+  const start = floatingTime(booking.date, booking.time_slot, 0)
+  const end = floatingTime(booking.date, booking.time_slot, 60)  // 1 hour
   const details = [
     `Booking for ${booking.party_size} ${booking.party_size === 1 ? 'person' : 'people'}`,
     booking.table_label ? `Table: ${booking.table_label}` : '',
@@ -40,15 +47,15 @@ function buildGoogleCalendarUrl(booking: BookingDetails): string {
     text: `Mr Jackson — Table Booking`,
     details,
     location: 'Mr Jackson, 1/45 Main St, Mornington VIC 3931',
-    dates: `${formatCal(startDate)}/${formatCal(endDate)}`,
+    dates: `${start}/${end}`,
   })
   return `https://calendar.google.com/calendar/render?${params.toString()}`
 }
 
 function buildICSContent(booking: BookingDetails): string {
-  const startDate = new Date(`${booking.date}T${booking.time_slot}:00`)
-  const endDate = new Date(startDate.getTime() + 90 * 60 * 1000)
-  const formatICS = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+  const dtStart = floatingTime(booking.date, booking.time_slot, 0)
+  const dtEnd = floatingTime(booking.date, booking.time_slot, 60)  // 1 hour
+  const dtStamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
   const uid = `${booking.id || Date.now()}@mr-jacksons.vercel.app`
 
   const description = [
@@ -72,9 +79,9 @@ function buildICSContent(booking: BookingDetails): string {
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
     `UID:${uid}`,
-    `DTSTAMP:${formatICS(new Date())}`,
-    `DTSTART:${formatICS(startDate)}`,
-    `DTEND:${formatICS(endDate)}`,
+    `DTSTAMP:${dtStamp}`,
+    `DTSTART:${dtStart}`,
+    `DTEND:${dtEnd}`,
     `SUMMARY:Mr Jackson — Table Booking`,
     `DESCRIPTION:${description}`,
     `LOCATION:Mr Jackson\\, 1/45 Main St\\, Mornington VIC 3931`,
