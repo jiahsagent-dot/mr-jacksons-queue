@@ -59,6 +59,7 @@ export default function JoinPage() {
   const [showBookingEntry, setShowBookingEntry] = useState(false)
   const [bookingPhone, setBookingPhone] = useState('')
   const [bookingLoading, setBookingLoading] = useState(false)
+  const [multipleBookings, setMultipleBookings] = useState<any[] | null>(null)
 
 
   useEffect(() => {
@@ -101,7 +102,13 @@ export default function JoinPage() {
         return
       }
 
-      // Route to booking management page
+      // Multiple bookings — show selection UI
+      if (data.bookings && data.bookings.length > 1) {
+        setMultipleBookings(data.bookings)
+        return
+      }
+
+      // Single booking — route straight to manage page
       const b = data.booking
       router.push(`/book/manage?code=${encodeURIComponent(b.code || '')}`)
     } catch {
@@ -272,10 +279,34 @@ export default function JoinPage() {
                   ) : 'Find My Booking'}
                 </button>
                 <button
-                  onClick={() => { setShowBookingEntry(false); setBookingPhone('') }}
+                  onClick={() => { setShowBookingEntry(false); setBookingPhone(''); setMultipleBookings(null) }}
                   className="w-full text-center text-xs text-stone-400 py-0.5 hover:text-stone-600 font-sans transition-colors duration-300"
                 >
                   Cancel
+                </button>
+              </div>
+            )}
+
+            {/* Multiple bookings — let customer pick */}
+            {showBookingEntry && multipleBookings && (
+              <div className="bg-gradient-to-br from-stone-50 to-stone-100/50 rounded-2xl p-4 space-y-2 border border-stone-200/60 animate-slide-up">
+                <p className="text-sm font-semibold text-stone-800 text-center font-sans">Which booking is yours?</p>
+                <p className="text-xs text-stone-400 text-center font-sans mb-1">We found {multipleBookings.length} upcoming bookings</p>
+                {multipleBookings.map((b: any) => (
+                  <button
+                    key={b.id}
+                    onClick={() => router.push(`/book/manage?code=${encodeURIComponent(b.code || '')}`)}
+                    className="w-full text-left bg-white rounded-xl border border-stone-200 px-4 py-3 hover:border-stone-400 active:scale-[0.98] transition-all"
+                  >
+                    <p className="font-semibold text-stone-800 text-sm font-sans">{b.display}</p>
+                    {b.code && <p className="text-xs text-stone-400 font-sans mt-0.5">Code: {b.code}</p>}
+                  </button>
+                ))}
+                <button
+                  onClick={() => { setMultipleBookings(null); setBookingPhone('') }}
+                  className="w-full text-center text-xs text-stone-400 py-1 hover:text-stone-600 font-sans"
+                >
+                  ← Search again
                 </button>
               </div>
             )}
