@@ -125,6 +125,22 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// PATCH — update booking status (staff action)
+export async function PATCH(req: NextRequest) {
+  try {
+    const { id, status } = await req.json()
+    if (!id || !status) return NextResponse.json({ error: 'id and status required' }, { status: 400 })
+
+    const admin = getAdmin()
+    const { error } = await admin.from('bookings').update({ status }).eq('id', id)
+    if (error) throw error
+
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
+
 // DELETE — cancel a booking (staff action)
 export async function DELETE(req: NextRequest) {
   try {
