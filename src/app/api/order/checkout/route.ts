@@ -19,6 +19,30 @@ export async function POST(req: NextRequest) {
 
     const admin = createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU' || SUPABASE_SERVICE_KEY)
 
+    // ── Lock the table at checkout time, before Stripe ──────────────────
+    // This prevents two customers racing to pay for the same table.
+    if (dining_option === 'dine_in' && table_number) {
+      const { data: locked } = await admin
+        .from('tables')
+        .update({
+          status: 'reserved',
+          current_customer: name,
+          occupied_at: new Date().toISOString(),
+        })
+        .eq('table_number', table_number)
+        .eq('status', 'available')   // only succeeds if STILL available
+        .select('table_number')
+
+      if (!locked || locked.length === 0) {
+        // Table was grabbed by someone else (staff or another customer) between selection and checkout
+        return NextResponse.json(
+          { error: 'Sorry, that table has just been taken. Please go back and choose another.' },
+          { status: 409 }
+        )
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
     let order: any
     let dbError: any
 
