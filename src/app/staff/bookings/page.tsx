@@ -102,11 +102,14 @@ export default function StaffBookingsPage() {
         toast.success(`Booking ${STATUS_LABEL[status] || status}`)
         fetchBookings()
       } else {
-        const data = await res.json()
-        toast.error(data.error || 'Failed to update')
+        const text = await res.text()
+        let msg = 'Failed to update'
+        try { msg = JSON.parse(text).error || msg } catch { msg = text || msg }
+        console.error('updateStatus error', res.status, msg)
+        toast.error(msg)
       }
-    } catch {
-      toast.error('Something went wrong')
+    } catch (err: any) {
+      toast.error(err?.message || 'Network error — try again')
     }
     setUpdatingId(null)
   }
