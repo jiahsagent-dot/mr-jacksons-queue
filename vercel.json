@@ -5,6 +5,14 @@
       "schedule": "*/5 * * * *"
     },
     {
+      "path": "/api/bookings/reserve-upcoming",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/bookings/remind",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/queue/expire-all",
       "schedule": "* * * * *"
     }

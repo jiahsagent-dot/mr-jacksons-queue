@@ -58,3 +58,9 @@ CREATE POLICY "Service role manages bookings" ON bookings
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS table_number INTEGER;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_context TEXT DEFAULT 'standard';
 -- order_context: 'standard' | 'dine_in' | 'queue_preorder' | 'booking_preorder'
+
+-- ===== Booking confirmation + reminder tracking =====
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS reminded_at TIMESTAMPTZ;
+-- confirmed_at: set when customer taps "I'm Here — Check In" on the manage page
+-- reminded_at:  set when the 15-min reminder SMS is sent (prevents duplicate sends)

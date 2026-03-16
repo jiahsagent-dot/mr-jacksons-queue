@@ -271,10 +271,22 @@ export default function BookingConfirmedPage() {
         </div>
 
         {/* Cancellation warning */}
-        <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-5 animate-slide-up-2">
-          <p className="text-xs text-red-700 font-sans text-center">
-            ⚠️ If you don&apos;t check in within 15 minutes after your booking time, your table will be released.
-          </p>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-5 animate-slide-up-2 space-y-2">
+          <p className="text-xs font-bold text-red-700 font-sans">⚠️ Important — if you haven&apos;t pre-paid:</p>
+          <ul className="space-y-1.5 text-xs text-red-700 font-sans">
+            <li className="flex items-start gap-2">
+              <span className="mt-0.5 flex-shrink-0">1.</span>
+              <span>You <strong>must check in</strong> when you arrive — go to mr-jacksons.vercel.app and tap <strong>&ldquo;I have a booking&rdquo;</strong></span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-0.5 flex-shrink-0">2.</span>
+              <span>Enter your phone number to confirm you&apos;re here</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-0.5 flex-shrink-0">3.</span>
+              <span>If you <strong>don&apos;t check in within 15 minutes</strong> of your booking time, your table will be released to the next guest</span>
+            </li>
+          </ul>
         </div>
 
         {/* Pre-Order Options */}

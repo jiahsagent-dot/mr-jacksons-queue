@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, Suspense, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -16,6 +16,156 @@ type Booking = {
   table_number?: number
   status: string
   code?: string
+}
+
+// ─── Check-in countdown popup ──────────────────────────────────────────────
+// Shows 15 min before → 15 min after booking time (30-min window)
+function CheckInPopup({ booking, onCheckedIn }: { booking: Booking; onCheckedIn: () => void }) {
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
+  const [phase, setPhase] = useState<'before' | 'overdue' | null>(null) // 'before' = before booking, 'overdue' = after
+  const [checking, setChecking] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    const tick = () => {
+      // Parse booking time as local (customer's browser = AU local time)
+      const [h, m] = booking.time_slot.split(':').map(Number)
+      const bookingMs = new Date(`${booking.date}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`).getTime()
+      const nowMs = Date.now()
+      const diffSec = (bookingMs - nowMs) / 1000 // positive = booking is in the future
+
+      if (diffSec > 15 * 60) {
+        // More than 15 min away — hide
+        setPhase(null)
+        setSecondsLeft(null)
+      } else if (diffSec > 0) {
+        // 0–15 min before booking
+        setPhase('before')
+        setSecondsLeft(Math.ceil(diffSec))
+      } else if (diffSec > -15 * 60) {
+        // 0–15 min after booking (overdue window)
+        setPhase('overdue')
+        setSecondsLeft(Math.ceil(15 * 60 + diffSec)) // counts down to release
+      } else {
+        // More than 15 min past — window closed
+        setPhase(null)
+        setSecondsLeft(null)
+      }
+    }
+
+    tick()
+    intervalRef.current = setInterval(tick, 1000)
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
+  }, [booking])
+
+  const handleCheckIn = async () => {
+    setChecking(true)
+    try {
+      const res = await fetch('/api/bookings/checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booking_id: booking.id }),
+      })
+      if (res.ok) {
+        onCheckedIn()
+      } else {
+        const d = await res.json()
+        toast.error(d.error || 'Check-in failed')
+      }
+    } catch {
+      toast.error('Something went wrong')
+    }
+    setChecking(false)
+  }
+
+  const formatCountdown = (secs: number) => {
+    const m = Math.floor(secs / 60)
+    const s = secs % 60
+    return `${m}:${String(s).padStart(2, '0')}`
+  }
+
+  // Already checked in or window closed
+  if (booking.status === 'seated' || phase === null || dismissed) return null
+
+  return (
+    <>
+      {/* Backdrop — visible but doesn't block scrolling */}
+      <div className="fixed inset-0 z-40 pointer-events-none bg-black/20" />
+
+      {/* Popup card — fixed bottom, not full screen */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-6 animate-slide-up">
+        <div className={`max-w-sm mx-auto rounded-2xl shadow-2xl border-2 overflow-hidden ${
+          phase === 'overdue'
+            ? 'bg-red-50 border-red-300'
+            : 'bg-amber-50 border-amber-300'
+        }`}>
+          {/* Colour bar at top */}
+          <div className={`h-1.5 w-full ${phase === 'overdue' ? 'bg-red-400' : 'bg-amber-400'}`} />
+
+          <div className="p-4">
+            {/* Header row */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{phase === 'overdue' ? '⚠️' : '🔔'}</span>
+                <div>
+                  <p className={`text-sm font-bold font-sans ${phase === 'overdue' ? 'text-red-800' : 'text-amber-900'}`}>
+                    {phase === 'overdue' ? 'Check in now!' : 'Almost time!'}
+                  </p>
+                  <p className={`text-[11px] font-sans ${phase === 'overdue' ? 'text-red-600' : 'text-amber-700'}`}>
+                    {phase === 'overdue'
+                      ? `Table released in ${formatCountdown(secondsLeft ?? 0)}`
+                      : `Your booking starts in ${formatCountdown(secondsLeft ?? 0)}`}
+                  </p>
+                </div>
+              </div>
+
+              {/* Countdown circle */}
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center border-2 flex-shrink-0 ${
+                phase === 'overdue' ? 'border-red-300 bg-red-100' : 'border-amber-300 bg-amber-100'
+              }`}>
+                <span className={`text-sm font-bold font-mono tabular-nums ${
+                  phase === 'overdue' ? 'text-red-700' : 'text-amber-800'
+                }`}>
+                  {formatCountdown(secondsLeft ?? 0)}
+                </span>
+              </div>
+            </div>
+
+            {/* Context message */}
+            <p className={`text-[12px] font-sans mb-3 leading-relaxed ${
+              phase === 'overdue' ? 'text-red-700' : 'text-amber-800'
+            }`}>
+              {phase === 'overdue'
+                ? `Haven't paid yet? Tap below to confirm you're here so we don't release your table.`
+                : `When you arrive at the door, tap the button below to confirm you're here. Required if you haven't pre-paid.`}
+            </p>
+
+            {/* Buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={handleCheckIn}
+                disabled={checking}
+                className={`flex-1 py-3 rounded-xl text-sm font-bold font-sans transition-all active:scale-[0.97] disabled:opacity-50 ${
+                  phase === 'overdue'
+                    ? 'bg-red-500 text-white hover:bg-red-600'
+                    : 'bg-amber-500 text-white hover:bg-amber-600'
+                }`}
+              >
+                {checking ? 'Checking in...' : "✓ I'm Here — Check In"}
+              </button>
+              <button
+                onClick={() => setDismissed(true)}
+                className="py-3 px-3 rounded-xl text-xs font-medium text-stone-400 bg-white border border-stone-200 hover:border-stone-300 transition-all"
+              >
+                Later
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
 }
 
 type ActiveOrder = {
@@ -78,6 +228,7 @@ function ManageContent() {
   const [cancelling, setCancelling] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [cancelled, setCancelled] = useState(false)
+  const [checkedIn, setCheckedIn] = useState(false)
 
   useEffect(() => {
     const lookup = async () => {
@@ -167,6 +318,35 @@ function ManageContent() {
 
   const isCancelled = booking.status === 'cancelled'
   const isPast = new Date(booking.date + 'T23:59:59') < new Date()
+  const isSeated = !!(booking as any).confirmed_at || checkedIn
+
+  if (checkedIn) {
+    return (
+      <main className="min-h-screen flex flex-col">
+        <div className="relative h-[180px] overflow-hidden">
+          <Image src="/images/hero.jpg" alt="Mr Jackson" fill className="object-cover" priority />
+          <div className="absolute inset-0 bg-gradient-to-b from-green-900/30 via-green-900/50 to-green-900/80" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4">
+            <div className="w-16 h-16 rounded-full bg-green-500/90 flex items-center justify-center mb-3 shadow-lg">
+              <span className="text-3xl">✓</span>
+            </div>
+            <h1 className="text-2xl font-bold drop-shadow-lg">You&apos;re Checked In!</h1>
+          </div>
+        </div>
+        <div className="flex-1 max-w-sm mx-auto w-full px-4 py-8 text-center space-y-4">
+          <p className="text-stone-600 font-sans">Welcome, {booking.customer_name}! Your table is confirmed. 🎉</p>
+          <p className="text-stone-400 text-sm font-sans">Head to your table and a staff member will be with you shortly.</p>
+          <Link
+            href={`/order/new?context=booking&name=${encodeURIComponent(booking.customer_name)}&phone=${encodeURIComponent(booking.phone)}&date=${booking.date}&time=${booking.time_slot}`}
+            className="btn-primary inline-block mt-4"
+          >
+            🍽️ Order Food Now
+          </Link>
+          <Link href="/join" className="block text-stone-400 text-sm font-sans underline mt-2">Back to Home</Link>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -364,6 +544,14 @@ function ManageContent() {
           Back to Home
         </Link>
       </div>
+
+      {/* Check-in popup — only for unpaid, during the 30-min window */}
+      {!isCancelled && !isPast && !isSeated && !activeOrder && (
+        <CheckInPopup
+          booking={booking}
+          onCheckedIn={() => setCheckedIn(true)}
+        />
+      )}
     </main>
   )
 }

@@ -17,6 +17,7 @@ type Booking = {
   code?: string
   created_at: string
   notes?: string
+  confirmed_at?: string | null
 }
 
 function formatTime(slot: string): string {
@@ -269,28 +270,34 @@ export default function StaffBookingsPage() {
                         </div>
                       )}
 
-                      {/* Actions */}
+                      {/* Confirmed badge + actions */}
                       {booking.status !== 'cancelled' && (
-                        <div className="flex gap-2 flex-wrap">
-                          {booking.status === 'confirmed' && (
-                            <button
-                              onClick={() => updateStatus(booking.id, 'seated')}
-                              disabled={updatingId === booking.id}
-                              className="btn-primary py-2 px-4 text-xs flex-1 disabled:opacity-50"
-                            >
-                              🪑 Mark Seated
-                            </button>
-                          )}
-                          {booking.status === 'seated' && (
-                            <button
-                              onClick={() => updateStatus(booking.id, 'no_show')}
-                              disabled={updatingId === booking.id}
-                              className="py-2 px-4 text-xs flex-1 rounded-xl bg-stone-100 text-stone-600 font-medium font-sans disabled:opacity-50"
-                            >
-                              ⚠️ No Show
-                            </button>
-                          )}
-                          {['confirmed', 'seated'].includes(booking.status) && (
+                        <div className="space-y-2">
+                          {/* Check-in status */}
+                          <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold font-sans ${
+                            booking.confirmed_at
+                              ? 'bg-green-50 border-green-200 text-green-700'
+                              : 'bg-stone-50 border-stone-200 text-stone-400'
+                          }`}>
+                            <span>{booking.confirmed_at ? '✓' : '⏳'}</span>
+                            <span>
+                              {booking.confirmed_at
+                                ? `Customer confirmed arrival`
+                                : 'Not confirmed yet'}
+                            </span>
+                          </div>
+
+                          {/* Cancel / No-show */}
+                          <div className="flex gap-2">
+                            {booking.status === 'confirmed' && (
+                              <button
+                                onClick={() => { if (confirm(`Mark ${booking.customer_name} as no-show?`)) updateStatus(booking.id, 'no_show') }}
+                                disabled={updatingId === booking.id}
+                                className="py-2 px-4 text-xs flex-1 rounded-xl bg-stone-100 text-stone-500 font-medium font-sans hover:bg-stone-200 disabled:opacity-50"
+                              >
+                                ⚠️ No Show
+                              </button>
+                            )}
                             <button
                               onClick={() => { if (confirm(`Cancel ${booking.customer_name}'s booking?`)) updateStatus(booking.id, 'cancelled') }}
                               disabled={updatingId === booking.id}
@@ -298,7 +305,7 @@ export default function StaffBookingsPage() {
                             >
                               Cancel
                             </button>
-                          )}
+                          </div>
                         </div>
                       )}
                     </div>
