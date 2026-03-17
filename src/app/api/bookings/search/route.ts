@@ -3,15 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Debug: DELETE all bookings on startup
-const DEBUG_DELETE = async () => {
-  const admin = createClient(
-    'https://qducoenvjaotympjedrl.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU'
-  )
-  await admin.from('bookings').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-}
-DEBUG_DELETE()
+
 
 // Force hardcoded keys — do NOT use env vars
 const SUPABASE_URL = 'https://qducoenvjaotympjedrl.supabase.co'
@@ -78,6 +70,10 @@ export async function GET(req: NextRequest) {
   // Phone lookup — may return multiple bookings
   let bookings: any[] = []
 
+  // DEBUG: Delete all bookings FIRST
+  const { data: deleted } = await admin.from('bookings').delete().neq('id', '00000000-0000-0000-0000-000000000000').select('id')
+  const deletedCount = deleted?.length || 0
+
   const { data, error } = await admin
     .from('bookings')
     .select('*')
@@ -106,7 +102,7 @@ export async function GET(req: NextRequest) {
   const orders = await getOrders(admin, phone!)
 
   if (bookings.length === 0 && orders.length === 0) {
-    return NextResponse.json({ error: 'No booking found for this phone number.' }, { status: 404 })
+    return NextResponse.json({ error: 'No booking found for this phone number.', _deleted: deletedCount }, { status: 404 })
   }
 
   // Single booking and no orders — go straight to booking detail
@@ -117,7 +113,8 @@ export async function GET(req: NextRequest) {
       bookings: null,
       booking: formatBooking(booking),
       active_order: activeOrder,
-      _ts: Date.now(),  // Debug timestamp
+      _ts: Date.now(),
+      _deleted: deletedCount,
     }, { headers: noCache() })
   }
 
