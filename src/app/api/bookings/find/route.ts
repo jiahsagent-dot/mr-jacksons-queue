@@ -74,6 +74,18 @@ export async function GET(req: NextRequest) {
     .gte('date', today)
     .order('date', { ascending: true })
 
+  // DEBUG: Return raw query results
+  if (phone === '0483880253') {
+    return NextResponse.json({ 
+      DEBUG: true, 
+      today, 
+      phone, 
+      raw_data: data, 
+      raw_error: error?.message,
+      supabase_url: SUPABASE_URL
+    })
+  }
+
   if (!error && data && data.length > 0) {
     bookings = data
   } else {
