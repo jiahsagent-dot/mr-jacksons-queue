@@ -35,12 +35,12 @@ function CheckInPopup({ booking, onCheckedIn }: { booking: Booking; onCheckedIn:
       const nowMs = Date.now()
       const diffSec = (bookingMs - nowMs) / 1000 // positive = booking is in the future
 
-      if (diffSec > 15 * 60) {
-        // More than 15 min away — hide
+      if (diffSec > 30 * 60) {
+        // More than 30 min away — hide
         setPhase(null)
         setSecondsLeft(null)
       } else if (diffSec > 0) {
-        // 0–15 min before booking
+        // 0–30 min before booking
         setPhase('before')
         setSecondsLeft(Math.ceil(diffSec))
       } else if (diffSec > -15 * 60) {
@@ -546,7 +546,7 @@ function ManageContent() {
       </div>
 
       {/* Check-in popup — only for unpaid, during the 30-min window */}
-      {!isCancelled && !isPast && !isSeated && !activeOrder && (
+      {!isCancelled && !isPast && !isSeated && (
         <CheckInPopup
           booking={booking}
           onCheckedIn={() => setCheckedIn(true)}

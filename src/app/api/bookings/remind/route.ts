@@ -104,9 +104,9 @@ export async function GET() {
     const link = `${BASE_URL}/book/manage?phone=${phone}`
 
     const smsBody =
-      `Hi ${booking.customer_name}! Your table at Mr Jackson's is in 15 minutes (${formatTime(booking.time_slot)}) 🍽️\n\n` +
-      `Haven't paid yet? You MUST check in when you arrive or your table will be released.\n\n` +
-      `👉 Tap here to check in when you're at the door:\n${link}\n\n` +
+      `Hi ${booking.customer_name}! ⏰ Your table at Mr Jackson's is in ${minutesUntil} minutes (${formatTime(booking.time_slot)}).\n\n` +
+      `Tap below to check in when you arrive — your table will be released 15 mins after your booking if you don't:\n\n` +
+      `👉 ${link}\n\n` +
       `See you soon!`
 
     await sendSMS(booking.phone, smsBody)

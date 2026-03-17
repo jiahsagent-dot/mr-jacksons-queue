@@ -106,15 +106,15 @@ export async function POST(req: NextRequest) {
 
     // Send confirmation SMS with booking code
     const tableLabel = table_number ? ` · Table ${table_number}` : ''
+    const manageLink = `https://mr-jacksons.vercel.app/book/manage?phone=${phone.replace(/\D/g, '')}`
+    const calLink = `https://mr-jacksons.vercel.app/api/calendar/booking?phone=${phone.replace(/\D/g, '')}&date=${date}&time=${time_slot}`
     const smsBody = `Hi ${name}! Your booking at Mr Jackson's is confirmed ✅\n\n` +
       `📅 ${date} at ${formatTimeSlot(time_slot)}\n` +
       `👥 ${party_size} people${tableLabel}\n\n` +
-      `WHEN YOU ARRIVE:\n` +
-      `1. Go to mr-jacksons.vercel.app\n` +
-      `2. Tap "I have a booking"\n` +
-      `3. Enter your phone number to check in\n` +
-      `4. Order from your phone!\n\n` +
-      `⚠️ If you don't check in within 15 minutes after your booking time, your table will be given to the next guest.\n\n` +
+      `📲 Manage your booking:\nhttps://mr-jacksons.vercel.app/book/manage?phone=${phone.replace(/\D/g, '')}\n\n` +
+      `🗓️ Add to your calendar:\n${calLink}\n\n` +
+      `WHEN YOU ARRIVE — tap this link to check in:\n${manageLink}\n\n` +
+      `⚠️ If you don't check in within 15 mins of your booking time, your table will be released.\n\n` +
       `Can't make it? Call 03 5909 8815`
 
     sendSMS(phone, smsBody)
