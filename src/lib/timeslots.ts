@@ -1,8 +1,8 @@
 export function generateTimeSlots(_selectedDate?: string): string[] {
   const slots: string[] = []
-  // TEST MODE: all 24 hours, every 30 mins — revert to 7:00–14:30 for production
+  // TEST MODE: all 24 hours, every 5 mins — revert to 7:00–14:30 / 30min for production
   for (let hour = 0; hour <= 23; hour++) {
-    for (let min = 0; min < 60; min += 30) {
+    for (let min = 0; min < 60; min += 5) {
       const h = hour.toString().padStart(2, '0')
       const m = min.toString().padStart(2, '0')
       slots.push(`${h}:${m}`)
