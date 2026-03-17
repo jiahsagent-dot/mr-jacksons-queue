@@ -2,8 +2,9 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qducoenvjaotympjedrl.supabase.co'
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU'
+// Force hardcoded keys to ensure consistency
+const SUPABASE_URL = 'https://qducoenvjaotympjedrl.supabase.co'
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU'
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,7 +20,8 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (error || !booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
-    if (booking.status === 'cancelled') return NextResponse.json({ error: 'Already cancelled' }, { status: 400 })
+    if (booking.status === 'cancelled') return NextResponse.json({ error: 'This booking has already been cancelled' }, { status: 400 })
+    if (booking.status === 'no_show') return NextResponse.json({ error: 'This booking was marked as no-show because the 15-minute check-in window passed' }, { status: 400 })
 
     await admin.from('bookings').update({ status: 'cancelled' }).eq('id', booking_id)
 
