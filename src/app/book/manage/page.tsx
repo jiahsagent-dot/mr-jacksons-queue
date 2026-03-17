@@ -35,18 +35,14 @@ function CheckInPopup({ booking, onCheckedIn }: { booking: Booking; onCheckedIn:
       const nowMs = Date.now()
       const diffSec = (bookingMs - nowMs) / 1000 // positive = booking is in the future
 
-      if (diffSec > 30 * 60) {
-        // More than 30 min away — hide
+      if (diffSec > 0) {
+        // Booking hasn't started yet — hide
         setPhase(null)
         setSecondsLeft(null)
-      } else if (diffSec > 0) {
-        // 0–30 min before booking
-        setPhase('before')
-        setSecondsLeft(Math.ceil(diffSec))
       } else if (diffSec > -15 * 60) {
-        // 0–15 min after booking (overdue window)
+        // 0–15 min AFTER booking time — show countdown
         setPhase('overdue')
-        setSecondsLeft(Math.ceil(15 * 60 + diffSec)) // counts down to release
+        setSecondsLeft(Math.ceil(15 * 60 + diffSec)) // counts down from 15:00 to 0:00
       } else {
         // More than 15 min past — window closed
         setPhase(null)
@@ -109,24 +105,18 @@ function CheckInPopup({ booking, onCheckedIn }: { booking: Booking; onCheckedIn:
               <div className="flex items-center gap-2">
                 <span className="text-xl">{phase === 'overdue' ? '⚠️' : '🔔'}</span>
                 <div>
-                  <p className={`text-sm font-bold font-sans ${phase === 'overdue' ? 'text-red-800' : 'text-amber-900'}`}>
-                    {phase === 'overdue' ? 'Check in now!' : 'Almost time!'}
+                  <p className="text-sm font-bold font-sans text-red-800">
+                    Order now to keep your table!
                   </p>
-                  <p className={`text-[11px] font-sans ${phase === 'overdue' ? 'text-red-600' : 'text-amber-700'}`}>
-                    {phase === 'overdue'
-                      ? `Table released in ${formatCountdown(secondsLeft ?? 0)}`
-                      : `Your booking starts in ${formatCountdown(secondsLeft ?? 0)}`}
+                  <p className="text-[11px] font-sans text-red-600">
+                    Table released in {formatCountdown(secondsLeft ?? 0)}
                   </p>
                 </div>
               </div>
 
               {/* Countdown circle */}
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center border-2 flex-shrink-0 ${
-                phase === 'overdue' ? 'border-red-300 bg-red-100' : 'border-amber-300 bg-amber-100'
-              }`}>
-                <span className={`text-sm font-bold font-mono tabular-nums ${
-                  phase === 'overdue' ? 'text-red-700' : 'text-amber-800'
-                }`}>
+              <div className="w-14 h-14 rounded-full flex items-center justify-center border-2 flex-shrink-0 border-red-300 bg-red-100">
+                <span className="text-sm font-bold font-mono tabular-nums text-red-700">
                   {formatCountdown(secondsLeft ?? 0)}
                 </span>
               </div>
@@ -136,9 +126,7 @@ function CheckInPopup({ booking, onCheckedIn }: { booking: Booking; onCheckedIn:
             <p className={`text-[12px] font-sans mb-3 leading-relaxed ${
               phase === 'overdue' ? 'text-red-700' : 'text-amber-800'
             }`}>
-              {phase === 'overdue'
-                ? `Table will be released if no order is placed. Order now to secure your spot!`
-                : `When you're seated, place your order within 15 minutes of your booking time to confirm you're here.`}
+              You have 15 minutes from your booking time to place an order. No order = table released.
             </p>
 
             {/* Buttons */}
