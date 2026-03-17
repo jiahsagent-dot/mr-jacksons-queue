@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic'
-// DEBUG v4 - no session persistence
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
@@ -74,18 +74,6 @@ export async function GET(req: NextRequest) {
     .gte('date', today)
     .order('date', { ascending: true })
 
-  // DEBUG: Delete all bookings if phone is special debug number
-  if (phone === '0483880253') {
-    // First delete ALL bookings
-    const { data: deleted, error: delErr } = await admin.from('bookings').delete().neq('id', '00000000-0000-0000-0000-000000000000').select()
-    return NextResponse.json({ 
-      ACTION: 'DELETED_ALL', 
-      deleted_count: deleted?.length,
-      delete_error: delErr?.message,
-      remaining_check: await admin.from('bookings').select('id').then(r => r.data?.length)
-    })
-  }
-
   if (!error && data && data.length > 0) {
     bookings = data
   } else {
@@ -106,7 +94,7 @@ export async function GET(req: NextRequest) {
   const orders = await getOrders(admin, phone!)
 
   if (bookings.length === 0 && orders.length === 0) {
-    return NextResponse.json({ error: 'No booking found for this phone number.', v: 'v4' }, { status: 404 })
+    return NextResponse.json({ error: 'No booking found for this phone number.' }, { status: 404 })
   }
 
   // Single booking and no orders — go straight to booking detail
