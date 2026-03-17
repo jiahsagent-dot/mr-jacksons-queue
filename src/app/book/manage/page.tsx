@@ -317,7 +317,7 @@ function ManageContent() {
                 <p className="text-xs font-bold uppercase tracking-widest text-stone-500 font-sans">Your Bookings</p>
               </div>
               <div className="space-y-3">
-                {allBookings.map((b: any) => {
+                {[...allBookings].sort((a, b) => new Date(a.date + 'T' + a.time_slot).getTime() - new Date(b.date + 'T' + b.time_slot).getTime()).map((b: any) => {
                   const sc = statusConfig[b.status] || statusConfig.confirmed
                   return (
                     <div key={b.id} className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
