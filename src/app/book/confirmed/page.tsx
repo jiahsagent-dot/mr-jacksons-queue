@@ -161,7 +161,7 @@ export default function BookingConfirmedPage() {
       <main className="min-h-screen flex flex-col items-center justify-center px-4">
         <div className="text-center animate-fade-in">
           <p className="text-3xl mb-4">✅</p>
-          <h1 className="text-2xl font-bold text-stone-900 mb-2">Booking Confirmed</h1>
+          <h1 className="text-2xl font-bold text-stone-900 mb-2">You're Booked!</h1>
           <p className="text-stone-400 text-sm font-sans mb-6">We&apos;ll see you soon!</p>
           <Link href="/join" className="btn-primary inline-block">Back Home</Link>
         </div>
@@ -179,7 +179,7 @@ export default function BookingConfirmedPage() {
           <div className="w-16 h-16 rounded-full bg-green-500/90 flex items-center justify-center mb-3 shadow-lg animate-confetti">
             <span className="text-3xl">✓</span>
           </div>
-          <h1 className="text-2xl font-bold drop-shadow-lg">Booking Confirmed!</h1>
+          <h1 className="text-2xl font-bold drop-shadow-lg">You're Booked!</h1>
           <div className="w-6 h-0.5 bg-green-300 mx-auto mt-2" />
         </div>
       </div>

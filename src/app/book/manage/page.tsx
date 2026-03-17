@@ -267,7 +267,7 @@ function ManageContent() {
     const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
 
     const statusConfig: Record<string, { label: string; dot: string; text: string }> = {
-      confirmed:  { label: 'Confirmed',  dot: 'bg-green-500',  text: 'text-green-700' },
+      confirmed:  { label: 'Booked',  dot: 'bg-green-500',  text: 'text-green-700' },
       preparing:  { label: 'Preparing',  dot: 'bg-blue-500',   text: 'text-blue-700' },
       ready:      { label: 'Ready',      dot: 'bg-green-500',  text: 'text-green-700' },
       received:   { label: 'Received',   dot: 'bg-amber-500',  text: 'text-amber-700' },
