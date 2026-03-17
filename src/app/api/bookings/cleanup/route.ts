@@ -97,18 +97,10 @@ export async function GET() {
     if (phonesWithArrivalOrder.has(booking.phone)) continue
 
     // Cancel the booking
-    const { data: updated, error: updateErr } = await admin
+    await admin
       .from('bookings')
       .update({ status: 'cancelled' })
       .eq('id', booking.id)
-      .select()
-    
-    if (updateErr) {
-      console.error('Failed to cancel booking:', booking.id, updateErr)
-      continue
-    }
-    
-    console.log('Cancelled booking:', booking.id, 'result:', updated)
 
     // Free the table if one was assigned
     if (booking.table_number) {
@@ -129,10 +121,5 @@ export async function GET() {
     cancelled++
   }
 
-  return NextResponse.json({ 
-    message: `Checked ${bookings.length} bookings`, 
-    cancelled, 
-    ts: new Date().toISOString(),
-    debug: { todayDate, currentMinutes, bookingsFound: bookings.map(b => ({ id: b.id.slice(0,8), time: b.time_slot, status: b.status })) }
-  })
+  return NextResponse.json({ message: `Checked ${bookings.length} bookings`, cancelled })
 }
