@@ -206,7 +206,7 @@ function ManageContent() {
       if (!query) { setLoading(false); return }
 
       try {
-        const res = await fetch(`/api/bookings/lookup?${query}`)
+        const res = await fetch(`/api/bookings/find?${query}`)
         const data = await res.json()
         if (!res.ok) {
           toast.error(data.error || 'Booking not found')

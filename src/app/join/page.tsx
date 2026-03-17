@@ -93,7 +93,7 @@ export default function JoinPage() {
     try {
       const query = `phone=${encodeURIComponent(cleaned)}`
 
-      const res = await fetch(`/api/bookings/lookup?${query}`)
+      const res = await fetch(`/api/bookings/find?${query}`)
       const data = await res.json()
       if (!res.ok) {
         toast.error(data.error || 'No booking found')
