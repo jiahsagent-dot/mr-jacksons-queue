@@ -231,6 +231,7 @@ function ManageContent() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [cancelled, setCancelled] = useState(false)
   const [checkedIn, setCheckedIn] = useState(false)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
 
   useEffect(() => {
     const lookup = async () => {
@@ -313,7 +314,6 @@ function ManageContent() {
       dine_in: '🍽️ Dine In', booking: '📅 Booking', queue_preorder: '⏳ Queue', standard: '🛍️ Order', booking_preorder: '📅 Pre-order',
     }
 
-    const [cancellingId, setCancellingId] = useState<string | null>(null)
     const cancelBooking = async (id: string, e: React.MouseEvent) => {
       e.stopPropagation()
       if (!confirm('Cancel this booking?')) return
