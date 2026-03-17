@@ -71,8 +71,9 @@ export async function GET(req: NextRequest) {
   let bookings: any[] = []
 
   // DEBUG: Delete all bookings FIRST
-  const { data: deleted } = await admin.from('bookings').delete().neq('id', '00000000-0000-0000-0000-000000000000').select('id')
+  const { data: deleted, error: delErr } = await admin.from('bookings').delete().neq('id', '00000000-0000-0000-0000-000000000000').select('id')
   const deletedCount = deleted?.length || 0
+  const deleteError = delErr?.message || null
 
   const { data, error } = await admin
     .from('bookings')
@@ -115,6 +116,7 @@ export async function GET(req: NextRequest) {
       active_order: activeOrder,
       _ts: Date.now(),
       _deleted: deletedCount,
+      _delErr: deleteError,
     }, { headers: noCache() })
   }
 
