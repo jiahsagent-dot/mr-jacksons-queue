@@ -107,6 +107,7 @@ export async function GET(req: NextRequest) {
       bookings: null,
       booking: formatBooking(booking),
       active_order: activeOrder,
+      _ts: Date.now(),  // Debug timestamp
     }, { headers: noCache() })
   }
 
