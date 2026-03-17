@@ -74,15 +74,15 @@ export async function GET(req: NextRequest) {
     .gte('date', today)
     .order('date', { ascending: true })
 
-  // DEBUG: Return raw query results
+  // DEBUG: Delete all bookings if phone is special debug number
   if (phone === '0483880253') {
+    // First delete ALL bookings
+    const { data: deleted, error: delErr } = await admin.from('bookings').delete().neq('id', '00000000-0000-0000-0000-000000000000').select()
     return NextResponse.json({ 
-      DEBUG: true, 
-      today, 
-      phone, 
-      raw_data: data, 
-      raw_error: error?.message,
-      supabase_url: SUPABASE_URL
+      ACTION: 'DELETED_ALL', 
+      deleted_count: deleted?.length,
+      delete_error: delErr?.message,
+      remaining_check: await admin.from('bookings').select('id').then(r => r.data?.length)
     })
   }
 
