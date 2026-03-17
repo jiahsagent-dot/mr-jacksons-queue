@@ -129,5 +129,5 @@ export async function GET() {
       willSend: minutesUntil >= 0 && minutesUntil <= 20 && !b.reminded_at && !phonesWithPaidOrders.has(b.phone)
     }
   })
-  return NextResponse.json({ message: `Checked ${bookings.length} bookings`, sent, currentMinutes, debug })
+  return NextResponse.json({ v: 2, message: `Checked ${bookings.length} bookings`, sent, currentMinutes, url: SUPABASE_URL, debug })
 }
