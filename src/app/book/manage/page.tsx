@@ -22,7 +22,7 @@ type Booking = {
 // 15 min before booking → counts down to booking time (amber)
 // At booking time → 15 min countdown to order (red, urgent)
 // Matches the queue countdown style
-function CheckInPopup({ booking }: { booking: Booking; onCheckedIn: () => void }) {
+function CheckInPopup({ booking, activeOrder }: { booking: Booking; onCheckedIn: () => void; activeOrder: ActiveOrder }) {
   const [msLeft, setMsLeft] = useState<number | null>(null)
   const [phase, setPhase] = useState<'before' | 'order' | null>(null)
   const [dismissed, setDismissed] = useState(false)
@@ -61,6 +61,8 @@ function CheckInPopup({ booking }: { booking: Booking; onCheckedIn: () => void }
     return `${m}:${String(s).padStart(2, '0')}`
   }
 
+  // Hide if already ordered — they've confirmed their arrival
+  if (activeOrder && !['cancelled', 'pending'].includes(activeOrder.status)) return null
   if (phase === null || dismissed) return null
 
   const isUrgent = phase === 'order'
@@ -685,6 +687,7 @@ function ManageContent() {
       {!isCancelled && !isPast && !isSeated && (
         <CheckInPopup
           booking={booking}
+          activeOrder={activeOrder}
           onCheckedIn={() => setCheckedIn(true)}
         />
       )}

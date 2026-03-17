@@ -23,13 +23,13 @@ export async function POST(req: NextRequest) {
 
     await admin.from('bookings').update({ status: 'cancelled' }).eq('id', booking_id)
 
-    // Free the table if one was assigned
+    // Free the table if one was assigned — covers both reserved and occupied states
     if (booking.table_number) {
       await admin
         .from('tables')
         .update({ status: 'available', current_customer: null, occupied_at: null })
         .eq('table_number', booking.table_number)
-        .eq('status', 'reserved')
+        .in('status', ['reserved', 'occupied'])
     }
 
     return NextResponse.json({ success: true })

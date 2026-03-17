@@ -85,12 +85,12 @@ export async function GET(req: NextRequest) {
     if (altData && altData.length > 0) bookings = altData
   }
 
-  if (bookings.length === 0) {
+  // Fetch orders for this phone too (even if no upcoming bookings)
+  const orders = await getOrders(admin, phone!)
+
+  if (bookings.length === 0 && orders.length === 0) {
     return NextResponse.json({ error: 'No booking found for this phone number.' }, { status: 404 })
   }
-
-  // Fetch orders for this phone too
-  const orders = await getOrders(admin, phone!)
 
   // Single booking and no orders — go straight to booking detail
   if (bookings.length === 1 && orders.length === 0) {
@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
     }, { headers: noCache() })
   }
 
-  // Multiple bookings or orders — return full list for selection
+  // Multiple bookings, or orders present — return full list for selection dashboard
   return NextResponse.json({
     bookings: bookings.map(b => ({
       ...formatBooking(b),

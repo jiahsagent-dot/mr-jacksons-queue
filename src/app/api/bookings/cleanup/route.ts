@@ -57,16 +57,31 @@ export async function GET() {
     return NextResponse.json({ message: 'No bookings to check', cancelled: 0 })
   }
 
-  // Check which bookings have an order placed TODAY — that's how customers confirm arrival
+  // Check which bookings have an order placed ON OR AFTER their booking time today
+  // Pre-orders placed earlier in the day do NOT count as arrival confirmation
   const phones = bookings.map(b => b.phone).filter(Boolean)
   const { data: orders } = await admin
     .from('orders')
     .select('phone, status, created_at')
     .in('phone', phones)
     .eq('date', todayDate)
-  const phonesWithTodayOrder = new Set(
-    (orders || []).filter((o: any) => o.status !== 'cancelled').map((o: any) => o.phone)
-  )
+    .neq('status', 'cancelled')
+
+  // Build a map of phone → earliest valid order time per booking
+  const phonesWithArrivalOrder = new Set<string>()
+  for (const booking of bookings) {
+    const [h, m] = booking.time_slot.split(':').map(Number)
+    // Booking time as a UTC-comparable threshold (stored as Melbourne local, treat as local)
+    const bookingLocalStr = `${todayDate}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`
+    const bookingThreshold = new Date(bookingLocalStr).getTime() - (11 * 60 * 60 * 1000) // approx Melbourne offset
+    const hasArrivalOrder = (orders || []).some((o: any) => {
+      if (o.phone !== booking.phone) return false
+      const orderTime = new Date(o.created_at).getTime()
+      // Order must be placed within 30 min before to 15 min after booking time
+      return orderTime >= bookingThreshold - (30 * 60 * 1000)
+    })
+    if (hasArrivalOrder) phonesWithArrivalOrder.add(booking.phone)
+  }
 
   let cancelled = 0
   for (const booking of bookings) {
@@ -77,8 +92,8 @@ export async function GET() {
     // Skip if booking time hasn't passed yet or less than 15 min past
     if (minutesPast < 15) continue
 
-    // If they placed an order today → they're here, don't cancel
-    if (phonesWithTodayOrder.has(booking.phone)) continue
+    // If they placed an order at/after their booking time → they arrived, don't cancel
+    if (phonesWithArrivalOrder.has(booking.phone)) continue
 
     // Cancel the booking
     await admin

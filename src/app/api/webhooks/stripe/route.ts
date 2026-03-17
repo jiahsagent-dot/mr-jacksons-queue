@@ -104,22 +104,41 @@ export async function POST(req: NextRequest) {
             })
             .eq('table_number', tableNumber)
 
-          // Create booking record for staff timeline
-          const todayDate = now.toISOString().split('T')[0]
-          const currentMinutes = now.getUTCHours() * 60 + now.getUTCMinutes()
-          const roundedMinutes = Math.floor(currentMinutes / 30) * 30
-          const roundedHour = Math.floor(roundedMinutes / 60)
-          const roundedMin = roundedMinutes % 60
-          const slot = `${roundedHour.toString().padStart(2, '0')}:${roundedMin.toString().padStart(2, '0')}`
-          await admin.from('bookings').insert({
-            customer_name: customerName,
-            phone: phone || '',
-            party_size: 2,
-            date: todayDate,
-            time_slot: slot,
-            table_number: tableNumber,
-            status: 'seated',
-          }) // non-fatal if this fails
+          if (diningOption === 'booking') {
+            // For booking orders — mark the existing booking as confirmed (arrived + ordered)
+            // Never create a duplicate — the booking already exists in the DB
+            if (orderId) {
+              const { data: existingOrder } = await admin.from('orders').select('phone').eq('id', orderId).single()
+              const bookingPhone = existingOrder?.phone || phone
+              if (bookingPhone) {
+                await admin
+                  .from('bookings')
+                  .update({ confirmed_at: now.toISOString() })
+                  .eq('phone', bookingPhone)
+                  .eq('status', 'confirmed')
+                  .is('confirmed_at', null)
+              }
+            }
+          } else {
+            // For walk-in dine-in orders — create a booking record for staff timeline
+            // Use Melbourne local time for accurate timeslot
+            const local = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Melbourne' }))
+            const todayDate = `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, '0')}-${String(local.getDate()).padStart(2, '0')}`
+            const currentMinutes = local.getHours() * 60 + local.getMinutes()
+            const roundedMinutes = Math.floor(currentMinutes / 30) * 30
+            const roundedHour = Math.floor(roundedMinutes / 60)
+            const roundedMin = roundedMinutes % 60
+            const slot = `${String(roundedHour).padStart(2, '0')}:${String(roundedMin).padStart(2, '0')}`
+            await admin.from('bookings').insert({
+              customer_name: customerName,
+              phone: phone || '',
+              party_size: 2,
+              date: todayDate,
+              time_slot: slot,
+              table_number: tableNumber,
+              status: 'seated',
+            }) // non-fatal if this fails
+          }
         }
 
         const items = order?.items || []
