@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic'
-// DEBUG v3 - 2026-03-17 09:55 UTC
+// DEBUG v4 - no session persistence
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
@@ -8,7 +8,10 @@ const SUPABASE_URL = 'https://qducoenvjaotympjedrl.supabase.co'
 const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU'
 
 function getAdmin() {
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+    auth: { persistSession: false },
+    db: { schema: 'public' }
+  })
 }
 
 function formatTime(slot: string) {
@@ -91,7 +94,7 @@ export async function GET(req: NextRequest) {
   const orders = await getOrders(admin, phone!)
 
   if (bookings.length === 0 && orders.length === 0) {
-    return NextResponse.json({ error: 'No booking found for this phone number.', v: 'v3' }, { status: 404 })
+    return NextResponse.json({ error: 'No booking found for this phone number.', v: 'v4' }, { status: 404 })
   }
 
   // Single booking and no orders — go straight to booking detail
