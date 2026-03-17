@@ -125,5 +125,10 @@ export async function GET() {
     cancelled++
   }
 
-  return NextResponse.json({ message: `Checked ${bookings.length} bookings`, cancelled, ts: new Date().toISOString() })
+  return NextResponse.json({ 
+    message: `Checked ${bookings.length} bookings`, 
+    cancelled, 
+    ts: new Date().toISOString(),
+    debug: { todayDate, currentMinutes, bookingsFound: bookings.map(b => ({ id: b.id.slice(0,8), time: b.time_slot, status: b.status })) }
+  })
 }
