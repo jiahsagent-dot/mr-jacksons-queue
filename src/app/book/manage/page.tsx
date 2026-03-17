@@ -18,133 +18,111 @@ type Booking = {
   code?: string
 }
 
-// ─── Check-in countdown popup ──────────────────────────────────────────────
-// Shows 15 min before → 15 min after booking time (30-min window)
-function CheckInPopup({ booking, onCheckedIn }: { booking: Booking; onCheckedIn: () => void }) {
-  const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
-  const [phase, setPhase] = useState<'before' | 'overdue' | null>(null) // 'before' = before booking, 'overdue' = after
-  const [checking, setChecking] = useState(false)
+// ─── Booking countdown popup ──────────────────────────────────────────────
+// 15 min before booking → counts down to booking time (amber)
+// At booking time → 15 min countdown to order (red, urgent)
+// Matches the queue countdown style
+function CheckInPopup({ booking }: { booking: Booking; onCheckedIn: () => void }) {
+  const [msLeft, setMsLeft] = useState<number | null>(null)
+  const [phase, setPhase] = useState<'before' | 'order' | null>(null)
   const [dismissed, setDismissed] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     const tick = () => {
-      // Parse booking time as local (customer's browser = AU local time)
       const [h, m] = booking.time_slot.split(':').map(Number)
       const bookingMs = new Date(`${booking.date}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`).getTime()
       const nowMs = Date.now()
-      const diffSec = (bookingMs - nowMs) / 1000 // positive = booking is in the future
+      const diffMs = bookingMs - nowMs // positive = future
 
-      if (diffSec > 0) {
-        // Booking hasn't started yet — hide
-        setPhase(null)
-        setSecondsLeft(null)
-      } else if (diffSec > -15 * 60) {
-        // 0–15 min AFTER booking time — show countdown
-        setPhase('overdue')
-        setSecondsLeft(Math.ceil(15 * 60 + diffSec)) // counts down from 15:00 to 0:00
+      if (diffMs > 15 * 60 * 1000) {
+        // More than 15 min away — hide
+        setPhase(null); setMsLeft(null)
+      } else if (diffMs > 0) {
+        // 0–15 min before booking — amber countdown to start
+        setPhase('before'); setMsLeft(diffMs)
+      } else if (diffMs > -15 * 60 * 1000) {
+        // 0–15 min after booking — red countdown to order
+        setPhase('order'); setMsLeft(15 * 60 * 1000 + diffMs)
       } else {
-        // More than 15 min past — window closed
-        setPhase(null)
-        setSecondsLeft(null)
+        // Window closed
+        setPhase(null); setMsLeft(null)
       }
     }
-
     tick()
     intervalRef.current = setInterval(tick, 1000)
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
   }, [booking])
 
-  const handleCheckIn = async () => {
-    setChecking(true)
-    try {
-      const res = await fetch('/api/bookings/checkin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ booking_id: booking.id }),
-      })
-      if (res.ok) {
-        onCheckedIn()
-      } else {
-        const d = await res.json()
-        toast.error(d.error || 'Check-in failed')
-      }
-    } catch {
-      toast.error('Something went wrong')
-    }
-    setChecking(false)
-  }
-
-  const formatCountdown = (secs: number) => {
-    const m = Math.floor(secs / 60)
-    const s = secs % 60
+  const fmt = (ms: number) => {
+    const totalSecs = Math.max(0, Math.ceil(ms / 1000))
+    const m = Math.floor(totalSecs / 60)
+    const s = totalSecs % 60
     return `${m}:${String(s).padStart(2, '0')}`
   }
 
-  // Already checked in or window closed
-  if (booking.status === 'seated' || phase === null || dismissed) return null
+  if (phase === null || dismissed) return null
+
+  const isUrgent = phase === 'order'
+  const isAlmostOut = isUrgent && msLeft !== null && msLeft < 60 * 1000
+  const orderLink = `/order/new?context=booking&name=${encodeURIComponent((booking as any).customer_name)}&phone=${encodeURIComponent((booking as any).phone)}&date=${(booking as any).date}&time=${(booking as any).time_slot}`
 
   return (
     <>
-      {/* Backdrop — visible but doesn't block scrolling */}
-      <div className="fixed inset-0 z-40 pointer-events-none bg-black/20" />
-
-      {/* Popup card — fixed bottom, not full screen */}
+      <div className="fixed inset-0 z-40 pointer-events-none bg-black/25" />
       <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-6 animate-slide-up">
-        <div className={`max-w-sm mx-auto rounded-2xl shadow-2xl border-2 overflow-hidden ${
-          phase === 'overdue'
-            ? 'bg-red-50 border-red-300'
-            : 'bg-amber-50 border-amber-300'
+        <div className={`max-w-sm mx-auto rounded-3xl shadow-2xl border-2 overflow-hidden ${
+          isAlmostOut ? 'border-red-300 bg-gradient-to-b from-red-50 to-white' :
+          isUrgent    ? 'border-red-200 bg-gradient-to-b from-red-50/80 to-white' :
+                        'border-amber-200 bg-gradient-to-b from-amber-50/80 to-white'
         }`}>
-          {/* Colour bar at top */}
-          <div className={`h-1.5 w-full ${phase === 'overdue' ? 'bg-red-400' : 'bg-amber-400'}`} />
-
-          <div className="p-4">
-            {/* Header row */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{phase === 'overdue' ? '⚠️' : '🔔'}</span>
-                <div>
-                  <p className="text-sm font-bold font-sans text-red-800">
-                    Order now to keep your table!
-                  </p>
-                  <p className="text-[11px] font-sans text-red-600">
-                    Table released in {formatCountdown(secondsLeft ?? 0)}
-                  </p>
-                </div>
+          <div className="p-5">
+            {/* Countdown circle — matches queue style */}
+            <div className="flex items-center gap-4 mb-4">
+              <div className={`w-20 h-20 rounded-full flex flex-col items-center justify-center border-2 flex-shrink-0 shadow-inner ${
+                isAlmostOut ? 'border-red-300 bg-red-100' :
+                isUrgent    ? 'border-red-200 bg-red-50' :
+                              'border-amber-300 bg-amber-100'
+              }`}>
+                <p className={`text-[9px] uppercase tracking-widest font-bold font-sans mb-0.5 ${
+                  isUrgent ? 'text-red-500' : 'text-amber-600'
+                }`}>{isUrgent ? 'Order in' : 'Starts in'}</p>
+                <p className={`text-xl font-bold font-sans tabular-nums leading-none ${
+                  isAlmostOut ? 'text-red-700' : isUrgent ? 'text-red-600' : 'text-amber-800'
+                }`}>{fmt(msLeft ?? 0)}</p>
               </div>
 
-              {/* Countdown circle */}
-              <div className="w-14 h-14 rounded-full flex items-center justify-center border-2 flex-shrink-0 border-red-300 bg-red-100">
-                <span className="text-sm font-bold font-mono tabular-nums text-red-700">
-                  {formatCountdown(secondsLeft ?? 0)}
-                </span>
+              <div className="flex-1">
+                <p className={`font-bold text-base font-sans leading-tight ${
+                  isUrgent ? 'text-red-800' : 'text-amber-900'
+                }`}>
+                  {isUrgent ? '🍽️ Order now to keep your table!' : '⏰ Your booking is almost here'}
+                </p>
+                <p className={`text-[12px] font-sans mt-1 leading-relaxed ${
+                  isUrgent ? 'text-red-600' : 'text-amber-700'
+                }`}>
+                  {isUrgent
+                    ? 'Place your order within 15 minutes or your table will be released.'
+                    : 'Get ready — when you\'re seated, order within 15 minutes to confirm your table.'}
+                </p>
               </div>
             </div>
 
-            {/* Context message */}
-            <p className={`text-[12px] font-sans mb-3 leading-relaxed ${
-              phase === 'overdue' ? 'text-red-700' : 'text-amber-800'
-            }`}>
-              You have 15 minutes from your booking time to place an order. No order = table released.
-            </p>
-
             {/* Buttons */}
             <div className="flex gap-2">
-              <a
-                href={`/order/new?context=booking&name=${encodeURIComponent((booking as any).customer_name)}&phone=${encodeURIComponent((booking as any).phone)}&date=${(booking as any).date}&time=${(booking as any).time_slot}`}
-                className={`flex-1 py-3 rounded-xl text-sm font-bold font-sans text-center transition-all active:scale-[0.97] ${
-                  phase === 'overdue'
-                    ? 'bg-red-500 text-white hover:bg-red-600'
-                    : 'bg-amber-500 text-white hover:bg-amber-600'
-                }`}
-              >
-                🍽️ Order Now
-              </a>
-              <button
-                onClick={() => setDismissed(true)}
-                className="py-3 px-3 rounded-xl text-xs font-medium text-stone-400 bg-white border border-stone-200 hover:border-stone-300 transition-all"
-              >
+              {isUrgent ? (
+                <a href={orderLink} className={`flex-1 py-3.5 rounded-2xl text-sm font-bold font-sans text-center transition-all active:scale-[0.97] shadow-lg ${
+                  isAlmostOut ? 'bg-red-600 text-white shadow-red-500/30' : 'bg-red-500 text-white shadow-red-500/20'
+                }`}>
+                  Order &amp; Pay Now
+                </a>
+              ) : (
+                <a href={orderLink} className="flex-1 py-3.5 rounded-2xl text-sm font-bold font-sans text-center bg-amber-500 text-white shadow-lg shadow-amber-500/20 transition-all active:scale-[0.97]">
+                  Browse &amp; Pre-order
+                </a>
+              )}
+              <button onClick={() => setDismissed(true)}
+                className="py-3.5 px-4 rounded-2xl text-xs font-medium text-stone-400 bg-stone-50 border border-stone-200 hover:bg-stone-100 transition-all">
                 Later
               </button>
             </div>
