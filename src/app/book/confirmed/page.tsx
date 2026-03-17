@@ -276,15 +276,15 @@ export default function BookingConfirmedPage() {
           <ul className="space-y-1.5 text-xs text-red-700 font-sans">
             <li className="flex items-start gap-2">
               <span className="mt-0.5 flex-shrink-0">1.</span>
-              <span>You <strong>must check in</strong> when you arrive — go to mr-jacksons.vercel.app and tap <strong>&ldquo;I have a booking&rdquo;</strong></span>
+              <span>When you&apos;re seated, <strong>place your order</strong> from your phone within 15 minutes of your booking time</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-0.5 flex-shrink-0">2.</span>
-              <span>Enter your phone number to confirm you&apos;re here</span>
+              <span>Ordering confirms you&apos;re here — no separate check-in needed</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-0.5 flex-shrink-0">3.</span>
-              <span>If you <strong>don&apos;t check in within 15 minutes</strong> of your booking time, your table will be released to the next guest</span>
+              <span>If <strong>no order is placed within 15 minutes</strong> of your booking time, your table will be released</span>
             </li>
           </ul>
         </div>

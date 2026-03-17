@@ -113,8 +113,8 @@ export async function POST(req: NextRequest) {
       `👥 ${party_size} people${tableLabel}\n\n` +
       `📲 Manage your booking:\nhttps://mr-jacksons.vercel.app/book/manage?phone=${phone.replace(/\D/g, '')}\n\n` +
       `🗓️ Add to your calendar:\n${calLink}\n\n` +
-      `WHEN YOU ARRIVE — tap this link to check in:\n${manageLink}\n\n` +
-      `⚠️ If you don't check in within 15 mins of your booking time, your table will be released.\n\n` +
+      `WHEN YOU ARRIVE — place your order within 15 mins to secure your table:\nhttps://mr-jacksons.vercel.app/order/new?context=booking&name=${encodeURIComponent(name)}&phone=${phone.replace(/\D/g,'')}&date=${date}&time=${time_slot}\n\n` +
+      `⚠️ If no order is placed within 15 mins of your booking time, your table will be released.\n\n` +
       `Can't make it? Call 03 5909 8815`
 
     sendSMS(phone, smsBody)

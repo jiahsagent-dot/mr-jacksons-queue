@@ -57,14 +57,14 @@ export async function GET() {
     return NextResponse.json({ message: 'No bookings to check', cancelled: 0 })
   }
 
-  // Check which bookings have PAID orders (by phone) — don't cancel if they've paid
+  // Check which bookings have an order placed TODAY — that's how customers confirm arrival
   const phones = bookings.map(b => b.phone).filter(Boolean)
   const { data: orders } = await admin
     .from('orders')
-    .select('phone, status')
+    .select('phone, status, created_at')
     .in('phone', phones)
-  // Only protect bookings where they have a paid/active order (not cancelled)
-  const phonesWithPaidOrders = new Set(
+    .eq('date', todayDate)
+  const phonesWithTodayOrder = new Set(
     (orders || []).filter((o: any) => o.status !== 'cancelled').map((o: any) => o.phone)
   )
 
@@ -77,9 +77,8 @@ export async function GET() {
     // Skip if booking time hasn't passed yet or less than 15 min past
     if (minutesPast < 15) continue
 
-    // Skip if they confirmed (looked up their code) or have an order
-    if (booking.confirmed_at) continue
-    if (phonesWithPaidOrders.has(booking.phone)) continue
+    // If they placed an order today → they're here, don't cancel
+    if (phonesWithTodayOrder.has(booking.phone)) continue
 
     // Cancel the booking
     await admin

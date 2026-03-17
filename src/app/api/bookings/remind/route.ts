@@ -103,11 +103,12 @@ export async function GET() {
     const phone = booking.phone.replace(/\D/g, '')
     const link = `${BASE_URL}/book/manage?phone=${phone}`
 
+    const orderLink = `https://mr-jacksons.vercel.app/order/new?context=booking&name=${encodeURIComponent(booking.customer_name)}&phone=${encodeURIComponent(booking.phone)}&date=${booking.date}&time=${booking.time_slot}`
     const smsBody =
       `Hi ${booking.customer_name}! ⏰ Your table at Mr Jackson's is in ${minutesUntil} minutes (${formatTime(booking.time_slot)}).\n\n` +
-      `Tap below to check in when you arrive — your table will be released 15 mins after your booking if you don't:\n\n` +
-      `👉 ${link}\n\n` +
-      `See you soon!`
+      `When you arrive, place your order within 15 minutes to secure your table — or it'll be released.\n\n` +
+      `👉 Order here when you're seated:\n${orderLink}\n\n` +
+      `Manage your booking:\n${link}`
 
     await sendSMS(booking.phone, smsBody)
     await admin.from('bookings').update({ reminded_at: now.toISOString() }).eq('id', booking.id)

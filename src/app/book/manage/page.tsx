@@ -137,23 +137,22 @@ function CheckInPopup({ booking, onCheckedIn }: { booking: Booking; onCheckedIn:
               phase === 'overdue' ? 'text-red-700' : 'text-amber-800'
             }`}>
               {phase === 'overdue'
-                ? `Haven't paid yet? Tap below to confirm you're here so we don't release your table.`
-                : `When you arrive at the door, tap the button below to confirm you're here. Required if you haven't pre-paid.`}
+                ? `Table will be released if no order is placed. Order now to secure your spot!`
+                : `When you're seated, place your order within 15 minutes of your booking time to confirm you're here.`}
             </p>
 
             {/* Buttons */}
             <div className="flex gap-2">
-              <button
-                onClick={handleCheckIn}
-                disabled={checking}
-                className={`flex-1 py-3 rounded-xl text-sm font-bold font-sans transition-all active:scale-[0.97] disabled:opacity-50 ${
+              <a
+                href={`/order/new?context=booking&name=${encodeURIComponent((booking as any).customer_name)}&phone=${encodeURIComponent((booking as any).phone)}&date=${(booking as any).date}&time=${(booking as any).time_slot}`}
+                className={`flex-1 py-3 rounded-xl text-sm font-bold font-sans text-center transition-all active:scale-[0.97] ${
                   phase === 'overdue'
                     ? 'bg-red-500 text-white hover:bg-red-600'
                     : 'bg-amber-500 text-white hover:bg-amber-600'
                 }`}
               >
-                {checking ? 'Checking in...' : "✓ I'm Here — Check In"}
-              </button>
+                🍽️ Order Now
+              </a>
               <button
                 onClick={() => setDismissed(true)}
                 className="py-3 px-3 rounded-xl text-xs font-medium text-stone-400 bg-white border border-stone-200 hover:border-stone-300 transition-all"
