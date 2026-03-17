@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic'
+// DEBUG v3 - 2026-03-17 09:55 UTC
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
@@ -90,7 +91,7 @@ export async function GET(req: NextRequest) {
   const orders = await getOrders(admin, phone!)
 
   if (bookings.length === 0 && orders.length === 0) {
-    return NextResponse.json({ error: 'No booking found for this phone number.' }, { status: 404 })
+    return NextResponse.json({ error: 'No booking found for this phone number.', v: 'v3' }, { status: 404 })
   }
 
   // Single booking and no orders — go straight to booking detail
