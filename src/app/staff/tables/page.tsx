@@ -349,7 +349,7 @@ export default function StaffTablesPage() {
                     {(table.status === 'occupied' || table.status === 'reserved') && table.current_customer && (
                       <p className={`text-[11px] font-sans mt-1 truncate ${table.status === 'reserved' ? 'text-amber-600' : 'text-red-600'}`}>
                         {table.status === 'reserved' ? '⏳' : '👤'} {table.current_customer}
-                        {table.status === 'reserved' && <span className="ml-1 text-[9px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700 px-1 py-0.5 rounded">Queue</span>}
+                        {table.status === 'reserved' && <span className="ml-1 text-[9px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700 px-1 py-0.5 rounded">Booking</span>}
                       </p>
                     )}
                     {(table.status === 'occupied') && table.occupied_at && (
