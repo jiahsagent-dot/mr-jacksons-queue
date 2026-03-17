@@ -89,8 +89,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'No booking found for this phone number.' }, { status: 404 })
   }
 
-  // Single booking — resolve directly
-  if (bookings.length === 1) {
+  // Fetch orders for this phone too
+  const orders = await getOrders(admin, phone!)
+
+  // Single booking and no orders — go straight to booking detail
+  if (bookings.length === 1 && orders.length === 0) {
     const booking = bookings[0]
     const activeOrder = await getActiveOrder(admin, booking.phone)
     return NextResponse.json({
@@ -100,15 +103,41 @@ export async function GET(req: NextRequest) {
     }, { headers: noCache() })
   }
 
-  // Multiple bookings — return list for customer to choose
+  // Multiple bookings or orders — return full list for selection
   return NextResponse.json({
     bookings: bookings.map(b => ({
       ...formatBooking(b),
       display: `${formatDate(b.date)} at ${formatTime(b.time_slot)} · ${b.party_size} ${b.party_size === 1 ? 'person' : 'people'}`,
     })),
+    orders,
     booking: null,
     active_order: null,
   }, { headers: noCache() })
+}
+
+async function getOrders(admin: any, phone: string) {
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  const { data: orders } = await admin
+    .from('orders')
+    .select('id, status, items, created_at, date, time_slot, customer_name, dining_option, order_context, table_number')
+    .eq('phone', phone)
+    .neq('status', 'cancelled')
+    .gte('created_at', thirtyDaysAgo.toISOString())
+    .order('created_at', { ascending: false })
+    .limit(10)
+  return (orders || []).map((o: any) => ({
+    id: o.id,
+    status: o.status,
+    items_count: o.items?.length || 0,
+    total: (o.items || []).reduce((s: number, i: any) => s + (i.price * i.quantity), 0),
+    created_at: o.created_at,
+    date: o.date,
+    time_slot: o.time_slot,
+    customer_name: o.customer_name,
+    context: o.order_context || o.dining_option || 'standard',
+    table_number: o.table_number,
+  }))
 }
 
 async function getActiveOrder(admin: any, phone: string) {
