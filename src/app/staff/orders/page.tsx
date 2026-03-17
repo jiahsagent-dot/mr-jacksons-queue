@@ -302,6 +302,20 @@ export default function StaffOrdersPage() {
             )}
           </div>
         )}
+        {/* Pending orders — payment not completed, staff can dismiss */}
+        {order.status === 'pending' && (
+          <div className="flex gap-2 mb-3">
+            <div className="flex-1 px-3 py-2 rounded-xl bg-stone-100 text-stone-400 text-xs font-sans text-center">
+              ⏳ Awaiting payment
+            </div>
+            <button
+              onClick={() => cancelOrder(order.id, order.customer_name)}
+              className="text-xs bg-white text-red-500 px-3 py-2 rounded-xl border border-red-200 font-medium hover:bg-red-50 transition-all font-sans"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
         {/* Items */}
         <div className="bg-white/60 rounded-xl p-3 mb-3">
