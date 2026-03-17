@@ -297,68 +297,159 @@ function ManageContent() {
   if (!booking && (allBookings !== null || allOrders !== null)) {
     const fmt = (slot: string) => { if (!slot) return ''; const [h, m] = slot.split(':').map(Number); const ap = h >= 12 ? 'PM' : 'AM'; return `${h > 12 ? h - 12 : h || 12}:${String(m).padStart(2, '0')} ${ap}` }
     const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
-    const pill = (s: string) => {
-      const map: Record<string, string> = { confirmed: 'bg-green-100 text-green-700', preparing: 'bg-blue-100 text-blue-700', ready: 'bg-green-100 text-green-700', received: 'bg-yellow-100 text-yellow-700', served: 'bg-stone-100 text-stone-500', pending: 'bg-yellow-100 text-yellow-700' }
-      return `text-[10px] font-bold px-2 py-0.5 rounded-lg capitalize font-sans ${map[s] || 'bg-stone-100 text-stone-500'}`
+
+    const statusConfig: Record<string, { label: string; dot: string; text: string }> = {
+      confirmed:  { label: 'Confirmed',  dot: 'bg-green-500',  text: 'text-green-700' },
+      preparing:  { label: 'Preparing',  dot: 'bg-blue-500',   text: 'text-blue-700' },
+      ready:      { label: 'Ready',      dot: 'bg-green-500',  text: 'text-green-700' },
+      received:   { label: 'Received',   dot: 'bg-amber-500',  text: 'text-amber-700' },
+      served:     { label: 'Served',     dot: 'bg-stone-400',  text: 'text-stone-500' },
+      pending:    { label: 'Pending',    dot: 'bg-amber-400',  text: 'text-amber-700' },
+      no_show:    { label: 'No Show',    dot: 'bg-red-400',    text: 'text-red-600' },
+      cancelled:  { label: 'Cancelled',  dot: 'bg-stone-300',  text: 'text-stone-400' },
     }
+
+    const contextLabel: Record<string, string> = {
+      dine_in: '🍽️ Dine In', booking: '📅 Booking', queue_preorder: '⏳ Queue', standard: '🛍️ Order', booking_preorder: '📅 Pre-order',
+    }
+
+    const [cancellingId, setCancellingId] = useState<string | null>(null)
+    const cancelBooking = async (id: string, e: React.MouseEvent) => {
+      e.stopPropagation()
+      if (!confirm('Cancel this booking?')) return
+      setCancellingId(id)
+      const res = await fetch('/api/bookings/cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ booking_id: id }) })
+      if (res.ok) {
+        setAllBookings(prev => prev ? prev.filter(b => b.id !== id) : prev)
+        toast.success('Booking cancelled')
+      } else {
+        toast.error('Could not cancel')
+      }
+      setCancellingId(null)
+    }
+
     return (
-      <main className="min-h-screen flex flex-col">
-        <div className="relative h-[160px] overflow-hidden">
+      <main className="min-h-screen bg-[#faf8f5] flex flex-col">
+        {/* Hero */}
+        <div className="relative h-[180px] overflow-hidden">
           <Image src="/images/hero.jpg" alt="Mr Jackson" fill className="object-cover" priority />
-          <div className="absolute inset-0 bg-gradient-to-b from-stone-900/20 via-stone-900/50 to-stone-900/80" />
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4">
-            <h1 className="text-2xl font-bold drop-shadow-lg">My Account</h1>
-            <p className="text-sm text-white/80 mt-1 font-sans">Select a booking or order</p>
+          <div className="absolute inset-0 bg-gradient-to-b from-stone-900/10 via-stone-900/50 to-[#faf8f5]" />
+          <div className="absolute inset-x-0 top-0 flex flex-col items-center justify-center h-full text-white text-center px-4 pb-6">
+            <h1 className="text-2xl font-bold drop-shadow-lg" style={{ fontFamily: "'Playfair Display', serif" }}>My Account</h1>
+            <p className="text-sm text-white/80 mt-1 font-sans">Bookings & Orders</p>
           </div>
         </div>
-        <div className="flex-1 max-w-sm mx-auto w-full px-4 py-5 space-y-5">
+
+        <div className="flex-1 max-w-sm mx-auto w-full px-4 pb-8 -mt-2 space-y-6">
+
+          {/* Bookings */}
           {allBookings && allBookings.length > 0 && (
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-stone-400 font-sans mb-2">📅 Bookings</p>
-              <div className="space-y-2">
-                {allBookings.map((b: any) => (
-                  <button key={b.id} onClick={() => { setBooking(b); setAllBookings(null); setAllOrders(null) }}
-                    className="w-full text-left bg-white border border-stone-200 rounded-2xl p-4 hover:border-amber-300 hover:bg-amber-50 transition-all active:scale-[0.98]">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-bold text-stone-900 font-sans text-sm">{fmtDate(b.date)} · {fmt(b.time_slot)}</p>
-                        <p className="text-xs text-stone-400 font-sans mt-0.5">{b.party_size} {b.party_size === 1 ? 'person' : 'people'}{b.table_number ? ` · Table ${b.table_number}` : ''}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={pill(b.status)}>{b.status}</span>
-                        <span className="text-stone-300 text-lg">›</span>
+            <section>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-base">📅</span>
+                <p className="text-xs font-bold uppercase tracking-widest text-stone-500 font-sans">Your Bookings</p>
+              </div>
+              <div className="space-y-3">
+                {allBookings.map((b: any) => {
+                  const sc = statusConfig[b.status] || statusConfig.confirmed
+                  return (
+                    <div key={b.id} className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
+                      <button onClick={() => { setBooking(b); setAllBookings(null); setAllOrders(null) }}
+                        className="w-full text-left p-4 hover:bg-stone-50 transition-all active:scale-[0.99]">
+                        <div className="flex items-start justify-between gap-3">
+                          {/* Date badge */}
+                          <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex flex-col items-center justify-center">
+                            <span className="text-[10px] font-bold text-amber-600 uppercase font-sans leading-none">
+                              {new Date(b.date + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short' })}
+                            </span>
+                            <span className="text-lg font-bold text-amber-800 leading-none font-sans">
+                              {new Date(b.date + 'T00:00:00').getDate()}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-stone-900 font-sans text-sm">{fmtDate(b.date)}</p>
+                            <p className="text-xs text-stone-500 font-sans mt-0.5">{fmt(b.time_slot)} · {b.party_size} {b.party_size === 1 ? 'person' : 'people'}{b.table_number ? ` · Table ${b.table_number}` : ''}</p>
+                            <div className="flex items-center gap-1.5 mt-1.5">
+                              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${sc.dot}`} />
+                              <span className={`text-[11px] font-semibold font-sans ${sc.text}`}>{sc.label}</span>
+                            </div>
+                          </div>
+                          <span className="text-stone-300 text-xl flex-shrink-0 mt-1">›</span>
+                        </div>
+                      </button>
+                      {/* Cancel row */}
+                      <div className="border-t border-stone-50 px-4 py-2 flex justify-end">
+                        <button
+                          onClick={(e) => cancelBooking(b.id, e)}
+                          disabled={cancellingId === b.id}
+                          className="text-xs text-red-400 font-medium font-sans hover:text-red-600 transition-colors disabled:opacity-50 flex items-center gap-1"
+                        >
+                          {cancellingId === b.id ? 'Cancelling...' : '✕ Cancel booking'}
+                        </button>
                       </div>
                     </div>
-                  </button>
-                ))}
+                  )
+                })}
               </div>
-            </div>
+            </section>
           )}
+
+          {/* Orders */}
           {allOrders && allOrders.length > 0 && (
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-stone-400 font-sans mb-2">🍽️ Recent Orders</p>
-              <div className="space-y-2">
-                {allOrders.map((o: any) => (
-                  <a key={o.id} href={`/order/confirmation?order_id=${o.id}`}
-                    className="block bg-white border border-stone-200 rounded-2xl p-4 hover:border-amber-300 hover:bg-amber-50 transition-all active:scale-[0.98]">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-bold text-stone-900 font-sans text-sm">{o.date ? `${fmtDate(o.date)} · ${fmt(o.time_slot)}` : new Date(o.created_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}</p>
-                        <p className="text-xs text-stone-400 font-sans mt-0.5">{o.items_count} item{o.items_count !== 1 ? 's' : ''} · ${o.total.toFixed(2)}{o.table_number ? ` · Table ${o.table_number}` : ''}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={pill(o.status)}>{o.status}</span>
-                        <span className="text-stone-300 text-lg">›</span>
-                      </div>
-                    </div>
-                  </a>
-                ))}
+            <section>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-base">🍽️</span>
+                <p className="text-xs font-bold uppercase tracking-widest text-stone-500 font-sans">Recent Orders</p>
               </div>
+              <div className="space-y-3">
+                {allOrders.map((o: any) => {
+                  const sc = statusConfig[o.status] || statusConfig.served
+                  const dateLabel = o.date ? fmtDate(o.date) : new Date(o.created_at).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
+                  const dayNum = o.date ? new Date(o.date + 'T00:00:00').getDate() : new Date(o.created_at).getDate()
+                  const monLabel = o.date ? new Date(o.date + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short' }) : new Date(o.created_at).toLocaleDateString('en-AU', { month: 'short' })
+                  return (
+                    <a key={o.id} href={`/order/confirmation?order_id=${o.id}`}
+                      className="block bg-white rounded-2xl border border-stone-100 shadow-sm p-4 hover:bg-stone-50 transition-all active:scale-[0.99]">
+                      <div className="flex items-start gap-3">
+                        {/* Date badge */}
+                        <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-stone-50 border border-stone-100 flex flex-col items-center justify-center">
+                          <span className="text-[10px] font-bold text-stone-400 uppercase font-sans leading-none">{monLabel}</span>
+                          <span className="text-lg font-bold text-stone-700 leading-none font-sans">{dayNum}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-bold text-stone-900 font-sans text-sm">{dateLabel}</p>
+                            <span className="text-stone-300 text-xl flex-shrink-0">›</span>
+                          </div>
+                          <p className="text-xs text-stone-500 font-sans mt-0.5">
+                            {o.items_count} item{o.items_count !== 1 ? 's' : ''} · <span className="font-semibold text-stone-700">${o.total.toFixed(2)}</span>
+                            {o.table_number ? ` · Table ${o.table_number}` : ''}
+                          </p>
+                          <div className="flex items-center justify-between mt-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${sc.dot}`} />
+                              <span className={`text-[11px] font-semibold font-sans ${sc.text}`}>{sc.label}</span>
+                            </div>
+                            {o.context && o.context !== 'standard' && (
+                              <span className="text-[10px] text-stone-400 font-sans">{contextLabel[o.context] || o.context}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </a>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
+          {(!allBookings?.length && !allOrders?.length) && (
+            <div className="text-center py-16">
+              <p className="text-4xl mb-3">🍳</p>
+              <p className="text-stone-500 font-sans">No bookings or orders found.</p>
             </div>
           )}
-          {(!allBookings?.length && !allOrders?.length) && (
-            <p className="text-center text-stone-400 font-sans text-sm py-8">No bookings or orders found.</p>
-          )}
+
           <Link href="/join" className="block text-center text-xs text-stone-400 font-sans underline underline-offset-2 pt-2">Back to Home</Link>
         </div>
       </main>
