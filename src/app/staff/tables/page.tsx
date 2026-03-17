@@ -101,7 +101,7 @@ export default function StaffTablesPage() {
     }
     if (ordersRes.ok) {
       const d = await ordersRes.json()
-      setOrders((d.orders || []).filter((o: Order) => o.table_number && !['served', 'cancelled'].includes(o.status)))
+      setOrders((d.orders || []).filter((o: Order) => o.table_number && ['pending', 'received', 'preparing'].includes(o.status)))
     }
     setLoading(false)
   }
