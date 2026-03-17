@@ -70,11 +70,6 @@ export async function GET(req: NextRequest) {
   // Phone lookup — may return multiple bookings
   let bookings: any[] = []
 
-  // DEBUG: Delete all bookings FIRST
-  const { data: deleted, error: delErr } = await admin.from('bookings').delete().neq('id', '00000000-0000-0000-0000-000000000000').select('id')
-  const deletedCount = deleted?.length || 0
-  const deleteError = delErr?.message || null
-
   const { data, error } = await admin
     .from('bookings')
     .select('*')
@@ -103,7 +98,7 @@ export async function GET(req: NextRequest) {
   const orders = await getOrders(admin, phone!)
 
   if (bookings.length === 0 && orders.length === 0) {
-    return NextResponse.json({ error: 'No booking found for this phone number.', _deleted: deletedCount }, { status: 404 })
+    return NextResponse.json({ error: 'No booking found for this phone number.' }, { status: 404 })
   }
 
   // Single booking and no orders — go straight to booking detail
@@ -114,9 +109,6 @@ export async function GET(req: NextRequest) {
       bookings: null,
       booking: formatBooking(booking),
       active_order: activeOrder,
-      _ts: Date.now(),
-      _deleted: deletedCount,
-      _delErr: deleteError,
     }, { headers: noCache() })
   }
 
