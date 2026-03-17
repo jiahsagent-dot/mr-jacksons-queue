@@ -49,8 +49,10 @@ async function sendSMS(to: string, body: string) {
 export async function GET() {
   const admin = getAdmin()
   const now = new Date()
-  const todayDate = now.toISOString().split('T')[0]
-  const currentMinutes = now.getUTCHours() * 60 + now.getUTCMinutes()
+  // Use Australia/Melbourne local time — booking slots are stored in AEST/AEDT
+  const local = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Melbourne' }))
+  const todayDate = local.toISOString().split('T')[0]
+  const currentMinutes = local.getHours() * 60 + local.getMinutes()
 
   // Fetch confirmed bookings today that haven't been reminded yet and haven't checked in
   const { data: bookings, error } = await admin

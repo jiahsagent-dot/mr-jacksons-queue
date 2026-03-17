@@ -42,8 +42,9 @@ async function sendSMS(to: string, body: string) {
 export async function GET() {
   const admin = getAdmin()
   const now = new Date()
-  const todayDate = now.toISOString().split('T')[0]
-  const currentMinutes = now.getUTCHours() * 60 + now.getUTCMinutes()
+  const local = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Melbourne' }))
+  const todayDate = local.toISOString().split('T')[0]
+  const currentMinutes = local.getHours() * 60 + local.getMinutes()
 
   // Get today's confirmed bookings (not yet seated or confirmed)
   const { data: bookings } = await admin
