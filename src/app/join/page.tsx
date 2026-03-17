@@ -100,9 +100,9 @@ export default function JoinPage() {
         return
       }
 
-      // Multiple bookings — show selection UI
-      if (data.bookings && data.bookings.length > 1) {
-        setMultipleBookings(data.bookings)
+      // Multiple bookings or orders — go to manage dashboard by phone
+      if (data.bookings || data.orders) {
+        router.push(`/book/manage?phone=${encodeURIComponent(cleaned)}`)
         return
       }
 
