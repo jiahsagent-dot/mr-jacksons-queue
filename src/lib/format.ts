@@ -15,3 +15,12 @@ export function formatAusPhone(value: string): string {
 export function stripPhone(formatted: string): string {
   return formatted.replace(/\D/g, '')
 }
+
+/**
+ * Validate Australian mobile number
+ * Must be 10 digits starting with 04
+ */
+export function isValidAusPhone(value: string): boolean {
+  const digits = value.replace(/\D/g, '')
+  return digits.length === 10 && digits.startsWith('04')
+}

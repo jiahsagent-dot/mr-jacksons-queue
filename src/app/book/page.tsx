@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import Link from 'next/link'
 import Image from 'next/image'
 import { generateTimeSlots, formatTimeSlot, getAvailableDates } from '@/lib/timeslots'
-import { formatAusPhone, stripPhone } from '@/lib/format'
+import { formatAusPhone, stripPhone, isValidAusPhone } from '@/lib/format'
 
 type TableInfo = {
   id: number
@@ -65,6 +65,7 @@ export default function BookPage() {
   const goToTableStep = () => {
     if (!name.trim()) return toast.error('Please enter your name')
     if (!phone.trim()) return toast.error('Please enter your phone number')
+    if (!isValidAusPhone(phone)) return toast.error('Please enter a valid Australian mobile number (04XX XXX XXX)')
     if (!selectedDate) return toast.error('Please select a date')
     if (!timeSlot) return toast.error('Please select a time')
     setStep('table')
@@ -153,7 +154,18 @@ export default function BookPage() {
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 font-sans">Mobile Number</label>
-                  <input type="tel" className="input-field" placeholder="04XX XXX XXX" value={phone} onChange={e => setPhone(formatAusPhone(e.target.value))} inputMode="tel" />
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    placeholder="04XX XXX XXX"
+                    value={phone}
+                    onChange={e => setPhone(formatAusPhone(e.target.value))}
+                    maxLength={12}
+                    className={`input-field ${phone && !isValidAusPhone(phone) ? 'border-red-300 focus:border-red-400' : ''}`}
+                  />
+                  {phone && !isValidAusPhone(phone) && (
+                    <p className="text-xs text-red-500 font-sans mt-1">Must be a 10-digit Australian mobile starting with 04</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 font-sans">Party Size</label>
