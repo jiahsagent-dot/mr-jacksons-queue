@@ -116,18 +116,5 @@ export async function GET() {
     sent++
   }
 
-  // Debug: show why bookings were skipped
-  const debug = bookings.map((b: any) => {
-    const [h, m] = b.time_slot.split(':').map(Number)
-    const bookingMinutes = h * 60 + m
-    const minutesUntil = bookingMinutes - currentMinutes
-    return {
-      time: b.time_slot,
-      minutesUntil,
-      reminded: !!b.reminded_at,
-      hasPaidOrder: phonesWithPaidOrders.has(b.phone),
-      willSend: minutesUntil >= 0 && minutesUntil <= 20 && !b.reminded_at && !phonesWithPaidOrders.has(b.phone)
-    }
-  })
-  return NextResponse.json({ v: 2, message: `Checked ${bookings.length} bookings`, sent, currentMinutes, url: SUPABASE_URL, debug })
+  return NextResponse.json({ message: `Checked ${bookings.length} bookings`, sent })
 }
