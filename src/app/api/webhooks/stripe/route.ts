@@ -92,8 +92,8 @@ export async function POST(req: NextRequest) {
           })
           .eq('id', orderId)
 
-        // Mark table as occupied after payment (dine-in only)
-        if (diningOption === 'dine_in' && tableNumber) {
+        // Mark table as occupied after payment (dine-in and booking orders)
+        if ((diningOption === 'dine_in' || diningOption === 'booking') && tableNumber) {
           const now = new Date()
           await admin
             .from('tables')
