@@ -71,14 +71,15 @@ export async function GET() {
     return NextResponse.json({ message: 'No bookings to remind', sent: 0 })
   }
 
-  // Get phones of customers who have already paid (have a non-cancelled order)
+  // Get phones of customers who have a paid order TODAY (same date as booking)
   const phones = bookings.map((b: any) => b.phone).filter(Boolean)
   const { data: orders } = await admin
     .from('orders')
-    .select('phone, status')
+    .select('phone, status, date')
     .in('phone', phones)
+    .eq('date', todayDate)
   const phonesWithPaidOrders = new Set(
-    (orders || []).filter((o: any) => o.status !== 'cancelled').map((o: any) => o.phone)
+    (orders || []).filter((o: any) => !['cancelled', 'pending'].includes(o.status)).map((o: any) => o.phone)
   )
 
   let sent = 0
@@ -88,12 +89,12 @@ export async function GET() {
     const bookingMinutes = h * 60 + m
     const minutesUntil = bookingMinutes - currentMinutes
 
-    // Send reminder when booking is 14–16 minutes away (catch the 15-min mark)
-    if (minutesUntil < 14 || minutesUntil > 16) continue
+    // Send reminder any time within 20 minutes of booking (wide window so cron never misses)
+    // reminded_at prevents duplicate sends
+    if (minutesUntil < 0 || minutesUntil > 20) continue
 
-    // Skip if they've already paid — they don't need to check in
+    // Skip if they've already paid today — they don't need to check in
     if (phonesWithPaidOrders.has(booking.phone)) {
-      // Still mark as reminded so we don't check again
       await admin.from('bookings').update({ reminded_at: now.toISOString() }).eq('id', booking.id)
       continue
     }
