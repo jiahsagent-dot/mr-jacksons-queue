@@ -70,6 +70,9 @@ export async function GET(req: NextRequest) {
   // Phone lookup — may return multiple bookings
   let bookings: any[] = []
 
+  // DEBUG: List ALL bookings first
+  const { data: allBookings } = await admin.from('bookings').select('id, phone, date, status')
+  
   const { data, error } = await admin
     .from('bookings')
     .select('*')
@@ -77,6 +80,18 @@ export async function GET(req: NextRequest) {
     .in('status', ['confirmed', 'seated'])
     .gte('date', today)
     .order('date', { ascending: true })
+
+  // DEBUG: Return raw info
+  if (phone === '0483880253') {
+    return NextResponse.json({
+      DEBUG: true,
+      today,
+      phone,
+      allBookings,
+      filtered: data,
+      error: error?.message
+    })
+  }
 
   if (!error && data && data.length > 0) {
     bookings = data
