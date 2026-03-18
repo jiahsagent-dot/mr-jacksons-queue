@@ -2,9 +2,8 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Force hardcoded keys to ensure consistency
-const SUPABASE_URL = 'https://qducoenvjaotympjedrl.supabase.co' 
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU' 
+const SUPABASE_URL = 'https://qducoenvjaotympjedrl.supabase.co'
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU'
 
 const CLICKSEND_USER = 'jiahsagent@gmail.com'
 const CLICKSEND_KEY = '6A27AE52-866F-25C1-158C-C1D17531DBA7'
@@ -25,10 +24,7 @@ async function sendSMS(to: string, body: string) {
     const auth = Buffer.from(`${CLICKSEND_USER}:${CLICKSEND_KEY}`).toString('base64')
     await fetch('https://rest.clicksend.com/v3/sms/send', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Basic ${auth}`,
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
       body: JSON.stringify({
         messages: [{ source: 'cleanup', body, to: formatPhone(to), from: 'MrJackson' }],
       }),
@@ -38,29 +34,55 @@ async function sendSMS(to: string, body: string) {
   }
 }
 
-// GET /api/bookings/cleanup — called periodically to cancel no-shows
-// Cancels bookings that are 15+ minutes past their time with no confirmation and no order
+/** Get Melbourne date + time components reliably using Intl (works on all Node/Vercel envs) */
+function getMelbourneNow(): { todayDate: string; currentMinutes: number } {
+  const now = new Date()
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Australia/Melbourne',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  })
+  const parts = fmt.formatToParts(now)
+  const get = (type: string) => parts.find(p => p.type === type)?.value ?? '0'
+  const todayDate = `${get('year')}-${get('month')}-${get('day')}`
+  const currentMinutes = parseInt(get('hour')) * 60 + parseInt(get('minute'))
+  return { todayDate, currentMinutes }
+}
+
+/** Convert a UTC timestamp to Melbourne local minutes-of-day */
+function toMelbourneMinutes(utcDate: Date): number {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Australia/Melbourne',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  })
+  const parts = fmt.formatToParts(utcDate)
+  const get = (type: string) => parts.find(p => p.type === type)?.value ?? '0'
+  return parseInt(get('hour')) * 60 + parseInt(get('minute'))
+}
+
+// GET /api/bookings/cleanup — cancel no-shows 15+ min after booking time with no order placed
 export async function GET() {
   const admin = getAdmin()
-  const now = new Date()
-  const local = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Melbourne' }))
-  const todayDate = local.toISOString().split('T')[0]
-  const currentMinutes = local.getHours() * 60 + local.getMinutes()
+  const { todayDate, currentMinutes } = getMelbourneNow()
 
-  // Get today's confirmed bookings (not yet seated or confirmed)
-  const { data: bookings } = await admin
+  // Get today's confirmed bookings
+  const { data: bookings, error: bookingsError } = await admin
     .from('bookings')
     .select('*')
     .eq('date', todayDate)
     .eq('status', 'confirmed')
 
-  if (!bookings || bookings.length === 0) {
-    return NextResponse.json({ message: 'No bookings to check', cancelled: 0 })
+  if (bookingsError) {
+    console.error('Bookings query error:', bookingsError)
+    return NextResponse.json({ error: bookingsError.message }, { status: 500 })
   }
 
-  // Check which bookings have an order placed ON OR AFTER their booking time today
-  // Pre-orders placed earlier in the day do NOT count as arrival confirmation
-  const phones = bookings.map(b => b.phone).filter(Boolean)
+  if (!bookings || bookings.length === 0) {
+    return NextResponse.json({ message: 'No bookings to check', cancelled: 0, todayDate, currentMinutes })
+  }
+
+  // Fetch today's non-cancelled orders for those phones
+  const phones = bookings.map((b: any) => b.phone).filter(Boolean)
   const { data: orders } = await admin
     .from('orders')
     .select('phone, status, created_at')
@@ -68,18 +90,17 @@ export async function GET() {
     .eq('date', todayDate)
     .neq('status', 'cancelled')
 
-  // Build a map of phone → earliest valid order time per booking
+  // Build set of phones that placed an order at/within 30 min before their booking time
   const phonesWithArrivalOrder = new Set<string>()
   for (const booking of bookings) {
     const [h, m] = booking.time_slot.split(':').map(Number)
-    // Booking time as a UTC-comparable threshold (stored as Melbourne local, treat as local)
-    const bookingLocalStr = `${todayDate}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`
-    const bookingThreshold = new Date(bookingLocalStr).getTime() - (11 * 60 * 60 * 1000) // approx Melbourne offset
+    const bookingMinutes = h * 60 + m
+
     const hasArrivalOrder = (orders || []).some((o: any) => {
       if (o.phone !== booking.phone) return false
-      const orderTime = new Date(o.created_at).getTime()
-      // Order must be placed within 30 min before to 15 min after booking time
-      return orderTime >= bookingThreshold - (30 * 60 * 1000)
+      // Convert order timestamp to Melbourne minutes and check if it's within the window
+      const orderMelbourneMinutes = toMelbourneMinutes(new Date(o.created_at))
+      return orderMelbourneMinutes >= bookingMinutes - 30
     })
     if (hasArrivalOrder) phonesWithArrivalOrder.add(booking.phone)
   }
@@ -90,10 +111,10 @@ export async function GET() {
     const bookingMinutes = h * 60 + m
     const minutesPast = currentMinutes - bookingMinutes
 
-    // Skip if booking time hasn't passed yet or less than 15 min past
+    // Skip if booking time hasn't passed by 15 min yet
     if (minutesPast < 15) continue
 
-    // If they placed an order at/after their booking time → they arrived, don't cancel
+    // Skip if they placed an order — they arrived
     if (phonesWithArrivalOrder.has(booking.phone)) continue
 
     // Cancel the booking
@@ -102,7 +123,7 @@ export async function GET() {
       .update({ status: 'cancelled' })
       .eq('id', booking.id)
 
-    // Free the table if one was assigned
+    // Free the table
     if (booking.table_number) {
       await admin
         .from('tables')
@@ -114,12 +135,17 @@ export async function GET() {
     // Send cancellation SMS
     sendSMS(
       booking.phone,
-      `Hi ${booking.customer_name}, your booking at Mr Jackson's for ${booking.time_slot} has been released as we didn't hear from you. ` +
+      `Hi ${booking.customer_name}, your booking at Mr Jackson's for ${booking.time_slot} has been released as we didn't see you arrive. ` +
       `If you'd still like to visit, please rebook at mr-jacksons.vercel.app or call 03 5909 8815.`
     )
 
     cancelled++
   }
 
-  return NextResponse.json({ message: `Checked ${bookings.length} bookings`, cancelled })
+  return NextResponse.json({
+    message: `Checked ${bookings.length} booking${bookings.length !== 1 ? 's' : ''}`,
+    cancelled,
+    todayDate,
+    currentMinutes,
+  })
 }
