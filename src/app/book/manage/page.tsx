@@ -123,10 +123,6 @@ function CheckInPopup({ booking, activeOrder }: { booking: Booking; onCheckedIn:
                   Browse &amp; Pre-order
                 </a>
               )}
-              <button onClick={() => setDismissed(true)}
-                className="py-3.5 px-4 rounded-2xl text-xs font-medium text-stone-400 bg-stone-50 border border-stone-200 hover:bg-stone-100 transition-all">
-                Later
-              </button>
             </div>
           </div>
         </div>
