@@ -9,12 +9,11 @@ import { createClient } from '@supabase/supabase-js'
 const SUPABASE_URL = 'https://qducoenvjaotympjedrl.supabase.co'
 const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU'
 
+// Create fresh client for EVERY request with cache-busting
 function getAdmin() {
-  // Force a completely fresh client every request - no caching
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+  return createClient(SUPABASE_URL + '?t=' + Date.now(), SUPABASE_SERVICE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    db: { schema: 'public' },
-    global: { fetch: fetch }  // Use fresh fetch
+    db: { schema: 'public' }
   })
 }
 
