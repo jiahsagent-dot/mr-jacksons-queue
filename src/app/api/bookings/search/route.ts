@@ -83,12 +83,15 @@ export async function GET(req: NextRequest) {
 
   // DEBUG: Return raw info
   if (phone === '0483880253') {
+    // Try simpler query
+    const { data: simple } = await admin.from('bookings').select('*').eq('phone', '0483880253')
     return NextResponse.json({
       DEBUG: true,
       today,
       phone,
       allBookings,
       filtered: data,
+      simple,
       error: error?.message
     })
   }
