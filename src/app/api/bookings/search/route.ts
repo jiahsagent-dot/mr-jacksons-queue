@@ -101,18 +101,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'No booking found for this phone number.' }, { status: 404 })
   }
 
-  // Single booking and no orders — go straight to booking detail
-  if (bookings.length === 1 && orders.length === 0) {
-    const booking = bookings[0]
-    const activeOrder = await getActiveOrder(admin, booking.phone)
-    return NextResponse.json({
-      bookings: null,
-      booking: formatBooking(booking),
-      active_order: activeOrder,
-    }, { headers: noCache() })
-  }
-
-  // Multiple bookings, or orders present — return full list for selection dashboard
+  // Always return list for selection dashboard (even for single booking)
   return NextResponse.json({
     bookings: bookings.map(b => ({
       ...formatBooking(b),
