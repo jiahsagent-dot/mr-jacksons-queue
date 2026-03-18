@@ -111,9 +111,8 @@ export async function GET(req: NextRequest) {
   // Fetch orders for this phone too (even if no upcoming bookings)
   const orders = await getOrders(admin, phone!)
 
-  if (bookings.length === 0 && orders.length === 0) {
-    return NextResponse.json({ error: 'No booking found for this phone number.' }, { status: 404 })
-  }
+  // Always return success — let frontend show "no bookings" state
+  // (Don't return 404, just empty arrays)
 
   // Always return list for selection dashboard (even for single booking)
   return NextResponse.json({

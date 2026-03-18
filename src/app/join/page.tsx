@@ -96,19 +96,12 @@ export default function JoinPage() {
       const res = await fetch(`/api/bookings/search?${query}`)
       const data = await res.json()
       if (!res.ok) {
-        toast.error(data.error || 'No booking found')
+        toast.error(data.error || 'Could not look up booking')
         return
       }
 
-      // Multiple bookings or orders — go to manage dashboard by phone
-      if (data.bookings || data.orders) {
-        router.push(`/book/manage?phone=${encodeURIComponent(cleaned)}`)
-        return
-      }
-
-      // Single booking — route straight to manage page
-      const b = data.booking
-      router.push(`/book/manage?code=${encodeURIComponent(b.code || '')}`)
+      // Always go to manage page — it will show "no bookings" if empty
+      router.push(`/book/manage?phone=${encodeURIComponent(cleaned)}`)
     } catch {
       toast.error('Something went wrong')
     } finally {

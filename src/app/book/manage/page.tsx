@@ -209,7 +209,7 @@ function ManageContent() {
         const res = await fetch(`/api/bookings/search?${query}`)
         const data = await res.json()
         if (!res.ok) {
-          toast.error(data.error || 'Booking not found')
+          toast.error(data.error || 'Could not look up booking')
           router.push('/join')
           return
         }
@@ -217,7 +217,7 @@ function ManageContent() {
           setBooking(data.booking)
           setActiveOrder(data.active_order)
         } else {
-          // Multiple results — show selection
+          // Show selection (may be empty — that's OK)
           setAllBookings(data.bookings || [])
           setAllOrders(data.orders || [])
         }
@@ -412,8 +412,10 @@ function ManageContent() {
 
           {(!allBookings?.length && !allOrders?.length) && (
             <div className="text-center py-16">
-              <p className="text-4xl mb-3">🍳</p>
-              <p className="text-stone-500 font-sans">No bookings or orders found.</p>
+              <p className="text-4xl mb-4">📅</p>
+              <p className="text-stone-600 font-sans mb-1">No bookings found</p>
+              <p className="text-stone-400 font-sans text-sm mb-6">You don't have any upcoming bookings for this phone number.</p>
+              <Link href="/book" className="btn-primary">Make a Booking</Link>
             </div>
           )}
 
