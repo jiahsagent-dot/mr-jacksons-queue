@@ -70,27 +70,41 @@ export async function GET(req: NextRequest) {
   // Phone lookup — may return multiple bookings
   let bookings: any[] = []
 
+  // Query bookings for this phone
   const { data, error } = await admin
     .from('bookings')
     .select('*')
     .eq('phone', phone)
-    .in('status', ['confirmed', 'seated'])
+    .eq('status', 'confirmed')  // Simplified: just check confirmed
     .gte('date', today)
     .order('date', { ascending: true })
 
   if (!error && data && data.length > 0) {
     bookings = data
-  } else {
-    // Try alt phone format
+  }
+  
+  // Also check for seated status
+  if (bookings.length === 0) {
+    const { data: seatedData } = await admin
+      .from('bookings')
+      .select('*')
+      .eq('phone', phone)
+      .eq('status', 'seated')
+      .gte('date', today)
+    if (seatedData && seatedData.length > 0) {
+      bookings = seatedData
+    }
+  }
+  
+  // Try alt phone format if still nothing
+  if (bookings.length === 0) {
     const altPhone = phone!.startsWith('0') ? phone!.slice(1) : '0' + phone
     const { data: altData } = await admin
       .from('bookings')
       .select('*')
       .eq('phone', altPhone)
-      .in('status', ['confirmed', 'seated'])
+      .eq('status', 'confirmed')
       .gte('date', today)
-      .order('date', { ascending: true })
-
     if (altData && altData.length > 0) bookings = altData
   }
 
