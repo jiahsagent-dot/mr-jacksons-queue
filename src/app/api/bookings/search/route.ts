@@ -1,20 +1,23 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-
 
 // Force hardcoded keys — do NOT use env vars
 const SUPABASE_URL = 'https://qducoenvjaotympjedrl.supabase.co'
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU'
 
-// Create fresh client for EVERY request with cache-busting
-function getAdmin() {
-  return createClient(SUPABASE_URL + '?t=' + Date.now(), SUPABASE_SERVICE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    db: { schema: 'public' }
+// Native fetch to Supabase REST API to avoid JS client caching issues
+async function supabaseQuery(table: string, query: string): Promise<any[]> {
+  const url = `${SUPABASE_URL}/rest/v1/${table}?${query}`
+  const res = await fetch(url, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Cache-Control': 'no-cache, no-store',
+    },
+    cache: 'no-store'
   })
+  return res.ok ? await res.json() : []
 }
 
 function formatTime(slot: string) {
@@ -28,138 +31,6 @@ function formatTime(slot: string) {
 function formatDate(d: string) {
   if (!d) return ''
   return new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
-}
-
-// GET /api/bookings/lookup?code=MJ-1234  OR  ?phone=0412345678
-export async function GET(req: NextRequest) {
-  const params = new URL(req.url).searchParams
-  const code = params.get('code')?.trim().toUpperCase()
-  const phone = params.get('phone')?.trim().replace(/\D/g, '')
-
-  if (!code && !phone) {
-    return NextResponse.json({ error: 'Booking code or phone number is required' }, { status: 400 })
-  }
-
-  const admin = getAdmin()
-  const today = new Date().toISOString().split('T')[0]
-
-  if (code) {
-    // Code lookup — always returns exactly one booking
-    const { data, error } = await admin
-      .from('bookings')
-      .select('*')
-      .eq('code', code)
-      .in('status', ['confirmed', 'seated'])
-      .single()
-
-    if (error || !data) {
-      return NextResponse.json({ error: 'Booking not found. Check your code and try again.' }, { status: 404 })
-    }
-
-    const booking = data
-    const activeOrder = await getActiveOrder(admin, booking.phone)
-
-    return NextResponse.json({
-      bookings: null, // single result, no selection needed
-      booking: formatBooking(booking),
-      active_order: activeOrder,
-    }, { headers: noCache() })
-  }
-
-  // Phone lookup — may return multiple bookings
-  let bookings: any[] = []
-
-  // Query bookings for this phone
-  const { data, error } = await admin
-    .from('bookings')
-    .select('*')
-    .eq('phone', phone)
-    .eq('status', 'confirmed')  // Simplified: just check confirmed
-    .gte('date', today)
-    .order('date', { ascending: true })
-
-  if (!error && data && data.length > 0) {
-    bookings = data
-  }
-  
-  // Also check for seated status
-  if (bookings.length === 0) {
-    const { data: seatedData } = await admin
-      .from('bookings')
-      .select('*')
-      .eq('phone', phone)
-      .eq('status', 'seated')
-      .gte('date', today)
-    if (seatedData && seatedData.length > 0) {
-      bookings = seatedData
-    }
-  }
-  
-  // Try alt phone format if still nothing
-  if (bookings.length === 0) {
-    const altPhone = phone!.startsWith('0') ? phone!.slice(1) : '0' + phone
-    const { data: altData } = await admin
-      .from('bookings')
-      .select('*')
-      .eq('phone', altPhone)
-      .eq('status', 'confirmed')
-      .gte('date', today)
-    if (altData && altData.length > 0) bookings = altData
-  }
-
-  // Fetch orders for this phone too (even if no upcoming bookings)
-  const orders = await getOrders(admin, phone!)
-
-  // Always return success — let frontend show "no bookings" state
-  // (Don't return 404, just empty arrays)
-
-  // Always return list for selection dashboard (even for single booking)
-  return NextResponse.json({
-    bookings: bookings.map(b => ({
-      ...formatBooking(b),
-      display: `${formatDate(b.date)} at ${formatTime(b.time_slot)} · ${b.party_size} ${b.party_size === 1 ? 'person' : 'people'}`,
-    })),
-    orders,
-    booking: null,
-    active_order: null,
-  }, { headers: noCache() })
-}
-
-async function getOrders(admin: any, phone: string) {
-  const thirtyDaysAgo = new Date()
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-  const { data: orders } = await admin
-    .from('orders')
-    .select('id, status, items, created_at, date, time_slot, customer_name, dining_option, order_context, table_number')
-    .eq('phone', phone)
-    .neq('status', 'cancelled')
-    .gte('created_at', thirtyDaysAgo.toISOString())
-    .order('created_at', { ascending: false })
-    .limit(10)
-  return (orders || []).map((o: any) => ({
-    id: o.id,
-    status: o.status,
-    items_count: o.items?.length || 0,
-    total: (o.items || []).reduce((s: number, i: any) => s + (i.price * i.quantity), 0),
-    created_at: o.created_at,
-    date: o.date,
-    time_slot: o.time_slot,
-    customer_name: o.customer_name,
-    context: o.order_context || o.dining_option || 'standard',
-    table_number: o.table_number,
-  }))
-}
-
-async function getActiveOrder(admin: any, phone: string) {
-  const { data: orders } = await admin
-    .from('orders')
-    .select('id, status, items, created_at')
-    .eq('phone', phone)
-    .not('status', 'in', '(cancelled)')
-    .order('created_at', { ascending: false })
-    .limit(1)
-  const o = orders && orders.length > 0 ? orders[0] : null
-  return o ? { id: o.id, status: o.status, items_count: o.items?.length || 0 } : null
 }
 
 function formatBooking(b: any) {
@@ -181,4 +52,93 @@ function noCache() {
     'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
     'Vercel-CDN-Cache-Control': 'no-store',
   }
+}
+
+// GET /api/bookings/search?code=MJ-1234  OR  ?phone=0412345678
+export async function GET(req: NextRequest) {
+  const params = new URL(req.url).searchParams
+  const code = params.get('code')?.trim().toUpperCase()
+  const phone = params.get('phone')?.trim().replace(/\D/g, '')
+
+  if (!code && !phone) {
+    return NextResponse.json({ error: 'Booking code or phone number is required' }, { status: 400 })
+  }
+
+  const today = new Date().toISOString().split('T')[0]
+
+  if (code) {
+    // Code lookup — returns exactly one booking
+    const data = await supabaseQuery('bookings', `code=eq.${code}&status=in.(confirmed,seated)&select=*`)
+    
+    if (!data || data.length === 0) {
+      return NextResponse.json({ error: 'Booking not found. Check your code and try again.' }, { status: 404 })
+    }
+
+    const booking = data[0]
+    const activeOrder = await getActiveOrder(booking.phone)
+
+    return NextResponse.json({
+      bookings: null,
+      booking: formatBooking(booking),
+      active_order: activeOrder,
+    }, { headers: noCache() })
+  }
+
+  // Phone lookup — may return multiple bookings
+  let bookings = await supabaseQuery('bookings', 
+    `phone=eq.${phone}&status=eq.confirmed&date=gte.${today}&order=date.asc&select=*`)
+  
+  // Also check for seated status
+  if (bookings.length === 0) {
+    bookings = await supabaseQuery('bookings',
+      `phone=eq.${phone}&status=eq.seated&date=gte.${today}&select=*`)
+  }
+  
+  // Try alt phone format if still nothing
+  if (bookings.length === 0) {
+    const altPhone = phone!.startsWith('0') ? phone!.slice(1) : '0' + phone
+    bookings = await supabaseQuery('bookings',
+      `phone=eq.${altPhone}&status=eq.confirmed&date=gte.${today}&select=*`)
+  }
+
+  // Fetch orders for this phone too
+  const orders = await getOrders(phone!)
+
+  // Always return success — frontend shows "no bookings" state if empty
+  return NextResponse.json({
+    bookings: bookings.map(b => ({
+      ...formatBooking(b),
+      display: `${formatDate(b.date)} at ${formatTime(b.time_slot)} · ${b.party_size} ${b.party_size === 1 ? 'person' : 'people'}`,
+    })),
+    orders,
+    booking: null,
+    active_order: null,
+  }, { headers: noCache() })
+}
+
+async function getOrders(phone: string) {
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  const orders = await supabaseQuery('orders',
+    `phone=eq.${phone}&status=neq.cancelled&created_at=gte.${thirtyDaysAgo.toISOString()}&order=created_at.desc&limit=10&select=id,status,items,created_at,date,time_slot,customer_name,dining_option,order_context,table_number`)
+  
+  return orders.map((o: any) => ({
+    id: o.id,
+    status: o.status,
+    items_count: o.items?.length || 0,
+    total: (o.items || []).reduce((s: number, i: any) => s + (i.price * i.quantity), 0),
+    created_at: o.created_at,
+    date: o.date,
+    time_slot: o.time_slot,
+    customer_name: o.customer_name,
+    context: o.order_context || o.dining_option || 'standard',
+    table_number: o.table_number,
+  }))
+}
+
+async function getActiveOrder(phone: string) {
+  const orders = await supabaseQuery('orders',
+    `phone=eq.${phone}&status=not.in.(cancelled)&order=created_at.desc&limit=1&select=id,status,items,created_at`)
+  const o = orders && orders.length > 0 ? orders[0] : null
+  return o ? { id: o.id, status: o.status, items_count: o.items?.length || 0 } : null
 }
