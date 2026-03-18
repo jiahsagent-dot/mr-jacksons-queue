@@ -83,16 +83,17 @@ export async function GET(req: NextRequest) {
 
   // DEBUG: Return raw info
   if (phone === '0483880253') {
-    // Try simpler query
-    const { data: simple } = await admin.from('bookings').select('*').eq('phone', '0483880253')
+    // Test each filter separately
+    const { data: withStatus } = await admin.from('bookings').select('id').eq('phone', '0483880253').in('status', ['confirmed', 'seated'])
+    const { data: withDate } = await admin.from('bookings').select('id').eq('phone', '0483880253').gte('date', today)
+    const { data: withBoth } = await admin.from('bookings').select('id').eq('phone', '0483880253').in('status', ['confirmed', 'seated']).gte('date', today)
     return NextResponse.json({
       DEBUG: true,
       today,
       phone,
-      allBookings,
-      filtered: data,
-      simple,
-      error: error?.message
+      withStatus,
+      withDate,
+      withBoth
     })
   }
 
