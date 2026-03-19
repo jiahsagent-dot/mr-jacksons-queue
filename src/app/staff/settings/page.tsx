@@ -7,6 +7,7 @@ import { StaffNav } from '@/components/StaffNav'
 
 const WAIT_OPTIONS = [5, 10, 15, 20, 30, 45]
 const NO_SHOW_OPTIONS = [1, 5, 10, 15, 20]
+const BOOKING_CANCEL_OPTIONS = [5, 10, 15, 20, 30]
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -14,6 +15,7 @@ export default function SettingsPage() {
   const [isClosed, setIsClosed] = useState(false)
   const [waitTime, setWaitTime] = useState(20)
   const [noShowMinutes, setNoShowMinutes] = useState(1)
+  const [bookingCancelMinutes, setBookingCancelMinutes] = useState(15)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -30,6 +32,7 @@ export default function SettingsPage() {
       setIsClosed(data.is_closed)
       setWaitTime(data.estimated_wait)
       setNoShowMinutes(data.no_show_minutes ?? 1)
+      setBookingCancelMinutes(data.booking_cancel_minutes ?? 15)
     }
   }, [router])
 
@@ -147,6 +150,38 @@ export default function SettingsPage() {
                 ⚠️ 1 minute is for testing only — set to 10m for normal use
               </p>
             )}
+          </div>
+        </section>
+
+        {/* Booking Cancellation Window */}
+        <section className="mb-4">
+          <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2 font-sans">Booking Cancellation Window</p>
+          <div className="bg-white rounded-2xl border border-stone-100 shadow-sm px-4 py-4">
+            <p className="text-xs text-stone-400 font-sans mb-3">
+              How long after booking time a guest has to place a paid order before their booking is automatically deleted and the table freed
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              {BOOKING_CANCEL_OPTIONS.map(mins => (
+                <button
+                  key={mins}
+                  disabled={saving}
+                  onClick={async () => {
+                    setBookingCancelMinutes(mins)
+                    await saveSetting({ booking_cancel_minutes: mins }, `Booking window set to ${mins} mins`)
+                  }}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
+                    bookingCancelMinutes === mins
+                      ? 'bg-red-500 text-white border-red-500'
+                      : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'
+                  }`}
+                >
+                  {mins}m
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-stone-400 font-sans mt-3">
+              Currently: booking deleted <span className="font-bold text-stone-700">{bookingCancelMinutes} min</span> after booking time if no paid order placed
+            </p>
           </div>
         </section>
 

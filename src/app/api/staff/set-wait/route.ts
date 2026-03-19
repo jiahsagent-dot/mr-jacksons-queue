@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
   if (body.minutes !== undefined) update.estimated_wait = body.minutes
   if (body.is_closed !== undefined) update.is_closed = body.is_closed
   if (body.no_show_minutes !== undefined) update.no_show_minutes = body.no_show_minutes
+  if (body.booking_cancel_minutes !== undefined) update.booking_cancel_minutes = body.booking_cancel_minutes
 
   const { data, error } = await admin
     .from('queue_settings')

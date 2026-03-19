@@ -85,9 +85,13 @@ function toMelbourneMinutes(utcDate: Date): number {
   return parseInt(get('hour')) * 60 + parseInt(get('minute'))
 }
 
-// GET /api/bookings/cleanup — cancel no-shows 15+ min after booking time with no order placed
+// GET /api/bookings/cleanup — delete bookings with no paid order after the cancellation window
 export async function GET() {
   const { todayDate, currentMinutes } = getMelbourneNow()
+
+  // Read the configurable cancellation window from settings (default 15 min)
+  const settings = await dbGet('queue_settings', 'id=eq.1&select=booking_cancel_minutes')
+  const cancelAfterMinutes: number = settings?.[0]?.booking_cancel_minutes ?? 15
 
   // Get today's confirmed bookings
   const bookings = await dbGet('bookings', `date=eq.${todayDate}&status=eq.confirmed&select=*`)
@@ -124,8 +128,8 @@ export async function GET() {
     const bookingMinutes = h * 60 + m
     const minutesPast = currentMinutes - bookingMinutes
 
-    // Skip if booking time hasn't passed by 15 min yet
-    if (minutesPast < 15) continue
+    // Skip if the cancellation window hasn't elapsed yet
+    if (minutesPast < cancelAfterMinutes) continue
 
     // Skip if they placed an order — they arrived
     if (phonesWithArrivalOrder.has(booking.phone)) continue
@@ -144,7 +148,7 @@ export async function GET() {
     sendSMS(
       booking.phone,
       `Hi ${booking.customer_name}, your ${booking.time_slot} table at Mr Jackson's has been automatically released — ` +
-      `no paid order was placed within 15 minutes of your booking time. ` +
+      `no paid order was placed within ${cancelAfterMinutes} minutes of your booking time. ` +
       `Walk-ins are always welcome, or rebook at mr-jacksons.vercel.app`
     )
 
@@ -154,6 +158,7 @@ export async function GET() {
   return NextResponse.json({
     message: `Checked ${bookings.length} booking${bookings.length !== 1 ? 's' : ''}`,
     cancelled,
+    cancelAfterMinutes,
     todayDate,
     currentMinutes,
   })
