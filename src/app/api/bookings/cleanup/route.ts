@@ -85,14 +85,14 @@ export async function GET() {
     return NextResponse.json({ message: 'No bookings to check', cancelled: 0, todayDate, currentMinutes })
   }
 
-  // Fetch today's PAID orders for those phones — only a paid order counts as "arrived"
-  // paid=true means they completed checkout; pending/unpaid orders do NOT save the table
+  // Fetch today's PAID orders for those phones — only a completed payment counts as "arrived"
+  // paid_at is set by the Stripe webhook when payment succeeds; pending/unpaid do NOT save the table
   const phones = Array.from(new Set(bookings.map((b: any) => b.phone).filter(Boolean)))
   const orders = phones.length > 0
-    ? await dbGet('orders', `phone=in.(${phones.join(',')})&date=eq.${todayDate}&paid=eq.true&status=neq.cancelled&select=phone,status,created_at`)
+    ? await dbGet('orders', `phone=in.(${phones.join(',')})&date=eq.${todayDate}&paid_at=not.is.null&status=neq.cancelled&select=phone,status,created_at,paid_at`)
     : []
 
-  // Build set of phones that placed a PAID order at/after their booking time (within 15 min window)
+  // Build set of phones that placed a PAID order today around their booking time
   const phonesWithArrivalOrder = new Set<string>()
   for (const booking of bookings) {
     const [h, m] = booking.time_slot.split(':').map(Number)
@@ -100,9 +100,9 @@ export async function GET() {
 
     const hasArrivalOrder = (orders || []).some((o: any) => {
       if (o.phone !== booking.phone) return false
+      // Check order was created within a window: up to 2 hours before booking or up to 15 min after
       const orderMelbourneMinutes = toMelbourneMinutes(new Date(o.created_at))
-      // Accept orders placed from 30 min before (pre-order) up to 15 min after booking time
-      return orderMelbourneMinutes >= bookingMinutes - 30 && orderMelbourneMinutes <= bookingMinutes + 15
+      return orderMelbourneMinutes >= bookingMinutes - 120 && orderMelbourneMinutes <= bookingMinutes + 15
     })
     if (hasArrivalOrder) phonesWithArrivalOrder.add(booking.phone)
   }
