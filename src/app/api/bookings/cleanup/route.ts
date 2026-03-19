@@ -30,6 +30,17 @@ async function dbPatch(table: string, query: string, body: any): Promise<any[]> 
   return res.ok ? res.json() : []
 }
 
+async function dbDelete(table: string, query: string): Promise<void> {
+  await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+    method: 'DELETE',
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+    },
+    cache: 'no-store',
+  })
+}
+
 function formatPhone(phone: string): string {
   let p = phone.replace(/\s+/g, '')
   if (p.startsWith('04')) p = '+61' + p.slice(1)
@@ -119,8 +130,8 @@ export async function GET() {
     // Skip if they placed an order — they arrived
     if (phonesWithArrivalOrder.has(booking.phone)) continue
 
-    // Cancel the booking
-    await dbPatch('bookings', `id=eq.${booking.id}`, { status: 'cancelled' })
+    // Delete the booking entirely
+    await dbDelete('bookings', `id=eq.${booking.id}`)
 
     // Free the table (may be 'reserved' or 'occupied' depending on timing)
     if (booking.table_number) {
@@ -129,7 +140,7 @@ export async function GET() {
         { status: 'available', current_customer: null, occupied_at: null, table_code: null })
     }
 
-    // Send cancellation SMS
+    // Send SMS
     sendSMS(
       booking.phone,
       `Hi ${booking.customer_name}, your ${booking.time_slot} table at Mr Jackson's has been automatically released — ` +
