@@ -21,7 +21,7 @@ type Analytics = {
   bookings: { cancellationRate: number; coversPerDay: number; totalCancelled30d: number; totalConfirmed30d: number }
   metrics: Record<string, { value: number; status: 'green' | 'amber' | 'red'; label: string; target: string }>
   alerts: { key: string; value: number; status: string; label: string; target: string }[]
-  settings: { seats: number; hoursOpen: number; cogsPercent: number; weeklyLabour: number; monthlyRent: number }
+  settings: { seats: number; hoursOpen: number; cogsPercent: number; weeklyLabour: number; monthlyRent: number; cogsSource?: string; itemsWithCosts?: number; totalMenuItems?: number }
 }
 
 const STATUS_COLOR = {
@@ -238,11 +238,22 @@ export default function OwnerDashboardPage() {
               <MetricCard key={key} label={m.label} value={m.value} status={m.status} target={m.target} />
             ))}
           </div>
-          {(costs.weeklyLabour === 0 && costs.monthlyRent === 0) && (
-            <p className="text-amber-500 text-xs font-sans mt-2 text-center">
-              ⚠️ Tap ⚙️ Costs above to enter your labour & rent — metrics will update automatically
-            </p>
-          )}
+          <div className="mt-3 flex flex-wrap gap-2 justify-center">
+            {(costs.weeklyLabour === 0 && costs.monthlyRent === 0) && (
+              <p className="text-amber-500 text-xs font-sans text-center w-full">
+                ⚠️ Tap ⚙️ Costs above to enter your labour & rent
+              </p>
+            )}
+            {data.settings.cogsSource === 'live' ? (
+              <span className="text-green-400 text-[11px] font-sans bg-green-900/30 px-2 py-0.5 rounded-full">
+                ✓ COGS from {data.settings.itemsWithCosts} live item costs
+              </span>
+            ) : (
+              <Link href="/owner/menu" className="text-amber-500 text-[11px] font-sans bg-amber-900/30 px-2 py-0.5 rounded-full">
+                ⚙️ Set item costs for live COGS →
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Bookings health */}

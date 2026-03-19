@@ -43,11 +43,12 @@ export async function GET() {
   const prevWeekStart = getMelbourneDate(-13)
   const prevWeekEnd = getMelbourneDate(-7)
 
-  // Fetch paid orders for the last 30 days + settings in parallel
-  const [orders30, bookings30, settings] = await Promise.all([
+  // Fetch paid orders for the last 30 days + settings + menu costs in parallel
+  const [orders30, bookings30, settings, menuItems] = await Promise.all([
     dbGet('orders', `date=gte.${d30Start}&date=lte.${today}&paid_at=not.is.null&status=neq.cancelled&select=id,date,items,created_at,dining_option,table_number`),
     dbGet('bookings', `date=gte.${d30Start}&date=lte.${today}&select=id,date,party_size,status,time_slot`),
     dbGet('owner_settings', 'id=eq.1&select=*'),
+    dbGet('menu_items', 'select=name,price,cost_price&available=eq.true'),
   ])
 
   const s = settings?.[0] || {}
@@ -55,7 +56,35 @@ export async function GET() {
   const monthlyRent: number = parseFloat(s.monthly_rent) || 0
   const seats: number = parseInt(s.seats) || 40
   const hoursOpen: number = parseFloat(s.hours_open_per_day) || 10
-  const cogsPercent: number = parseFloat(s.cogs_percent) || 30
+
+  // Build name → cost_price lookup from menu items
+  const costByName: Record<string, number> = {}
+  for (const item of menuItems) {
+    if (item.cost_price !== null) costByName[item.name] = parseFloat(item.cost_price)
+  }
+  const itemsWithCosts = menuItems.filter((i: any) => i.cost_price !== null).length
+  const useItemCosts = itemsWithCosts >= 3 // use live costs if at least 3 items have costs set
+
+  // COGS: calculate from actual order items if we have costs, otherwise use manual setting
+  let cogsPercent: number
+  if (useItemCosts && orders30.length > 0) {
+    let totalRevCalc = 0
+    let totalCostCalc = 0
+    for (const order of orders30) {
+      if (!Array.isArray(order.items)) continue
+      for (const li of order.items) {
+        const salePrice = (li.price || 0) * (li.quantity || 1)
+        const costPrice = costByName[li.name] !== undefined
+          ? costByName[li.name] * (li.quantity || 1)
+          : salePrice * (parseFloat(s.cogs_percent) || 30) / 100 // fallback for uncostd items
+        totalRevCalc += salePrice
+        totalCostCalc += costPrice
+      }
+    }
+    cogsPercent = totalRevCalc > 0 ? (totalCostCalc / totalRevCalc) * 100 : parseFloat(s.cogs_percent) || 30
+  } else {
+    cogsPercent = parseFloat(s.cogs_percent) || 30
+  }
 
   // Revenue calculations
   const revenueByDate: Record<string, number> = {}
@@ -237,9 +266,12 @@ export async function GET() {
     settings: {
       seats,
       hoursOpen,
-      cogsPercent,
+      cogsPercent: Math.round(cogsPercent * 10) / 10,
       weeklyLabour,
       monthlyRent,
+      cogsSource: useItemCosts ? 'live' : 'manual',
+      itemsWithCosts,
+      totalMenuItems: menuItems.length,
     },
     bookings: {
       cancellationRate: Math.round(cancellationRate * 10) / 10,

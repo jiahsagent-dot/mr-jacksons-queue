@@ -7,6 +7,7 @@ const tabs = [
   { href: '/owner/revenue', label: 'Revenue', icon: '💰' },
   { href: '/owner/costs', label: 'Costs', icon: '📉' },
   { href: '/owner/bookings', label: 'Bookings', icon: '📅' },
+  { href: '/owner/menu', label: 'Item Costs', icon: '🍽️' },
 ]
 
 export function OwnerNav() {
