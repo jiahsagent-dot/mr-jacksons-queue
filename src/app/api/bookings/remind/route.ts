@@ -107,10 +107,19 @@ export async function GET() {
       ? `${BASE_URL}/book/manage?code=${booking.code}`
       : `${BASE_URL}/book/manage?phone=${phone}`
 
+    // Calculate the deadline time (booking time + 15 min) for the SMS
+    const [bh, bm] = booking.time_slot.split(':').map(Number)
+    const deadlineTotal = bh * 60 + bm + 15
+    const dh = Math.floor(deadlineTotal / 60) % 24
+    const dm = deadlineTotal % 60
+    const ampm = dh >= 12 ? 'PM' : 'AM'
+    const deadlineStr = `${dh > 12 ? dh - 12 : dh || 12}:${String(dm).padStart(2, '0')} ${ampm}`
+
     const smsBody =
       `Hi ${booking.customer_name}! ⏰ Your Mr Jackson's table is in ${minutesUntil} minutes.\n\n` +
-      `When seated, order within 15 mins to keep your table.\n\n` +
-      `Pre-order, view or cancel:\n${manageUrl}`
+      `⚠️ IMPORTANT: Once seated, you must place & pay for your order by ${deadlineStr} (15 minutes from your booking time). ` +
+      `If no paid order is placed by then, your table will be automatically released and your booking cancelled.\n\n` +
+      `Pre-order now or manage your booking:\n${manageUrl}`
 
     await sendSMS(booking.phone, smsBody)
     await dbPatch('bookings', `id=eq.${booking.id}`, { reminded_at: now.toISOString() })

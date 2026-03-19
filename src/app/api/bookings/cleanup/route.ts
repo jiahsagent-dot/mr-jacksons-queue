@@ -85,13 +85,14 @@ export async function GET() {
     return NextResponse.json({ message: 'No bookings to check', cancelled: 0, todayDate, currentMinutes })
   }
 
-  // Fetch today's non-cancelled orders for those phones
+  // Fetch today's PAID orders for those phones — only a paid order counts as "arrived"
+  // paid=true means they completed checkout; pending/unpaid orders do NOT save the table
   const phones = Array.from(new Set(bookings.map((b: any) => b.phone).filter(Boolean)))
   const orders = phones.length > 0
-    ? await dbGet('orders', `phone=in.(${phones.join(',')})&date=eq.${todayDate}&status=neq.cancelled&select=phone,status,created_at`)
+    ? await dbGet('orders', `phone=in.(${phones.join(',')})&date=eq.${todayDate}&paid=eq.true&status=neq.cancelled&select=phone,status,created_at`)
     : []
 
-  // Build set of phones that placed an order at/within 30 min before their booking time
+  // Build set of phones that placed a PAID order at/after their booking time (within 15 min window)
   const phonesWithArrivalOrder = new Set<string>()
   for (const booking of bookings) {
     const [h, m] = booking.time_slot.split(':').map(Number)
@@ -100,7 +101,8 @@ export async function GET() {
     const hasArrivalOrder = (orders || []).some((o: any) => {
       if (o.phone !== booking.phone) return false
       const orderMelbourneMinutes = toMelbourneMinutes(new Date(o.created_at))
-      return orderMelbourneMinutes >= bookingMinutes - 30
+      // Accept orders placed from 30 min before (pre-order) up to 15 min after booking time
+      return orderMelbourneMinutes >= bookingMinutes - 30 && orderMelbourneMinutes <= bookingMinutes + 15
     })
     if (hasArrivalOrder) phonesWithArrivalOrder.add(booking.phone)
   }
@@ -130,8 +132,9 @@ export async function GET() {
     // Send cancellation SMS
     sendSMS(
       booking.phone,
-      `Hi ${booking.customer_name}, your booking at Mr Jackson's for ${booking.time_slot} has been released as we didn't see you arrive. ` +
-      `If you'd still like to visit, please rebook at mr-jacksons.vercel.app or call 03 5909 8815.`
+      `Hi ${booking.customer_name}, your ${booking.time_slot} table at Mr Jackson's has been automatically released — ` +
+      `no paid order was placed within 15 minutes of your booking time. ` +
+      `Walk-ins are always welcome, or rebook at mr-jacksons.vercel.app`
     )
 
     cancelled++

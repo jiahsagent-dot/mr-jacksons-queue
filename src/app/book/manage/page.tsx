@@ -200,40 +200,78 @@ function BookingCountdown({ date, timeSlot }: { date: string; timeSlot: string }
 
   if (phase === null || msLeft === null) return null
 
-  const fmt = (ms: number) => {
+  const fmtFuture = (ms: number) => {
     const s = Math.max(0, Math.ceil(ms / 1000))
-    if (phase === 'future') {
-      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60)
-      return h > 0 ? `${h}h ${m}m` : `${m}m`
-    }
+    const days = Math.floor(s / 86400)
+    const h = Math.floor((s % 86400) / 3600)
+    const m = Math.floor((s % 3600) / 60)
+    if (days > 0) return { top: `${days}d`, bot: `${h}h ${m}m` }
+    if (h > 0) return { top: `${h}h`, bot: `${m}m` }
+    return { top: `${m}m`, bot: null }
+  }
+
+  const fmtCountdown = (ms: number) => {
+    const s = Math.max(0, Math.ceil(ms / 1000))
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
   }
 
   const isUrgent = phase === 'order'
   const isSoon = phase === 'soon'
+  const isAlmostOut = isUrgent && msLeft < 60 * 1000
+  const futureLabel = fmtFuture(msLeft)
 
   return (
-    <div className={`rounded-2xl border-2 p-4 flex items-center gap-4 ${
-      isUrgent ? 'border-red-200 bg-red-50/70' : isSoon ? 'border-amber-200 bg-amber-50/70' : 'border-stone-200 bg-stone-50'
+    <div className={`rounded-2xl border-2 p-4 mb-4 ${
+      isAlmostOut ? 'border-red-300 bg-red-50' :
+      isUrgent    ? 'border-red-200 bg-red-50/70' :
+      isSoon      ? 'border-amber-200 bg-amber-50/70' :
+                    'border-blue-200 bg-blue-50/60'
     }`}>
-      <div className={`w-16 h-16 rounded-full flex flex-col items-center justify-center border-2 flex-shrink-0 ${
-        isUrgent ? 'border-red-200 bg-red-100' : isSoon ? 'border-amber-300 bg-amber-100' : 'border-stone-300 bg-white'
-      }`}>
-        <p className={`text-[9px] uppercase tracking-widest font-bold font-sans leading-none mb-0.5 ${isUrgent ? 'text-red-500' : isSoon ? 'text-amber-600' : 'text-stone-400'}`}>
-          {isUrgent ? 'Order in' : isSoon ? 'Starts in' : 'Booking in'}
-        </p>
-        <p className={`text-lg font-bold font-sans tabular-nums leading-none ${isUrgent ? 'text-red-600' : isSoon ? 'text-amber-800' : 'text-stone-700'}`}>
-          {fmt(msLeft)}
-        </p>
+      <div className="flex items-center gap-4">
+        <div className={`w-20 h-20 rounded-full flex flex-col items-center justify-center border-2 flex-shrink-0 ${
+          isAlmostOut ? 'border-red-300 bg-red-100' :
+          isUrgent    ? 'border-red-200 bg-white' :
+          isSoon      ? 'border-amber-300 bg-amber-100' :
+                        'border-blue-300 bg-white'
+        }`}>
+          {isUrgent || isSoon ? (
+            <>
+              <p className={`text-[8px] uppercase tracking-widest font-bold font-sans leading-none mb-0.5 ${isUrgent ? 'text-red-500' : 'text-amber-600'}`}>
+                {isUrgent ? 'Order in' : 'Starts in'}
+              </p>
+              <p className={`text-xl font-bold font-sans tabular-nums leading-none ${isAlmostOut ? 'text-red-700' : isUrgent ? 'text-red-600' : 'text-amber-800'}`}>
+                {fmtCountdown(msLeft)}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-[8px] uppercase tracking-widest font-bold text-blue-500 font-sans leading-none mb-0.5">In</p>
+              <p className="text-xl font-bold font-sans tabular-nums leading-none text-blue-800">{futureLabel.top}</p>
+              {futureLabel.bot && <p className="text-[10px] font-bold font-sans text-blue-600 leading-none mt-0.5">{futureLabel.bot}</p>}
+            </>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`font-bold text-sm font-sans leading-snug ${isUrgent ? 'text-red-800' : isSoon ? 'text-amber-900' : 'text-blue-900'}`}>
+            {isUrgent ? '🍽️ Order now to keep your table!' : isSoon ? '⏰ Your booking has started!' : '📅 Your booking is coming up'}
+          </p>
+          <p className={`text-xs font-sans mt-1 leading-relaxed ${isUrgent ? 'text-red-600' : isSoon ? 'text-amber-700' : 'text-blue-700'}`}>
+            {isUrgent
+              ? 'You have 15 minutes from your booking time to place & pay. After that your table is automatically released.'
+              : isSoon
+              ? 'Get seated now — you have 15 minutes from your booking time to order & pay or your table will be released.'
+              : 'Once seated, you have 15 min from your booking time to order & pay or your table will be automatically released.'}
+          </p>
+        </div>
       </div>
-      <div className="flex-1">
-        <p className={`font-bold text-sm font-sans ${isUrgent ? 'text-red-800' : isSoon ? 'text-amber-900' : 'text-stone-800'}`}>
-          {isUrgent ? '🍽️ Order now to keep your table!' : isSoon ? '⏰ Almost time — get seated!' : '📅 Your booking is coming up'}
-        </p>
-        <p className={`text-xs font-sans mt-0.5 ${isUrgent ? 'text-red-600' : isSoon ? 'text-amber-700' : 'text-stone-400'}`}>
-          {isUrgent ? 'Place your order within 15 min or your table will be released.' : isSoon ? 'When seated, order within 15 minutes to confirm your table.' : 'Pre-order below to skip the wait when you arrive!'}
-        </p>
-      </div>
+      {phase === 'future' && (
+        <div className="mt-3 pt-3 border-t border-blue-200 flex items-center gap-2">
+          <span className="text-amber-500 text-sm">⚠️</span>
+          <p className="text-[11px] text-blue-700 font-sans font-medium">
+            You&apos;ll receive an SMS 15 min before your booking as a reminder.
+          </p>
+        </div>
+      )}
     </div>
   )
 }

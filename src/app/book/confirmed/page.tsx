@@ -133,8 +133,7 @@ function BookingCountdown({ date, timeSlot }: { date: string; timeSlot: string }
     const tick = () => {
       const [h, m] = timeSlot.split(':').map(Number)
       const bookingMs = new Date(`${date}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`).getTime()
-      const nowMs = Date.now()
-      const diffMs = bookingMs - nowMs
+      const diffMs = bookingMs - Date.now()
 
       if (diffMs > 15 * 60 * 1000) {
         setPhase('future')
@@ -157,62 +156,89 @@ function BookingCountdown({ date, timeSlot }: { date: string; timeSlot: string }
 
   if (phase === null || msLeft === null) return null
 
-  const fmt = (ms: number) => {
+  const fmtFuture = (ms: number) => {
     const totalSecs = Math.max(0, Math.ceil(ms / 1000))
-    if (phase === 'future') {
-      const h = Math.floor(totalSecs / 3600)
-      const m = Math.floor((totalSecs % 3600) / 60)
-      if (h > 0) return `${h}h ${m}m`
-      return `${m}m`
-    }
-    const m = Math.floor(totalSecs / 60)
-    const s = totalSecs % 60
-    return `${m}:${String(s).padStart(2, '0')}`
+    const days = Math.floor(totalSecs / 86400)
+    const h = Math.floor((totalSecs % 86400) / 3600)
+    const m = Math.floor((totalSecs % 3600) / 60)
+    if (days > 0) return { top: `${days}d`, bot: `${h}h ${m}m` }
+    if (h > 0) return { top: `${h}h`, bot: `${m}m` }
+    return { top: `${m}m`, bot: null }
+  }
+
+  const fmtCountdown = (ms: number) => {
+    const s = Math.max(0, Math.ceil(ms / 1000))
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
   }
 
   const isUrgent = phase === 'order'
+  const isSoon = phase === 'soon'
   const isAlmostOut = isUrgent && msLeft < 60 * 1000
+  const futureLabel = fmtFuture(msLeft)
 
   return (
-    <div className={`rounded-2xl border-2 p-4 mb-4 animate-slide-up flex items-center gap-4 ${
+    <div className={`rounded-2xl border-2 p-4 mb-4 ${
       isAlmostOut ? 'border-red-300 bg-red-50' :
       isUrgent    ? 'border-red-200 bg-red-50/70' :
-      phase === 'soon' ? 'border-amber-200 bg-amber-50/70' :
-                   'border-stone-200 bg-stone-50'
+      isSoon      ? 'border-amber-200 bg-amber-50/70' :
+                    'border-blue-200 bg-blue-50/60'
     }`}>
-      <div className={`w-16 h-16 rounded-full flex flex-col items-center justify-center border-2 flex-shrink-0 ${
-        isAlmostOut ? 'border-red-300 bg-red-100' :
-        isUrgent    ? 'border-red-200 bg-red-50' :
-        phase === 'soon' ? 'border-amber-300 bg-amber-100' :
-                     'border-stone-300 bg-white'
-      }`}>
-        <p className={`text-[9px] uppercase tracking-widest font-bold font-sans leading-none mb-0.5 ${
-          isUrgent ? 'text-red-500' : phase === 'soon' ? 'text-amber-600' : 'text-stone-400'
+      <div className="flex items-center gap-4">
+        {/* Big timer circle */}
+        <div className={`w-20 h-20 rounded-full flex flex-col items-center justify-center border-2 flex-shrink-0 ${
+          isAlmostOut ? 'border-red-300 bg-red-100' :
+          isUrgent    ? 'border-red-200 bg-white' :
+          isSoon      ? 'border-amber-300 bg-amber-100' :
+                        'border-blue-300 bg-white'
         }`}>
-          {isUrgent ? 'Order in' : phase === 'soon' ? 'Starts in' : 'In'}
-        </p>
-        <p className={`text-lg font-bold font-sans tabular-nums leading-none ${
-          isAlmostOut ? 'text-red-700' : isUrgent ? 'text-red-600' : phase === 'soon' ? 'text-amber-800' : 'text-stone-700'
-        }`}>{fmt(msLeft)}</p>
+          {isUrgent || isSoon ? (
+            <>
+              <p className={`text-[8px] uppercase tracking-widest font-bold font-sans leading-none mb-0.5 ${isUrgent ? 'text-red-500' : 'text-amber-600'}`}>
+                {isUrgent ? 'Order in' : 'Starts in'}
+              </p>
+              <p className={`text-xl font-bold font-sans tabular-nums leading-none ${isAlmostOut ? 'text-red-700' : isUrgent ? 'text-red-600' : 'text-amber-800'}`}>
+                {fmtCountdown(msLeft)}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-[8px] uppercase tracking-widest font-bold text-blue-500 font-sans leading-none mb-0.5">In</p>
+              <p className="text-xl font-bold font-sans tabular-nums leading-none text-blue-800">{futureLabel.top}</p>
+              {futureLabel.bot && <p className="text-[10px] font-bold font-sans text-blue-600 leading-none mt-0.5">{futureLabel.bot}</p>}
+            </>
+          )}
+        </div>
+
+        {/* Text */}
+        <div className="flex-1 min-w-0">
+          <p className={`font-bold text-sm font-sans leading-snug ${
+            isUrgent ? 'text-red-800' : isSoon ? 'text-amber-900' : 'text-blue-900'
+          }`}>
+            {isUrgent ? '🍽️ Order now to keep your table!' :
+             isSoon   ? '⏰ Your booking has started!' :
+                        '📅 Your booking is confirmed'}
+          </p>
+          <p className={`text-xs font-sans mt-1 leading-relaxed ${
+            isUrgent ? 'text-red-600' : isSoon ? 'text-amber-700' : 'text-blue-700'
+          }`}>
+            {isUrgent
+              ? 'You have 15 minutes from your booking time to place & pay. After that, your table is automatically released.'
+              : isSoon
+              ? 'Get seated now — you have 15 minutes from your booking time to order & pay or your table will be released.'
+              : 'Once seated, you have 15 min from your booking time to order & pay or your table will be automatically released.'}
+          </p>
+        </div>
       </div>
-      <div className="flex-1">
-        <p className={`font-bold text-sm font-sans ${
-          isUrgent ? 'text-red-800' : phase === 'soon' ? 'text-amber-900' : 'text-stone-800'
-        }`}>
-          {isUrgent ? '🍽️ Order now to keep your table!' :
-           phase === 'soon' ? '⏰ Your booking is almost here!' :
-           '📅 Your booking is coming up'}
-        </p>
-        <p className={`text-xs font-sans mt-0.5 leading-relaxed ${
-          isUrgent ? 'text-red-600' : phase === 'soon' ? 'text-amber-700' : 'text-stone-400'
-        }`}>
-          {isUrgent
-            ? 'Place your order within 15 minutes or your table will be released.'
-            : phase === 'soon'
-            ? "Get seated and order within 15 minutes to confirm your table."
-            : "We'll see you soon — pre-order below to skip the wait!"}
-        </p>
-      </div>
+
+      {/* Rule strip at bottom for future phase */}
+      {phase === 'future' && (
+        <div className="mt-3 pt-3 border-t border-blue-200 flex items-center gap-2">
+          <span className="text-amber-500 text-sm">⚠️</span>
+          <p className="text-[11px] text-blue-700 font-sans font-medium">
+            You&apos;ll receive an SMS 15 min before your booking as a reminder.
+          </p>
+        </div>
+      )}
     </div>
   )
 }
@@ -344,6 +370,9 @@ export default function BookingConfirmedPage() {
           </div>
         </div>
 
+        {/* Countdown Timer — always shown right after booking details */}
+        <BookingCountdown date={booking.date} timeSlot={booking.time_slot} />
+
         {/* When you arrive */}
         <div className="card animate-slide-up-1 mb-4">
           <p className="text-xs font-bold text-stone-700 mb-3 font-sans">📍 When you arrive:</p>
@@ -361,28 +390,6 @@ export default function BookingConfirmedPage() {
             ))}
           </div>
         </div>
-
-        {/* Cancellation warning */}
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-5 animate-slide-up-2 space-y-2">
-          <p className="text-xs font-bold text-red-700 font-sans">⚠️ Important — if you haven&apos;t pre-paid:</p>
-          <ul className="space-y-1.5 text-xs text-red-700 font-sans">
-            <li className="flex items-start gap-2">
-              <span className="mt-0.5 flex-shrink-0">1.</span>
-              <span>When you&apos;re seated, <strong>place your order</strong> from your phone within 15 minutes of your booking time</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-0.5 flex-shrink-0">2.</span>
-              <span>Ordering confirms you&apos;re here — no separate check-in needed</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-0.5 flex-shrink-0">3.</span>
-              <span>If <strong>no order is placed within 15 minutes</strong> of your booking time, your table will be released</span>
-            </li>
-          </ul>
-        </div>
-
-        {/* Countdown Timer */}
-        <BookingCountdown date={booking.date} timeSlot={booking.time_slot} />
 
         {/* Pre-Order Options */}
         <div className="space-y-3 animate-slide-up-3">
