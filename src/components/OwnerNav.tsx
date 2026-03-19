@@ -5,9 +5,9 @@ import { usePathname } from 'next/navigation'
 const tabs = [
   { href: '/owner/dashboard', label: 'Overview', icon: '📊' },
   { href: '/owner/revenue', label: 'Revenue', icon: '💰' },
+  { href: '/owner/sales', label: 'Sales', icon: '🏆' },
   { href: '/owner/costs', label: 'Costs', icon: '📉' },
-  { href: '/owner/bookings', label: 'Bookings', icon: '📅' },
-  { href: '/owner/menu', label: 'Item Costs', icon: '🍽️' },
+  { href: '/owner/menu', label: 'Items', icon: '🍽️' },
 ]
 
 export function OwnerNav() {
