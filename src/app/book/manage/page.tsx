@@ -179,6 +179,65 @@ function formatDate(d: string) {
   return new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
+function BookingCountdown({ date, timeSlot }: { date: string; timeSlot: string }) {
+  const [msLeft, setMsLeft] = useState<number | null>(null)
+  const [phase, setPhase] = useState<'future' | 'soon' | 'order' | null>(null)
+
+  useEffect(() => {
+    const tick = () => {
+      const [h, m] = timeSlot.split(':').map(Number)
+      const bookingMs = new Date(`${date}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`).getTime()
+      const diffMs = bookingMs - Date.now()
+      if (diffMs > 15 * 60 * 1000) { setPhase('future'); setMsLeft(diffMs) }
+      else if (diffMs > 0) { setPhase('soon'); setMsLeft(diffMs) }
+      else if (diffMs > -15 * 60 * 1000) { setPhase('order'); setMsLeft(15 * 60 * 1000 + diffMs) }
+      else { setPhase(null); setMsLeft(null) }
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [date, timeSlot])
+
+  if (phase === null || msLeft === null) return null
+
+  const fmt = (ms: number) => {
+    const s = Math.max(0, Math.ceil(ms / 1000))
+    if (phase === 'future') {
+      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60)
+      return h > 0 ? `${h}h ${m}m` : `${m}m`
+    }
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+  }
+
+  const isUrgent = phase === 'order'
+  const isSoon = phase === 'soon'
+
+  return (
+    <div className={`rounded-2xl border-2 p-4 flex items-center gap-4 ${
+      isUrgent ? 'border-red-200 bg-red-50/70' : isSoon ? 'border-amber-200 bg-amber-50/70' : 'border-stone-200 bg-stone-50'
+    }`}>
+      <div className={`w-16 h-16 rounded-full flex flex-col items-center justify-center border-2 flex-shrink-0 ${
+        isUrgent ? 'border-red-200 bg-red-100' : isSoon ? 'border-amber-300 bg-amber-100' : 'border-stone-300 bg-white'
+      }`}>
+        <p className={`text-[9px] uppercase tracking-widest font-bold font-sans leading-none mb-0.5 ${isUrgent ? 'text-red-500' : isSoon ? 'text-amber-600' : 'text-stone-400'}`}>
+          {isUrgent ? 'Order in' : isSoon ? 'Starts in' : 'Booking in'}
+        </p>
+        <p className={`text-lg font-bold font-sans tabular-nums leading-none ${isUrgent ? 'text-red-600' : isSoon ? 'text-amber-800' : 'text-stone-700'}`}>
+          {fmt(msLeft)}
+        </p>
+      </div>
+      <div className="flex-1">
+        <p className={`font-bold text-sm font-sans ${isUrgent ? 'text-red-800' : isSoon ? 'text-amber-900' : 'text-stone-800'}`}>
+          {isUrgent ? '🍽️ Order now to keep your table!' : isSoon ? '⏰ Almost time — get seated!' : '📅 Your booking is coming up'}
+        </p>
+        <p className={`text-xs font-sans mt-0.5 ${isUrgent ? 'text-red-600' : isSoon ? 'text-amber-700' : 'text-stone-400'}`}>
+          {isUrgent ? 'Place your order within 15 min or your table will be released.' : isSoon ? 'When seated, order within 15 minutes to confirm your table.' : 'Pre-order below to skip the wait when you arrive!'}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 function ManageContent() {
   const params = useSearchParams()
   const router = useRouter()
@@ -237,7 +296,15 @@ function ManageContent() {
       })
       const data = await res.json()
       if (!res.ok) {
-        toast.error(data.error || 'Could not cancel booking')
+        // If already cancelled (e.g. cleanup cron ran), treat as success and update UI
+        if (data.error?.toLowerCase().includes('already been cancelled') || data.error?.toLowerCase().includes('already cancelled')) {
+          setBooking({ ...booking, status: 'cancelled' })
+          setCancelled(true)
+          setShowCancelConfirm(false)
+          toast.success('Booking cancelled')
+        } else {
+          toast.error(data.error || 'Could not cancel booking')
+        }
       } else {
         setCancelled(true)
         setShowCancelConfirm(false)
@@ -392,6 +459,9 @@ function ManageContent() {
                             <div className="flex items-center gap-1.5">
                               <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${sc.dot}`} />
                               <span className={`text-[11px] font-semibold font-sans ${sc.text}`}>{sc.label}</span>
+                              <span className={`text-[10px] font-semibold font-sans px-1.5 py-0.5 rounded-full ${o.paid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                                {o.paid ? '✓ Paid' : 'Unpaid'}
+                              </span>
                             </div>
                             {o.context && o.context !== 'standard' && (
                               <span className="text-[10px] text-stone-400 font-sans">{contextLabel[o.context] || o.context}</span>
@@ -409,9 +479,23 @@ function ManageContent() {
           {(!allBookings?.length && !allOrders?.length) && (
             <div className="text-center py-16">
               <p className="text-4xl mb-4">📅</p>
-              <p className="text-stone-600 font-sans mb-1">No bookings found</p>
-              <p className="text-stone-400 font-sans text-sm mb-6">You don't have any upcoming bookings for this phone number.</p>
-              <Link href="/book" className="btn-primary">Make a Booking</Link>
+              <p className="text-stone-600 font-sans mb-1">No bookings, queue spots, or orders found</p>
+              <p className="text-stone-400 font-sans text-sm mb-6">You don't have any upcoming bookings, queue spots, or orders for this phone number.</p>
+              <div className="flex flex-col gap-3">
+                <Link href="/book" className="btn-primary">📅 Make a Booking</Link>
+                <Link href="/order/new" className="btn-secondary">🍽️ Dine In Now</Link>
+              </div>
+            </div>
+          )}
+
+          {/* CTAs when there are past orders but no active bookings */}
+          {(!allBookings?.length && !!allOrders?.length) && (
+            <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5 text-center space-y-3">
+              <p className="text-sm font-semibold text-stone-700 font-sans">Ready to visit again?</p>
+              <div className="flex flex-col gap-2">
+                <Link href="/book" className="btn-primary">📅 Make a Booking</Link>
+                <Link href="/order/new" className="btn-secondary">🍽️ Dine In Now</Link>
+              </div>
             </div>
           )}
 
@@ -453,7 +537,8 @@ function ManageContent() {
   }
 
   const isCancelled = booking.status === 'cancelled'
-  const isPast = new Date(booking.date + 'T23:59:59') < new Date()
+  // Use explicit UTC midnight so Melbourne timezone doesn't flip isPast early
+  const isPast = new Date(booking.date + 'T23:59:59Z') < new Date()
   const isSeated = !!(booking as any).confirmed_at || checkedIn
 
   if (checkedIn) {
@@ -491,7 +576,7 @@ function ManageContent() {
         <Image src="/images/hero.jpg" alt="Mr Jackson" fill className="object-cover animate-hero-zoom" priority />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/80" />
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4">
-          <Link href="/join" className="absolute top-4 left-4 text-white/70 text-sm hover:text-white font-sans">← Home</Link>
+          <button onClick={() => router.back()} className="absolute top-4 left-4 text-white/70 text-sm hover:text-white font-sans flex items-center gap-1">← Back</button>
           <Image src="/images/logo.png" alt="Mr Jackson" width={44} height={44} className="rounded-full shadow-lg mb-2" />
           <h1 className="text-2xl font-bold drop-shadow-lg">My Booking</h1>
           <div className="w-6 h-0.5 bg-amber-500 mx-auto mt-1.5" />
@@ -546,6 +631,11 @@ function ManageContent() {
           </div>
         </div>
 
+        {/* Countdown Timer */}
+        {!isCancelled && !isPast && (
+          <BookingCountdown date={booking.date} timeSlot={booking.time_slot} />
+        )}
+
         {/* Add to Calendar */}
         {!isCancelled && !isPast && (
           <button
@@ -592,37 +682,25 @@ function ManageContent() {
                 </div>
               ) : editable ? (
                 /* No order yet and still time — offer to pre-order */
-                <Link
-                  href={`/order/new?context=booking&name=${encodeURIComponent(booking.customer_name)}&phone=${encodeURIComponent(booking.phone)}&date=${booking.date}&time=${booking.time_slot}`}
-                  className="block animate-slide-up"
-                >
-                  <div className="card border-2 border-amber-300 bg-amber-50/30 hover:border-amber-400 transition-all active:scale-[0.98]">
-                    <div className="flex items-start gap-4">
-                      <span className="text-3xl">🍽️</span>
-                      <div>
-                        <h3 className="font-bold text-stone-900 text-[15px]">Pre-Order Your Food</h3>
-                        <p className="text-stone-500 text-xs mt-1 font-sans leading-relaxed">
-                          Order & pay now — food freshly prepared and ready at {formatTimeSlot(booking.time_slot)}. No waiting!
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ) : (
-                /* No order and within 1 hour — can still add, just not edit */
-                <div className="card border-2 border-stone-200 bg-stone-50 animate-slide-up space-y-3">
-                  <div className="text-center">
-                    <p className="text-2xl mb-2">⏰</p>
-                    <p className="font-semibold text-stone-800 text-sm font-sans">Almost time!</p>
-                    <p className="text-stone-400 text-xs font-sans mt-1">Pre-order editing is closed, but you can still add items to your order!</p>
-                  </div>
+                <div className="space-y-2 animate-slide-up">
                   <Link
                     href={`/order/new?context=booking&name=${encodeURIComponent(booking.customer_name)}&phone=${encodeURIComponent(booking.phone)}&date=${booking.date}&time=${booking.time_slot}`}
-                    className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-stone-900 text-white text-sm font-medium font-sans transition-all active:scale-[0.98]"
+                    className="block w-full py-4 rounded-2xl bg-stone-900 text-white text-sm font-bold font-sans text-center shadow-lg transition-all active:scale-[0.98]"
                   >
-                    <span>➕</span>
-                    <span>Add to Your Order</span>
+                    🍽️ View Menu & Pre-Order
                   </Link>
+                  <p className="text-center text-xs text-stone-400 font-sans">Order & pay now — food ready at {formatTimeSlot(booking.time_slot)}. No waiting!</p>
+                </div>
+              ) : (
+                /* No order and within 1 hour — order now */
+                <div className="space-y-2 animate-slide-up">
+                  <Link
+                    href={`/order/new?context=booking&name=${encodeURIComponent(booking.customer_name)}&phone=${encodeURIComponent(booking.phone)}&date=${booking.date}&time=${booking.time_slot}`}
+                    className="block w-full py-4 rounded-2xl bg-stone-900 text-white text-sm font-bold font-sans text-center shadow-lg transition-all active:scale-[0.98]"
+                  >
+                    🍽️ View Menu & Order Now
+                  </Link>
+                  <p className="text-center text-xs text-stone-400 font-sans">Order within 15 min of your booking time to confirm your table.</p>
                 </div>
               )
             })()}
@@ -631,9 +709,9 @@ function ManageContent() {
             {!showCancelConfirm ? (
               <button
                 onClick={() => setShowCancelConfirm(true)}
-                className="w-full text-center text-sm text-stone-400 font-sans hover:text-red-500 transition-colors py-2"
+                className="w-full py-3 rounded-2xl border-2 border-red-200 text-red-500 text-sm font-semibold font-sans hover:bg-red-50 hover:border-red-300 transition-all active:scale-[0.98]"
               >
-                Need to cancel your booking?
+                ✕ Cancel Booking
               </button>
             ) : (
               <div className="card border-2 border-red-200 bg-red-50/50 animate-slide-up">

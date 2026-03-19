@@ -1,21 +1,35 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 
-// Force hardcoded keys to ensure consistency
 const SUPABASE_URL = 'https://qducoenvjaotympjedrl.supabase.co'
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU'
 
 const CLICKSEND_USER = 'jiahsagent@gmail.com'
 const CLICKSEND_KEY = '6A27AE52-866F-25C1-158C-C1D17531DBA7'
 
 const BASE_URL = 'https://mr-jacksons.vercel.app'
 
-// Send reminder SMS 15 minutes before booking (only if no paid order)
-// Runs every minute via Vercel cron
+async function dbGet(table: string, query: string): Promise<any[]> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+    cache: 'no-store',
+  })
+  return res.ok ? res.json() : []
+}
 
-function getAdmin() {
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+async function dbPatch(table: string, query: string, body: any): Promise<any[]> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+    method: 'PATCH',
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify(body),
+    cache: 'no-store',
+  })
+  return res.ok ? res.json() : []
 }
 
 function formatPhone(phone: string): string {
@@ -25,65 +39,54 @@ function formatPhone(phone: string): string {
   return p
 }
 
-function formatTime(slot: string): string {
-  const [h, m] = slot.split(':').map(Number)
-  const ampm = h >= 12 ? 'PM' : 'AM'
-  return `${h > 12 ? h - 12 : h || 12}:${m.toString().padStart(2, '0')} ${ampm}`
-}
-
 async function sendSMS(to: string, body: string) {
   try {
     const auth = Buffer.from(`${CLICKSEND_USER}:${CLICKSEND_KEY}`).toString('base64')
     await fetch('https://rest.clicksend.com/v3/sms/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
-      body: JSON.stringify({
-        messages: [{ source: 'reminder', body, to: formatPhone(to), from: 'MrJackson' }],
-      }),
+      body: JSON.stringify({ messages: [{ source: 'reminder', body, to: formatPhone(to), from: 'MrJackson' }] }),
     })
   } catch (err) {
     console.error('SMS send failed:', err)
   }
 }
 
+function getMelbourneNow(): { todayDate: string; currentMinutes: number } {
+  const now = new Date()
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Australia/Melbourne',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  })
+  const parts = fmt.formatToParts(now)
+  const get = (type: string) => parts.find(p => p.type === type)?.value ?? '0'
+  const todayDate = `${get('year')}-${get('month')}-${get('day')}`
+  const currentMinutes = parseInt(get('hour')) * 60 + parseInt(get('minute'))
+  return { todayDate, currentMinutes }
+}
+
 // GET /api/bookings/remind — called every minute by Vercel cron
 export async function GET() {
-  const admin = getAdmin()
-  const now = new Date()
-  // Use Australia/Melbourne local time — booking slots are stored in AEST/AEDT
-  const local = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Melbourne' }))
-  const todayDate = local.toISOString().split('T')[0]
-  const currentMinutes = local.getHours() * 60 + local.getMinutes()
+  const { todayDate, currentMinutes } = getMelbourneNow()
 
-  // Fetch confirmed bookings today that haven't been reminded yet and haven't checked in
-  const { data: bookings, error } = await admin
-    .from('bookings')
-    .select('*')
-    .eq('date', todayDate)
-    .eq('status', 'confirmed')
-    .is('reminded_at', null)
-
-  if (error) {
-    console.error('remind route error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  // Fetch confirmed bookings today that haven't been reminded yet
+  const bookings = await dbGet('bookings',
+    `date=eq.${todayDate}&status=eq.confirmed&reminded_at=is.null&select=*`)
 
   if (!bookings || bookings.length === 0) {
     return NextResponse.json({ message: 'No bookings to remind', sent: 0 })
   }
 
-  // Get phones of customers who have a paid order TODAY (same date as booking)
-  const phones = bookings.map((b: any) => b.phone).filter(Boolean)
-  const { data: orders } = await admin
-    .from('orders')
-    .select('phone, status, date')
-    .in('phone', phones)
-    .eq('date', todayDate)
-  const phonesWithPaidOrders = new Set(
-    (orders || []).filter((o: any) => !['cancelled', 'pending'].includes(o.status)).map((o: any) => o.phone)
-  )
+  // Get phones of customers who have a paid order TODAY
+  const phones = Array.from(new Set(bookings.map((b: any) => b.phone).filter(Boolean)))
+  const orders = phones.length > 0
+    ? await dbGet('orders', `phone=in.(${phones.join(',')})&date=eq.${todayDate}&status=not.in.(cancelled,pending)&select=phone`)
+    : []
+  const phonesWithPaidOrders = new Set((orders || []).map((o: any) => o.phone))
 
   let sent = 0
+  const now = new Date()
 
   for (const booking of bookings) {
     const [h, m] = booking.time_slot.split(':').map(Number)
@@ -91,28 +94,26 @@ export async function GET() {
     const minutesUntil = bookingMinutes - currentMinutes
 
     // Send reminder any time within 20 minutes of booking (wide window so cron never misses)
-    // reminded_at prevents duplicate sends
     if (minutesUntil < 0 || minutesUntil > 20) continue
 
     // Skip if they've already paid today — they don't need to check in
     if (phonesWithPaidOrders.has(booking.phone)) {
-      await admin.from('bookings').update({ reminded_at: now.toISOString() }).eq('id', booking.id)
+      await dbPatch('bookings', `id=eq.${booking.id}`, { reminded_at: now.toISOString() })
       continue
     }
 
-    // Build a direct link to their booking manage page
     const phone = booking.phone.replace(/\D/g, '')
-    const link = `${BASE_URL}/book/manage?phone=${phone}`
+    const manageUrl = booking.code
+      ? `${BASE_URL}/book/manage?code=${booking.code}`
+      : `${BASE_URL}/book/manage?phone=${phone}`
 
-    const orderLink = `https://mr-jacksons.vercel.app/order/new?context=booking&name=${encodeURIComponent(booking.customer_name)}&phone=${encodeURIComponent(booking.phone)}&date=${booking.date}&time=${booking.time_slot}`
     const smsBody =
-      `Hi ${booking.customer_name}! ⏰ Your table at Mr Jackson's is in ${minutesUntil} minutes (${formatTime(booking.time_slot)}).\n\n` +
-      `When you arrive, place your order within 15 minutes to secure your table — or it'll be released.\n\n` +
-      `👉 Order here when you're seated:\n${orderLink}\n\n` +
-      `Manage your booking:\n${link}`
+      `Hi ${booking.customer_name}! ⏰ Your Mr Jackson's table is in ${minutesUntil} minutes.\n\n` +
+      `When seated, order within 15 mins to keep your table.\n\n` +
+      `Pre-order, view or cancel:\n${manageUrl}`
 
     await sendSMS(booking.phone, smsBody)
-    await admin.from('bookings').update({ reminded_at: now.toISOString() }).eq('id', booking.id)
+    await dbPatch('bookings', `id=eq.${booking.id}`, { reminded_at: now.toISOString() })
     sent++
   }
 

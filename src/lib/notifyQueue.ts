@@ -53,10 +53,10 @@ export async function notifyNextInQueue(admin: SupabaseClient, tableNumber: numb
 
   if (!next) return null
 
-  // Mark them as called
+  // Mark them as called and assign the table
   await admin
     .from('queue_entries')
-    .update({ status: 'called', called_at: new Date().toISOString() })
+    .update({ status: 'called', called_at: new Date().toISOString(), assigned_table: tableNumber })
     .eq('id', next.id)
 
   // Reserve the table — store queue entry ID in table_code so we can find it reliably later
@@ -96,7 +96,7 @@ export async function notifyNextInQueue(admin: SupabaseClient, tableNumber: numb
       // Auto-confirm — seat them immediately
       await admin
         .from('queue_entries')
-        .update({ status: 'seated', seated_at: new Date().toISOString() })
+        .update({ status: 'seated', seated_at: new Date().toISOString(), assigned_table: tableNumber })
         .eq('id', next.id)
 
       await admin

@@ -1,15 +1,33 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = 'https://qducoenvjaotympjedrl.supabase.co'
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU'
 
 const CLICKSEND_USER = 'jiahsagent@gmail.com'
 const CLICKSEND_KEY = '6A27AE52-866F-25C1-158C-C1D17531DBA7'
 
-function getAdmin() {
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+async function dbGet(table: string, query: string): Promise<any[]> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+    cache: 'no-store',
+  })
+  return res.ok ? res.json() : []
+}
+
+async function dbPatch(table: string, query: string, body: any): Promise<any[]> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+    method: 'PATCH',
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify(body),
+    cache: 'no-store',
+  })
+  return res.ok ? res.json() : []
 }
 
 function formatPhone(phone: string): string {
@@ -25,16 +43,13 @@ async function sendSMS(to: string, body: string) {
     await fetch('https://rest.clicksend.com/v3/sms/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
-      body: JSON.stringify({
-        messages: [{ source: 'cleanup', body, to: formatPhone(to), from: 'MrJackson' }],
-      }),
+      body: JSON.stringify({ messages: [{ source: 'cleanup', body, to: formatPhone(to), from: 'MrJackson' }] }),
     })
   } catch (err) {
     console.error('SMS send failed:', err)
   }
 }
 
-/** Get Melbourne date + time components reliably using Intl (works on all Node/Vercel envs) */
 function getMelbourneNow(): { todayDate: string; currentMinutes: number } {
   const now = new Date()
   const fmt = new Intl.DateTimeFormat('en-CA', {
@@ -49,7 +64,6 @@ function getMelbourneNow(): { todayDate: string; currentMinutes: number } {
   return { todayDate, currentMinutes }
 }
 
-/** Convert a UTC timestamp to Melbourne local minutes-of-day */
 function toMelbourneMinutes(utcDate: Date): number {
   const fmt = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Australia/Melbourne',
@@ -62,33 +76,20 @@ function toMelbourneMinutes(utcDate: Date): number {
 
 // GET /api/bookings/cleanup — cancel no-shows 15+ min after booking time with no order placed
 export async function GET() {
-  const admin = getAdmin()
   const { todayDate, currentMinutes } = getMelbourneNow()
 
   // Get today's confirmed bookings
-  const { data: bookings, error: bookingsError } = await admin
-    .from('bookings')
-    .select('*')
-    .eq('date', todayDate)
-    .eq('status', 'confirmed')
-
-  if (bookingsError) {
-    console.error('Bookings query error:', bookingsError)
-    return NextResponse.json({ error: bookingsError.message }, { status: 500 })
-  }
+  const bookings = await dbGet('bookings', `date=eq.${todayDate}&status=eq.confirmed&select=*`)
 
   if (!bookings || bookings.length === 0) {
     return NextResponse.json({ message: 'No bookings to check', cancelled: 0, todayDate, currentMinutes })
   }
 
   // Fetch today's non-cancelled orders for those phones
-  const phones = bookings.map((b: any) => b.phone).filter(Boolean)
-  const { data: orders } = await admin
-    .from('orders')
-    .select('phone, status, created_at')
-    .in('phone', phones)
-    .eq('date', todayDate)
-    .neq('status', 'cancelled')
+  const phones = Array.from(new Set(bookings.map((b: any) => b.phone).filter(Boolean)))
+  const orders = phones.length > 0
+    ? await dbGet('orders', `phone=in.(${phones.join(',')})&date=eq.${todayDate}&status=neq.cancelled&select=phone,status,created_at`)
+    : []
 
   // Build set of phones that placed an order at/within 30 min before their booking time
   const phonesWithArrivalOrder = new Set<string>()
@@ -98,7 +99,6 @@ export async function GET() {
 
     const hasArrivalOrder = (orders || []).some((o: any) => {
       if (o.phone !== booking.phone) return false
-      // Convert order timestamp to Melbourne minutes and check if it's within the window
       const orderMelbourneMinutes = toMelbourneMinutes(new Date(o.created_at))
       return orderMelbourneMinutes >= bookingMinutes - 30
     })
@@ -118,18 +118,13 @@ export async function GET() {
     if (phonesWithArrivalOrder.has(booking.phone)) continue
 
     // Cancel the booking
-    await admin
-      .from('bookings')
-      .update({ status: 'cancelled' })
-      .eq('id', booking.id)
+    await dbPatch('bookings', `id=eq.${booking.id}`, { status: 'cancelled' })
 
-    // Free the table
+    // Free the table (may be 'reserved' or 'occupied' depending on timing)
     if (booking.table_number) {
-      await admin
-        .from('tables')
-        .update({ status: 'available', current_customer: null, occupied_at: null })
-        .eq('table_number', booking.table_number)
-        .eq('status', 'reserved')
+      await dbPatch('tables',
+        `table_number=eq.${booking.table_number}&status=in.(reserved,occupied)`,
+        { status: 'available', current_customer: null, occupied_at: null, table_code: null })
     }
 
     // Send cancellation SMS
@@ -149,4 +144,3 @@ export async function GET() {
     currentMinutes,
   })
 }
-// redeploy Wed Mar 18 06:29:06 AM UTC 2026

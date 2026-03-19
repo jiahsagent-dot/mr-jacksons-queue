@@ -125,6 +125,98 @@ function addToCalendar(booking: BookingDetails) {
   document.body.removeChild(a)
 }
 
+function BookingCountdown({ date, timeSlot }: { date: string; timeSlot: string }) {
+  const [msLeft, setMsLeft] = useState<number | null>(null)
+  const [phase, setPhase] = useState<'future' | 'soon' | 'order' | null>(null)
+
+  useEffect(() => {
+    const tick = () => {
+      const [h, m] = timeSlot.split(':').map(Number)
+      const bookingMs = new Date(`${date}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`).getTime()
+      const nowMs = Date.now()
+      const diffMs = bookingMs - nowMs
+
+      if (diffMs > 15 * 60 * 1000) {
+        setPhase('future')
+        setMsLeft(diffMs)
+      } else if (diffMs > 0) {
+        setPhase('soon')
+        setMsLeft(diffMs)
+      } else if (diffMs > -15 * 60 * 1000) {
+        setPhase('order')
+        setMsLeft(15 * 60 * 1000 + diffMs)
+      } else {
+        setPhase(null)
+        setMsLeft(null)
+      }
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [date, timeSlot])
+
+  if (phase === null || msLeft === null) return null
+
+  const fmt = (ms: number) => {
+    const totalSecs = Math.max(0, Math.ceil(ms / 1000))
+    if (phase === 'future') {
+      const h = Math.floor(totalSecs / 3600)
+      const m = Math.floor((totalSecs % 3600) / 60)
+      if (h > 0) return `${h}h ${m}m`
+      return `${m}m`
+    }
+    const m = Math.floor(totalSecs / 60)
+    const s = totalSecs % 60
+    return `${m}:${String(s).padStart(2, '0')}`
+  }
+
+  const isUrgent = phase === 'order'
+  const isAlmostOut = isUrgent && msLeft < 60 * 1000
+
+  return (
+    <div className={`rounded-2xl border-2 p-4 mb-4 animate-slide-up flex items-center gap-4 ${
+      isAlmostOut ? 'border-red-300 bg-red-50' :
+      isUrgent    ? 'border-red-200 bg-red-50/70' :
+      phase === 'soon' ? 'border-amber-200 bg-amber-50/70' :
+                   'border-stone-200 bg-stone-50'
+    }`}>
+      <div className={`w-16 h-16 rounded-full flex flex-col items-center justify-center border-2 flex-shrink-0 ${
+        isAlmostOut ? 'border-red-300 bg-red-100' :
+        isUrgent    ? 'border-red-200 bg-red-50' :
+        phase === 'soon' ? 'border-amber-300 bg-amber-100' :
+                     'border-stone-300 bg-white'
+      }`}>
+        <p className={`text-[9px] uppercase tracking-widest font-bold font-sans leading-none mb-0.5 ${
+          isUrgent ? 'text-red-500' : phase === 'soon' ? 'text-amber-600' : 'text-stone-400'
+        }`}>
+          {isUrgent ? 'Order in' : phase === 'soon' ? 'Starts in' : 'In'}
+        </p>
+        <p className={`text-lg font-bold font-sans tabular-nums leading-none ${
+          isAlmostOut ? 'text-red-700' : isUrgent ? 'text-red-600' : phase === 'soon' ? 'text-amber-800' : 'text-stone-700'
+        }`}>{fmt(msLeft)}</p>
+      </div>
+      <div className="flex-1">
+        <p className={`font-bold text-sm font-sans ${
+          isUrgent ? 'text-red-800' : phase === 'soon' ? 'text-amber-900' : 'text-stone-800'
+        }`}>
+          {isUrgent ? '🍽️ Order now to keep your table!' :
+           phase === 'soon' ? '⏰ Your booking is almost here!' :
+           '📅 Your booking is coming up'}
+        </p>
+        <p className={`text-xs font-sans mt-0.5 leading-relaxed ${
+          isUrgent ? 'text-red-600' : phase === 'soon' ? 'text-amber-700' : 'text-stone-400'
+        }`}>
+          {isUrgent
+            ? 'Place your order within 15 minutes or your table will be released.'
+            : phase === 'soon'
+            ? "Get seated and order within 15 minutes to confirm your table."
+            : "We'll see you soon — pre-order below to skip the wait!"}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export default function BookingConfirmedPage() {
   const router = useRouter()
   const [booking, setBooking] = useState<BookingDetails | null>(null)
@@ -288,6 +380,9 @@ export default function BookingConfirmedPage() {
             </li>
           </ul>
         </div>
+
+        {/* Countdown Timer */}
+        <BookingCountdown date={booking.date} timeSlot={booking.time_slot} />
 
         {/* Pre-Order Options */}
         <div className="space-y-3 animate-slide-up-3">

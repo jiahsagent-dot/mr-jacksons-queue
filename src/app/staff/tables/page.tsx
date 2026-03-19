@@ -321,20 +321,37 @@ export default function StaffTablesPage() {
                 const tableBookings = getBookingsForTable(table.table_number)
                 const nextBooking = tableBookings.sort((a, b) => a.time_slot.localeCompare(b.time_slot))[0]
 
+                // Show amber if booking is within 75 minutes (pretend guests are already "in the building")
+                const AMBER_AHEAD_MINUTES = 75
+                const bookingIsSoon = nextBooking ? (() => {
+                  const [h, m] = nextBooking.time_slot.split(':').map(Number)
+                  const bookingMs = new Date(`${nextBooking.date || new Date().toISOString().split('T')[0]}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`).getTime()
+                  const diffMin = (bookingMs - Date.now()) / 60000
+                  return diffMin <= AMBER_AHEAD_MINUTES && diffMin > -15
+                })() : false
+
+                // If there's an active order → red (occupied), even if DB says reserved/available
+                // If booking is within 75 min → amber (reserved)
+                const displayStatus = order
+                  ? 'occupied'
+                  : (table.status === 'available' && bookingIsSoon)
+                    ? 'reserved'
+                    : table.status
+
                 return (
                   <div
                     key={table.id}
                     className={`relative rounded-2xl p-4 border-2 ${
-                      table.status === 'available'
+                      displayStatus === 'available'
                         ? 'bg-white border-green-200'
-                        : table.status === 'reserved'
+                        : displayStatus === 'reserved'
                           ? 'bg-amber-50 border-amber-200'
                           : 'bg-red-50 border-red-200'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-lg">
-                        {table.status === 'available' ? '🟢' : table.status === 'reserved' ? '🟡' : '🔴'}
+                        {displayStatus === 'available' ? '🟢' : displayStatus === 'reserved' ? '🟡' : '🔴'}
                       </span>
                       <span className="text-[10px] text-stone-400 font-sans">{table.seats} seats</span>
                     </div>
@@ -346,10 +363,10 @@ export default function StaffTablesPage() {
                       )}
                     </div>
 
-                    {(table.status === 'occupied' || table.status === 'reserved') && table.current_customer && (
-                      <p className={`text-[11px] font-sans mt-1 truncate ${table.status === 'reserved' ? 'text-amber-600' : 'text-red-600'}`}>
-                        {table.status === 'reserved' ? '⏳' : '👤'} {table.current_customer}
-                        {table.status === 'reserved' && <span className="ml-1 text-[9px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700 px-1 py-0.5 rounded">Booking</span>}
+                    {(displayStatus === 'occupied' || displayStatus === 'reserved') && (table.current_customer || (nextBooking && bookingIsSoon)) && (
+                      <p className={`text-[11px] font-sans mt-1 truncate ${displayStatus === 'reserved' ? 'text-amber-600' : 'text-red-600'}`}>
+                        {displayStatus === 'reserved' ? '⏳' : '👤'} {table.current_customer || nextBooking?.customer_name}
+                        {displayStatus === 'reserved' && <span className="ml-1 text-[9px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700 px-1 py-0.5 rounded">Booking</span>}
                       </p>
                     )}
                     {(table.status === 'occupied') && table.occupied_at && (
@@ -385,12 +402,12 @@ export default function StaffTablesPage() {
                       <button
                         onClick={() => toggleTable(table)}
                         className={`flex-1 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.97] font-sans ${
-                          table.status === 'available'
+                          displayStatus === 'available'
                             ? 'bg-red-100 text-red-700 border border-red-200 hover:bg-red-200'
                             : 'bg-green-500 text-white border border-green-600 hover:bg-green-600'
                         }`}
                       >
-                        {table.status === 'available' ? 'Mark Occupied' : '✓ Free Table'}
+                        {displayStatus === 'available' ? 'Mark Occupied' : '✓ Free Table'}
                       </button>
                       <button
                         onClick={() => { setEditingTable(table); setEditLabel(table.label); setEditSeats(table.seats.toString()) }}

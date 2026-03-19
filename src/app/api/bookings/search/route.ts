@@ -67,8 +67,8 @@ export async function GET(req: NextRequest) {
   const today = new Date().toISOString().split('T')[0]
 
   if (code) {
-    // Code lookup — returns exactly one booking
-    const data = await supabaseQuery('bookings', `code=eq.${code}&status=in.(confirmed,seated)&select=*`)
+    // Code lookup — returns booking in any status so the page can show the correct state
+    const data = await supabaseQuery('bookings', `code=eq.${code}&select=*`)
     
     if (!data || data.length === 0) {
       return NextResponse.json({ error: 'Booking not found. Check your code and try again.' }, { status: 404 })
@@ -120,7 +120,7 @@ async function getOrders(phone: string) {
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
   const orders = await supabaseQuery('orders',
-    `phone=eq.${phone}&status=neq.cancelled&created_at=gte.${thirtyDaysAgo.toISOString()}&order=created_at.desc&limit=10&select=id,status,items,created_at,date,time_slot,customer_name,dining_option,order_context,table_number`)
+    `phone=eq.${phone}&status=neq.cancelled&created_at=gte.${thirtyDaysAgo.toISOString()}&order=created_at.desc&limit=10&select=id,status,items,created_at,date,time_slot,customer_name,dining_option,order_context,table_number,paid_at`)
   
   return orders.map((o: any) => ({
     id: o.id,
@@ -133,6 +133,7 @@ async function getOrders(phone: string) {
     customer_name: o.customer_name,
     context: o.order_context || o.dining_option || 'standard',
     table_number: o.table_number,
+    paid: !!o.paid_at,
   }))
 }
 
