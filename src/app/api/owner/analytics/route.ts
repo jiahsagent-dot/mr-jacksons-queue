@@ -22,6 +22,12 @@ function getMelbourneDate(offsetDays = 0): string {
   return fmt.format(now)
 }
 
+function toMelbourneHour(isoString: string): number {
+  const d = new Date(isoString)
+  const melbStr = d.toLocaleString('en-US', { timeZone: 'Australia/Melbourne', hour: 'numeric', hour12: false })
+  return parseInt(melbStr) % 24
+}
+
 function orderTotal(items: { price: number; quantity: number }[]): number {
   if (!Array.isArray(items)) return 0
   return items.reduce((sum, i) => sum + (i.price || 0) * (i.quantity || 1), 0)
@@ -33,17 +39,22 @@ function getStatus(value: number, healthy: [number, number], warning: [number, n
   return 'red'
 }
 
+function fmtHour(h: number): string {
+  if (h === 0) return '12am'
+  if (h < 12) return `${h}am`
+  if (h === 12) return '12pm'
+  return `${h - 12}pm`
+}
+
 export async function GET() {
   const today = getMelbourneDate(0)
   const yesterday = getMelbourneDate(-1)
 
-  // Date ranges
   const d7Start = getMelbourneDate(-6)
   const d30Start = getMelbourneDate(-29)
   const prevWeekStart = getMelbourneDate(-13)
   const prevWeekEnd = getMelbourneDate(-7)
 
-  // Fetch paid orders for the last 30 days + settings + menu costs in parallel
   const [orders30, bookings30, settings, menuItems] = await Promise.all([
     dbGet('orders', `date=gte.${d30Start}&date=lte.${today}&paid_at=not.is.null&status=neq.cancelled&select=id,date,items,created_at,dining_option,table_number`),
     dbGet('bookings', `date=gte.${d30Start}&date=lte.${today}&select=id,date,party_size,status,time_slot`),
@@ -57,15 +68,13 @@ export async function GET() {
   const seats: number = parseInt(s.seats) || 40
   const hoursOpen: number = parseFloat(s.hours_open_per_day) || 10
 
-  // Build name → cost_price lookup from menu items
   const costByName: Record<string, number> = {}
   for (const item of menuItems) {
     if (item.cost_price !== null) costByName[item.name] = parseFloat(item.cost_price)
   }
   const itemsWithCosts = menuItems.filter((i: any) => i.cost_price !== null).length
-  const useItemCosts = itemsWithCosts >= 3 // use live costs if at least 3 items have costs set
+  const useItemCosts = itemsWithCosts >= 3
 
-  // COGS: calculate from actual order items if we have costs, otherwise use manual setting
   let cogsPercent: number
   if (useItemCosts && orders30.length > 0) {
     let totalRevCalc = 0
@@ -76,7 +85,7 @@ export async function GET() {
         const salePrice = (li.price || 0) * (li.quantity || 1)
         const costPrice = costByName[li.name] !== undefined
           ? costByName[li.name] * (li.quantity || 1)
-          : salePrice * (parseFloat(s.cogs_percent) || 30) / 100 // fallback for uncostd items
+          : salePrice * (parseFloat(s.cogs_percent) || 30) / 100
         totalRevCalc += salePrice
         totalCostCalc += costPrice
       }
@@ -96,14 +105,10 @@ export async function GET() {
     orderCountByDate[order.date] = (orderCountByDate[order.date] || 0) + 1
   }
 
-  // Today
   const todayRevenue = revenueByDate[today] || 0
   const todayOrders = orderCountByDate[today] || 0
-
-  // Yesterday
   const yesterdayRevenue = revenueByDate[yesterday] || 0
 
-  // Last 7 days
   const last7Days: { date: string; revenue: number; orders: number }[] = []
   for (let i = 6; i >= 0; i--) {
     const d = getMelbourneDate(-i)
@@ -112,32 +117,22 @@ export async function GET() {
   const weekRevenue = last7Days.reduce((s, d) => s + d.revenue, 0)
   const weekOrders = last7Days.reduce((s, d) => s + d.orders, 0)
 
-  // Previous 7 days
   const prevWeekRevenue = Object.entries(revenueByDate)
     .filter(([d]) => d >= prevWeekStart && d <= prevWeekEnd)
     .reduce((s, [, v]) => s + v, 0)
 
-  // Last 30 days
   const monthRevenue = Object.values(revenueByDate).reduce((s, v) => s + v, 0)
   const monthOrders = Object.values(orderCountByDate).reduce((s, v) => s + v, 0)
 
-  // AOV
   const weekAOV = weekOrders > 0 ? weekRevenue / weekOrders : 0
   const monthAOV = monthOrders > 0 ? monthRevenue / monthOrders : 0
+  const revenueWoW = prevWeekRevenue > 0 ? ((weekRevenue - prevWeekRevenue) / prevWeekRevenue) * 100 : 0
 
-  // Revenue trend (week over week %)
-  const revenueWoW = prevWeekRevenue > 0
-    ? ((weekRevenue - prevWeekRevenue) / prevWeekRevenue) * 100
-    : 0
-
-  // Cost metrics (using weekly labour, annualise for daily)
   const dailyLabour = weeklyLabour / 7
   const dailyRent = monthlyRent / 30
-  const dailyCOGS = weekRevenue > 0 ? (weekRevenue * (cogsPercent / 100)) / 7 : 0
 
-  // Labour %, COGS %, Rent % based on weekly revenue
   const labourPct = weekRevenue > 0 ? (weeklyLabour / weekRevenue) * 100 : 0
-  const cogsPct = cogsPercent // owner-configured
+  const cogsPct = cogsPercent
   const rentPct = weekRevenue > 0 ? ((monthlyRent / 4.33) / weekRevenue) * 100 : 0
   const primeCost = labourPct + cogsPct
   const grossMargin = 100 - cogsPct
@@ -145,38 +140,88 @@ export async function GET() {
     ? ((weekRevenue - weeklyLabour - (weekRevenue * cogsPct / 100) - (monthlyRent / 4.33)) / weekRevenue) * 100
     : 0
 
-  // Break-even (daily fixed costs)
-  const dailyFixed = dailyLabour + dailyRent
-  const breakEvenDaily = cogsPercent < 100 ? dailyFixed / (1 - cogsPercent / 100) : 0
-
-  // RevPASH (today)
+  const breakEvenDaily = cogsPercent < 100 ? (dailyLabour + dailyRent) / (1 - cogsPercent / 100) : 0
   const revPASH = seats > 0 && hoursOpen > 0 ? todayRevenue / (seats * hoursOpen) : 0
 
-  // Bookings intelligence (last 30 days)
+  // Bookings intelligence
   const confirmedBookings = bookings30.filter((b: any) => ['confirmed', 'seated'].includes(b.status))
   const cancelledBookings = bookings30.filter((b: any) => b.status === 'cancelled')
   const totalBookingsWithOutcome = confirmedBookings.length + cancelledBookings.length
   const cancellationRate = totalBookingsWithOutcome > 0
-    ? (cancelledBookings.length / totalBookingsWithOutcome) * 100
-    : 0
+    ? (cancelledBookings.length / totalBookingsWithOutcome) * 100 : 0
 
-  // Covers (party sizes)
   const weekBookings = bookings30.filter((b: any) =>
     b.date >= d7Start && ['confirmed', 'seated'].includes(b.status))
   const coversThisWeek = weekBookings.reduce((s: number, b: any) => s + (b.party_size || 1), 0)
   const coversPerDay = coversThisWeek / 7
-
-  // Table turnover (covers / seats per day)
   const tableTurnover = seats > 0 ? coversPerDay / seats : 0
 
-  // Daily revenue chart (last 30 days)
   const revenueChart: { date: string; revenue: number }[] = []
   for (let i = 29; i >= 0; i--) {
     const d = getMelbourneDate(-i)
     revenueChart.push({ date: d, revenue: Math.round((revenueByDate[d] || 0) * 100) / 100 })
   }
 
-  // Status indicators
+  // ── Popular Times (last 30 days, Melbourne time) ──────────────────────────
+  const hourCounts: Record<number, number> = {}
+  for (const order of orders30) {
+    if (!order.created_at) continue
+    try {
+      const hour = toMelbourneHour(order.created_at)
+      hourCounts[hour] = (hourCounts[hour] || 0) + 1
+    } catch {}
+  }
+  const maxHourCount = Math.max(...Object.values(hourCounts), 1)
+  const popularTimes = Array.from({ length: 24 }, (_, h) => ({
+    hour: h,
+    label: fmtHour(h),
+    orders: hourCounts[h] || 0,
+    pct: Math.round(((hourCounts[h] || 0) / maxHourCount) * 100),
+  })).filter(h => h.orders > 0).sort((a, b) => b.orders - a.orders).slice(0, 8)
+
+  // ── Meal Stats (last 30 days) ─────────────────────────────────────────────
+  const mealStats: Record<string, { qty: number; revenue: number; cost: number }> = {}
+  for (const order of orders30) {
+    if (!Array.isArray(order.items)) continue
+    for (const li of order.items) {
+      const name = li.name
+      if (!name) continue
+      const qty = li.quantity || 1
+      const revenue = (li.price || 0) * qty
+      const unitCost = costByName[name] !== undefined
+        ? costByName[name]
+        : (li.price || 0) * (cogsPercent / 100)
+      const cost = unitCost * qty
+      if (!mealStats[name]) mealStats[name] = { qty: 0, revenue: 0, cost: 0 }
+      mealStats[name].qty += qty
+      mealStats[name].revenue += revenue
+      mealStats[name].cost += cost
+    }
+  }
+
+  // Popular meals — top 5 by quantity sold
+  const popularMeals = Object.entries(mealStats)
+    .map(([name, s]) => ({
+      name,
+      qty: s.qty,
+      revenue: Math.round(s.revenue * 100) / 100,
+    }))
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, 5)
+
+  // Most profitable meals — top 5 by total profit
+  const profitableMeals = Object.entries(mealStats)
+    .map(([name, s]) => ({
+      name,
+      qty: s.qty,
+      revenue: Math.round(s.revenue * 100) / 100,
+      profit: Math.round((s.revenue - s.cost) * 100) / 100,
+      margin: s.revenue > 0 ? Math.round(((s.revenue - s.cost) / s.revenue) * 100) : 0,
+    }))
+    .sort((a, b) => b.profit - a.profit)
+    .slice(0, 5)
+
+  // ── Metrics & Alerts ──────────────────────────────────────────────────────
   const metrics = {
     primeCost: {
       value: Math.round(primeCost * 10) / 10,
@@ -222,7 +267,6 @@ export async function GET() {
     },
   }
 
-  // Alerts — any red metrics
   const alerts = Object.entries(metrics)
     .filter(([, m]) => m.status === 'red')
     .map(([key, m]) => ({ key, ...m }))
@@ -282,6 +326,11 @@ export async function GET() {
     charts: {
       daily: revenueChart,
       weekly: last7Days,
+    },
+    insights: {
+      popularTimes,
+      popularMeals,
+      profitableMeals,
     },
     metrics,
     alerts,

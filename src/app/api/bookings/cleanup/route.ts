@@ -7,6 +7,9 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const CLICKSEND_USER = 'jiahsagent@gmail.com'
 const CLICKSEND_KEY = '6A27AE52-866F-25C1-158C-C1D17531DBA7'
 
+// How long after a booking's time slot we consider the meal "done" and auto-free
+const POST_MEAL_FREE_MINUTES = 90
+
 async function dbGet(table: string, query: string): Promise<any[]> {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
     headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
@@ -33,10 +36,7 @@ async function dbPatch(table: string, query: string, body: any): Promise<any[]> 
 async function dbDelete(table: string, query: string): Promise<void> {
   await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
     method: 'DELETE',
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-    },
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
     cache: 'no-store',
   })
 }
@@ -56,9 +56,7 @@ async function sendSMS(to: string, body: string) {
       headers: { 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
       body: JSON.stringify({ messages: [{ source: 'cleanup', body, to: formatPhone(to), from: 'MrJackson' }] }),
     })
-  } catch (err) {
-    console.error('SMS send failed:', err)
-  }
+  } catch {}
 }
 
 function getMelbourneNow(): { todayDate: string; currentMinutes: number } {
@@ -85,37 +83,74 @@ function toMelbourneMinutes(utcDate: Date): number {
   return parseInt(get('hour')) * 60 + parseInt(get('minute'))
 }
 
-// GET /api/bookings/cleanup — delete bookings with no paid order after the cancellation window
+async function freeTable(tableNumber: number) {
+  await dbPatch('tables',
+    `table_number=eq.${tableNumber}&status=in.(reserved,occupied)`,
+    { status: 'available', current_customer: null, occupied_at: null, table_code: null })
+}
+
 export async function GET() {
   const { todayDate, currentMinutes } = getMelbourneNow()
 
-  // Read the configurable cancellation window from settings (default 15 min)
   const settings = await dbGet('queue_settings', 'id=eq.1&select=booking_cancel_minutes')
   const cancelAfterMinutes: number = settings?.[0]?.booking_cancel_minutes ?? 15
 
-  // Get today's confirmed bookings
-  const bookings = await dbGet('bookings', `date=eq.${todayDate}&status=eq.confirmed&select=*`)
+  // ── 1. STALE TABLES FROM PAST DAYS ───────────────────────────────────────
+  // Find any reserved/occupied tables that have a booking from a PREVIOUS day
+  // (cron missed cleanup, staff forgot to free the table)
+  const pastBookings = await dbGet('bookings',
+    `date=lt.${todayDate}&status=in.(confirmed,seated)&table_number=not.is.null&select=id,table_number,customer_name,date,time_slot,status`)
 
-  if (!bookings || bookings.length === 0) {
-    return NextResponse.json({ message: 'No bookings to check', cancelled: 0, todayDate, currentMinutes })
+  let staleDays = 0
+  for (const b of pastBookings) {
+    await freeTable(b.table_number)
+    // Mark the booking as completed so it doesn't show up again
+    await dbPatch('bookings', `id=eq.${b.id}`, { status: 'completed' })
+    staleDays++
   }
 
-  // Fetch today's PAID orders for those phones — only a completed payment counts as "arrived"
-  // paid_at is set by the Stripe webhook when payment succeeds; pending/unpaid do NOT save the table
+  // ── 2. POST-MEAL AUTO-FREE (today — booking time + 90 min has passed) ────
+  // Customer arrived, was served, but staff never hit "Free Table"
+  const servedBookings = await dbGet('bookings',
+    `date=eq.${todayDate}&status=in.(confirmed,seated)&table_number=not.is.null&select=id,table_number,customer_name,time_slot,phone`)
+
+  let servedFreed = 0
+  for (const b of servedBookings) {
+    const [h, m] = b.time_slot.split(':').map(Number)
+    const bookingMinutes = h * 60 + m
+    const minutesPast = currentMinutes - bookingMinutes
+
+    // Only act if booking time + POST_MEAL_FREE_MINUTES has elapsed
+    if (minutesPast < POST_MEAL_FREE_MINUTES) continue
+
+    // Check if there's a paid order for this booking (meaning they arrived)
+    const orders = await dbGet('orders',
+      `phone=eq.${b.phone}&date=eq.${todayDate}&paid_at=not.is.null&status=in.(served,completed,ready)&select=id,status`)
+
+    if (orders.length === 0) continue // no served order — let no-show logic handle it
+
+    // They were served and enough time has passed — auto-free the table
+    await freeTable(b.table_number)
+    await dbPatch('bookings', `id=eq.${b.id}`, { status: 'completed' })
+    servedFreed++
+  }
+
+  // ── 3. NO-SHOW CLEANUP (today — booking passed but no paid order) ─────────
+  const bookings = await dbGet('bookings',
+    `date=eq.${todayDate}&status=eq.confirmed&select=*`)
+
   const phones = Array.from(new Set(bookings.map((b: any) => b.phone).filter(Boolean)))
   const orders = phones.length > 0
-    ? await dbGet('orders', `phone=in.(${phones.join(',')})&date=eq.${todayDate}&paid_at=not.is.null&status=neq.cancelled&select=phone,status,created_at,paid_at`)
+    ? await dbGet('orders',
+        `phone=in.(${phones.join(',')})&date=eq.${todayDate}&paid_at=not.is.null&status=neq.cancelled&select=phone,status,created_at,paid_at`)
     : []
 
-  // Build set of phones that placed a PAID order today around their booking time
   const phonesWithArrivalOrder = new Set<string>()
   for (const booking of bookings) {
     const [h, m] = booking.time_slot.split(':').map(Number)
     const bookingMinutes = h * 60 + m
-
     const hasArrivalOrder = (orders || []).some((o: any) => {
       if (o.phone !== booking.phone) return false
-      // Check order was created within a window: up to 2 hours before booking or up to 15 min after
       const orderMelbourneMinutes = toMelbourneMinutes(new Date(o.created_at))
       return orderMelbourneMinutes >= bookingMinutes - 120 && orderMelbourneMinutes <= bookingMinutes + 15
     })
@@ -128,36 +163,28 @@ export async function GET() {
     const bookingMinutes = h * 60 + m
     const minutesPast = currentMinutes - bookingMinutes
 
-    // Skip if the cancellation window hasn't elapsed yet
     if (minutesPast < cancelAfterMinutes) continue
-
-    // Skip if they placed an order — they arrived
     if (phonesWithArrivalOrder.has(booking.phone)) continue
 
-    // Delete the booking entirely
     await dbDelete('bookings', `id=eq.${booking.id}`)
 
-    // Free the table (may be 'reserved' or 'occupied' depending on timing)
     if (booking.table_number) {
-      await dbPatch('tables',
-        `table_number=eq.${booking.table_number}&status=in.(reserved,occupied)`,
-        { status: 'available', current_customer: null, occupied_at: null, table_code: null })
+      await freeTable(booking.table_number)
     }
 
-    // Send SMS
-    sendSMS(
-      booking.phone,
+    sendSMS(booking.phone,
       `Hi ${booking.customer_name}, your ${booking.time_slot} table at Mr Jackson's has been automatically released — ` +
       `no paid order was placed within ${cancelAfterMinutes} minutes of your booking time. ` +
-      `Walk-ins are always welcome, or rebook at mr-jacksons.vercel.app`
-    )
+      `Walk-ins are always welcome, or rebook at mr-jacksons.vercel.app`)
 
     cancelled++
   }
 
   return NextResponse.json({
-    message: `Checked ${bookings.length} booking${bookings.length !== 1 ? 's' : ''}`,
-    cancelled,
+    message: `Cleanup complete`,
+    staleDaysFreed: staleDays,
+    servedAutoFreed: servedFreed,
+    noShowsCancelled: cancelled,
     cancelAfterMinutes,
     todayDate,
     currentMinutes,

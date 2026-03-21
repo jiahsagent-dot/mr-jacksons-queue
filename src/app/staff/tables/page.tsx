@@ -50,8 +50,7 @@ function minutesAgo(iso: string) {
 }
 
 function todayStr() {
-  const d = new Date()
-  return d.toISOString().split('T')[0]
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Melbourne' })
 }
 
 function formatTime(t: string) {
@@ -321,13 +320,28 @@ export default function StaffTablesPage() {
                 const tableBookings = getBookingsForTable(table.table_number)
                 const nextBooking = tableBookings.sort((a, b) => a.time_slot.localeCompare(b.time_slot))[0]
 
-                // Show amber if booking is within 75 minutes (pretend guests are already "in the building")
+                // Show amber if booking is within 75 minutes
                 const AMBER_AHEAD_MINUTES = 75
+                // Show blue booking card if booking is within 3 hours (180 min)
+                const SHOW_BOOKING_AHEAD_MINUTES = 180
+
+                const getBookingDiffMin = (booking: Booking) => {
+                  const [h, m] = booking.time_slot.split(':').map(Number)
+                  // Use Melbourne date — derive from the booking's own date field
+                  const dateStr = booking.date || new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Melbourne' })
+                  const bookingMs = new Date(`${dateStr}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00+11:00`).getTime()
+                  return (bookingMs - Date.now()) / 60000
+                }
+
                 const bookingIsSoon = nextBooking ? (() => {
-                  const [h, m] = nextBooking.time_slot.split(':').map(Number)
-                  const bookingMs = new Date(`${nextBooking.date || new Date().toISOString().split('T')[0]}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`).getTime()
-                  const diffMin = (bookingMs - Date.now()) / 60000
+                  const diffMin = getBookingDiffMin(nextBooking)
                   return diffMin <= AMBER_AHEAD_MINUTES && diffMin > -15
+                })() : false
+
+                // Only show the blue booking card if booking is ≤ 3 hours away (or already past but recent)
+                const bookingIsVisible = nextBooking ? (() => {
+                  const diffMin = getBookingDiffMin(nextBooking)
+                  return diffMin <= SHOW_BOOKING_AHEAD_MINUTES && diffMin > -30
                 })() : false
 
                 // If there's an active order → red (occupied), even if DB says reserved/available
@@ -382,12 +396,15 @@ export default function StaffTablesPage() {
                       </div>
                     )}
 
-                    {/* Next booking */}
-                    {nextBooking && (
+                    {/* Next booking — only show if within 3 hours */}
+                    {nextBooking && bookingIsVisible && (
                       <div className="mt-2 p-2 rounded-lg bg-blue-50 border border-blue-200">
                         <p className="text-[10px] text-blue-700 font-bold font-sans uppercase">Booking</p>
                         <p className="text-[11px] text-blue-800 font-sans">{nextBooking.customer_name} · {nextBooking.party_size}p</p>
-                        <p className="text-[10px] text-blue-600 font-sans">{formatTime(nextBooking.time_slot)}</p>
+                        <p className="text-[10px] text-blue-600 font-sans">
+                          {nextBooking.date && new Date(nextBooking.date + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}
+                          {' · '}{formatTime(nextBooking.time_slot)}
+                        </p>
                         <span className={`inline-block mt-1 text-[9px] font-bold px-1.5 py-0.5 rounded font-sans ${
                           nextBooking.has_order
                             ? 'bg-green-100 text-green-700'

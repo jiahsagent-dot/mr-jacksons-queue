@@ -49,16 +49,20 @@ const STATUS_LABEL: Record<string, string> = {
   no_show: '⚠️ No Show',
 }
 
+function melbourneToday(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Melbourne' })
+}
+
 function isToday(d: string): boolean {
-  return d === new Date().toISOString().split('T')[0]
+  return d === melbourneToday()
 }
 
 function isFuture(d: string): boolean {
-  return d > new Date().toISOString().split('T')[0]
+  return d > melbourneToday()
 }
 
 function isPast(d: string): boolean {
-  return d < new Date().toISOString().split('T')[0]
+  return d < melbourneToday()
 }
 
 export default function StaffBookingsPage() {

@@ -56,13 +56,14 @@ export async function GET() {
 
   let reserved = 0
   let occupied = 0
+  let freed = 0
 
   for (const booking of bookings) {
     const [h, m] = booking.time_slot.split(':').map(Number)
     const bookingMinutes = h * 60 + m
     const minutesUntil = bookingMinutes - currentMinutes
 
-    if (minutesUntil > RESERVE_AHEAD_MINUTES) continue // too far away
+    if (minutesUntil > RESERVE_AHEAD_MINUTES) continue // too far away — don't touch the table yet
 
     if (minutesUntil >= 0) {
       // Booking coming up — mark table reserved if still available
@@ -72,18 +73,42 @@ export async function GET() {
       if (updated.length > 0) reserved++
 
     } else if (minutesUntil >= -15) {
-      // Booking time just passed — auto-occupy the table
+      // Booking time just passed (within 15 min) — auto-occupy the table
       const updated = await dbPatch('tables',
         `table_number=eq.${booking.table_number}&status=in.(reserved,available)`,
         { status: 'occupied', current_customer: booking.customer_name, occupied_at: new Date().toISOString() })
       if (updated.length > 0) occupied++
+
+    } else {
+      // Booking is more than 15 min in the past and still showing reserved/occupied —
+      // cleanup route handles freeing these; nothing to do here
     }
+  }
+
+  // ── Safety sweep: free any tables still 'reserved' whose booking time has
+  //    fully passed (> RESERVE_AHEAD_MINUTES ago), meaning cleanup hasn't run yet.
+  //    This catches edge cases where the cron missed a tick.
+  const reservedTables = await dbGet('tables',
+    `status=eq.reserved&select=table_number,current_customer`)
+
+  for (const table of reservedTables) {
+    // Find the booking linked to this table today
+    const linked = bookings.find(b => b.table_number === table.table_number)
+    if (!linked) {
+      // No confirmed booking today for this reserved table — stale, free it
+      await dbPatch('tables',
+        `table_number=eq.${table.table_number}&status=eq.reserved`,
+        { status: 'available', current_customer: null, occupied_at: null, table_code: null })
+      freed++
+    }
+    // If linked booking is in the future or recent past, leave it — cleanup handles it
   }
 
   return NextResponse.json({
     message: `Checked ${bookings.length} bookings`,
     reserved,
     occupied,
+    staleFreed: freed,
     todayDate,
     currentMinutes,
   })
