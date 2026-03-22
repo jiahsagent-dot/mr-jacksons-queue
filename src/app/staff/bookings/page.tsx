@@ -68,6 +68,8 @@ export default function StaffBookingsPage() {
   const [view, setView] = useState<'today' | 'upcoming' | 'past'>('today')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [checkingInId, setCheckingInId] = useState<string | null>(null)
+  const [assigningId, setAssigningId] = useState<string | null>(null)
+  const [assignTableInput, setAssignTableInput] = useState('')
   const [search, setSearch] = useState('')
 
   useEffect(() => {
@@ -111,6 +113,32 @@ export default function StaffBookingsPage() {
       toast.error('Network error')
     }
     setCheckingInId(null)
+  }
+
+  const assignTable = async (id: string, name: string) => {
+    const num = parseInt(assignTableInput)
+    if (!num || num < 1) return toast.error('Enter a valid table number')
+    setAssigningId(id)
+    try {
+      const res = await fetch('/api/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, table_number: num }),
+      })
+      if (res.ok) {
+        toast.success(`${name} → Table ${num}`)
+        setAssigningId(null)
+        setAssignTableInput('')
+        fetchBookings()
+      } else {
+        const d = await res.json()
+        toast.error(d.error || 'Failed')
+        setAssigningId(null)
+      }
+    } catch {
+      toast.error('Network error')
+      setAssigningId(null)
+    }
   }
 
   const updateStatus = async (id: string, status: string) => {
@@ -292,7 +320,7 @@ export default function StaffBookingsPage() {
                         </div>
                       )}
 
-                      {/* Confirmed badge + actions */}
+                      {/* Actions for active bookings */}
                       {booking.status !== 'cancelled' && (
                         <div className="space-y-2">
                           {/* Check-in status */}
@@ -304,12 +332,12 @@ export default function StaffBookingsPage() {
                             <span>{booking.confirmed_at ? '✓' : '⏳'}</span>
                             <span>
                               {booking.confirmed_at
-                                ? `Customer checked in`
+                                ? 'Customer checked in'
                                 : 'Not checked in yet'}
                             </span>
                           </div>
 
-                          {/* Manual check-in button — only if not yet confirmed */}
+                          {/* Manual check-in (if not yet confirmed) */}
                           {!booking.confirmed_at && booking.status === 'confirmed' && (
                             <button
                               onClick={() => manualCheckIn(booking)}
@@ -318,6 +346,29 @@ export default function StaffBookingsPage() {
                             >
                               {checkingInId === booking.id ? '...' : '✓ Check In Customer'}
                             </button>
+                          )}
+
+                          {/* Table assignment */}
+                          {!booking.table_number && (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="Assign table #"
+                                value={assigningId === booking.id ? assignTableInput : ''}
+                                onFocus={() => setAssigningId(booking.id)}
+                                onChange={e => { setAssigningId(booking.id); setAssignTableInput(e.target.value) }}
+                                className="flex-1 text-xs px-3 py-2 rounded-xl border border-stone-200 bg-white font-sans focus:outline-none focus:border-blue-400"
+                              />
+                              {assigningId === booking.id && assignTableInput && (
+                                <button
+                                  onClick={() => assignTable(booking.id, booking.customer_name)}
+                                  className="text-xs font-bold text-white bg-blue-600 px-3 py-2 rounded-xl font-sans hover:bg-blue-700 whitespace-nowrap"
+                                >
+                                  Assign
+                                </button>
+                              )}
+                            </div>
                           )}
 
                           {/* Cancel / No-show */}

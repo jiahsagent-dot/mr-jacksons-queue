@@ -379,7 +379,7 @@ export default function BookingConfirmedPage() {
           <div className="space-y-3">
             {[
               { step: '1', text: 'Go to mr-jacksons.vercel.app on your phone' },
-              { step: '2', text: 'Tap "Check in here →" at the bottom of the page' },
+              { step: '2', text: 'Tap "Check in here →" at the bottom' },
               { step: '3', text: 'Enter your phone number and tap Check In' },
               { step: '4', text: 'Then order straight from your phone!' },
             ].map(({ step, text }) => (
@@ -389,7 +389,7 @@ export default function BookingConfirmedPage() {
               </div>
             ))}
           </div>
-          <Link href="/checkin" className="mt-3 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-stone-900 text-white text-sm font-semibold font-sans transition-all active:scale-[0.98]">
+          <Link href="/checkin" className="mt-3 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-stone-900 text-white text-sm font-semibold font-sans">
             Check In Now →
           </Link>
         </div>

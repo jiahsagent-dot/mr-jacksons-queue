@@ -18,6 +18,9 @@ const GALLERY = [
   { src: '/images/food12.jpg', alt: 'Handmade bao buns with filling' },
   { src: '/images/food13.jpg', alt: 'Mr Jackson signature dish' },
 ]
+// Legacy — removed
+const _GALLERY_UNUSED = [
+]
 
 const MENU_HIGHLIGHTS = [
   { name: 'Ricotta Pancakes', desc: 'Housemade granola, seasonal fruit & ice cream', tag: 'Famous' },

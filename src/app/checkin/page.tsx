@@ -15,7 +15,6 @@ type Booking = {
   time_slot: string
   table_number?: number
   status: string
-  code?: string
 }
 
 function formatTimeSlot(slot: string) {
@@ -109,13 +108,13 @@ function CheckInContent() {
 
       <div className="flex-1 max-w-sm mx-auto w-full px-4 py-6 space-y-4">
 
-        {/* ── Phone step ─────────────────────────────────────── */}
+        {/* Phone step */}
         {step === 'phone' && (
           <div className="space-y-4 animate-slide-up">
             <div className="card text-center">
               <p className="text-2xl mb-2">👋</p>
               <h2 className="text-lg font-bold text-stone-900 mb-1">Welcome to Mr Jackson's!</h2>
-              <p className="text-stone-500 text-sm font-sans">Enter the mobile number you used to make your booking and we'll check you in.</p>
+              <p className="text-stone-500 text-sm font-sans">Enter the mobile number you used to make your booking.</p>
             </div>
 
             <div className="card">
@@ -158,7 +157,7 @@ function CheckInContent() {
           </div>
         )}
 
-        {/* ── Select booking step ─────────────────────────────── */}
+        {/* Select booking step */}
         {step === 'select' && (
           <div className="space-y-4 animate-slide-up">
             <div className="card">
@@ -168,17 +167,12 @@ function CheckInContent() {
               <div className="space-y-3">
                 {bookings.map(booking => (
                   <div key={booking.id} className="rounded-2xl border-2 border-stone-200 bg-white p-4">
-                    {/* Booking details */}
                     <div className="mb-3">
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="font-bold text-stone-900">{booking.customer_name}</p>
-                          <p className="text-sm text-stone-600 font-sans mt-0.5">
-                            📅 {formatDate(booking.date)}
-                          </p>
-                          <p className="text-sm text-stone-600 font-sans">
-                            🕐 {formatTimeSlot(booking.time_slot)}
-                          </p>
+                          <p className="text-sm text-stone-600 font-sans mt-0.5">📅 {formatDate(booking.date)}</p>
+                          <p className="text-sm text-stone-600 font-sans">🕐 {formatTimeSlot(booking.time_slot)}</p>
                           <p className="text-sm text-stone-600 font-sans">
                             👥 {booking.party_size} {booking.party_size === 1 ? 'person' : 'people'}
                             {booking.table_number ? ` · Table ${booking.table_number}` : ''}
@@ -189,7 +183,6 @@ function CheckInContent() {
                         </span>
                       </div>
                     </div>
-
                     <button
                       onClick={() => handleCheckIn(booking)}
                       disabled={checkingIn === booking.id}
@@ -206,22 +199,18 @@ function CheckInContent() {
                 ))}
               </div>
             </div>
-
-            <button
-              onClick={() => setStep('phone')}
-              className="w-full text-center text-sm text-stone-400 font-sans hover:text-stone-600 py-2"
-            >
+            <button onClick={() => setStep('phone')} className="w-full text-center text-sm text-stone-400 font-sans hover:text-stone-600 py-2">
               ← Try a different number
             </button>
           </div>
         )}
 
-        {/* ── Success step ─────────────────────────────────────── */}
+        {/* Success step */}
         {step === 'success' && checkedInBooking && (
           <div className="space-y-4 animate-slide-up">
             <div className="card border-2 border-green-200 bg-green-50/50 text-center">
               <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center mx-auto mb-3 shadow-lg">
-                <span className="text-3xl">✓</span>
+                <span className="text-3xl text-white">✓</span>
               </div>
               <h2 className="text-xl font-bold text-stone-900 mb-1">
                 You're checked in, {checkedInBooking.customer_name}! 🎉
@@ -252,7 +241,6 @@ function CheckInContent() {
             </Link>
           </div>
         )}
-
       </div>
     </main>
   )

@@ -64,8 +64,8 @@ function NewOrderPage() {
   const [step, setStep] = useState<'menu' | 'details'>('menu')
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
-  const [unavailable, setUnavailable] = useState<Set<string>>(new Set())
   const [tableNumberInput, setTableNumberInput] = useState('')
+  const [unavailable, setUnavailable] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetch('/api/menu').then(r => r.json()).then(data => {
@@ -116,7 +116,6 @@ function NewOrderPage() {
     if (!isValidAU) return toast.error('Please enter a valid Australian phone number (e.g. 0483 880 253)')
     if (needsDateTime && !selectedDate) return toast.error('Please select a date')
     if (needsDateTime && !timeSlot) return toast.error('Please select a time')
-    // Eat In without a table number from URL → require manual entry
     if (!context && diningOption === 'dine_in' && !tableNumber && !tableNumberInput.trim()) {
       return toast.error('Please enter your table number')
     }
@@ -378,7 +377,7 @@ function NewOrderPage() {
                   </button>
                 </div>
 
-                {/* Table number — required for Eat In when not pre-filled from table selection */}
+                {/* Table number — required for Eat In without a pre-filled table */}
                 {diningOption === 'dine_in' && !tableNumber && (
                   <div className="mt-3 pt-3 border-t border-stone-100">
                     <label htmlFor="table-number" className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 font-sans">

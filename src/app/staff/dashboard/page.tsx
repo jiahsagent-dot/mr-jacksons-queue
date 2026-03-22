@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -36,6 +36,8 @@ export default function StaffDashboard() {
   const [callLoading, setCallLoading] = useState(false)
   const [summary, setSummary] = useState<DaySummary | null>(null)
   const [tableInfo, setTableInfo] = useState<{ available: number; total: number } | null>(null)
+  const [noShowMinutes, setNoShowMinutes] = useState(10)
+  const [tick, setTick] = useState(0) // 1-sec ticker for countdown
 
   const mutatingUntil = useRef<number>(0)
 
@@ -61,6 +63,7 @@ export default function StaffDashboard() {
       setCalled(data.called)
       setIsClosed(data.is_closed)
       setWaitTime(data.estimated_wait)
+      if (data.no_show_minutes) setNoShowMinutes(data.no_show_minutes)
     }
     if (tablesRes.ok) {
       const data = await tablesRes.json()
@@ -101,6 +104,12 @@ export default function StaffDashboard() {
     const interval = setInterval(fetchQueue, 8000)
     return () => clearInterval(interval)
   }, [fetchQueue])
+
+  // 1-second ticker for live countdown on called entries
+  useEffect(() => {
+    const t = setInterval(() => setTick(n => n + 1), 1000)
+    return () => clearInterval(t)
+  }, [])
 
   const holdPoll = () => { mutatingUntil.current = Date.now() + 8000 }
 
@@ -318,37 +327,74 @@ export default function StaffDashboard() {
           )}
         </section>
 
-        {/* Called */}
+        {/* Called — with live countdown */}
         {called.length > 0 && (
           <section>
             <h2 className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-2">
               Called ({called.length})
             </h2>
             <div className="space-y-2">
-              {called.map(entry => (
-                <div key={entry.id} className="bg-white rounded-2xl border border-green-100 p-4 flex items-center gap-3">
-                  <div className="text-green-400 text-lg flex-shrink-0">🔔</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-stone-900">{entry.name}</p>
-                    <p className="text-xs text-stone-400">{entry.party_size} people · SMS sent</p>
-                    <a href={`tel:${entry.phone}`} className="text-xs text-blue-500 font-sans hover:underline">📞 {entry.phone}</a>
+              {called.map(entry => {
+                void tick // re-render every second
+                const calledAt = entry.called_at ? new Date(entry.called_at) : new Date()
+                const totalSecs = noShowMinutes * 60
+                const secsElapsed = Math.floor((Date.now() - calledAt.getTime()) / 1000)
+                const secsLeft = Math.max(0, totalSecs - secsElapsed)
+                const pct = Math.max(0, (secsLeft / totalSecs) * 100)
+                const isUrgent = secsLeft < 120
+                const isWarning = secsLeft < totalSecs / 2
+                const mins = Math.floor(secsLeft / 60)
+                const secs = secsLeft % 60
+                const countdown = `${mins}:${secs.toString().padStart(2, '0')}`
+
+                return (
+                  <div key={entry.id} className={`rounded-2xl border-2 p-4 ${isUrgent ? 'bg-red-50 border-red-300' : isWarning ? 'bg-amber-50 border-amber-200' : 'bg-white border-green-100'}`}>
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className={`text-lg flex-shrink-0 ${isUrgent ? 'animate-pulse' : ''}`}>
+                        {isUrgent ? '🚨' : '🔔'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-stone-900">{entry.name}</p>
+                        <p className="text-xs text-stone-400">{entry.party_size} people · SMS sent</p>
+                        <a href={`tel:${entry.phone}`} className="text-xs text-blue-500 font-sans hover:underline">📞 {entry.phone}</a>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className={`text-lg font-bold font-mono tabular-nums ${isUrgent ? 'text-red-600' : isWarning ? 'text-amber-600' : 'text-stone-500'}`}>
+                          {countdown}
+                        </p>
+                        <p className="text-[10px] text-stone-400 font-sans">to show</p>
+                      </div>
+                    </div>
+                    {/* Countdown bar */}
+                    <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden mb-3">
+                      <div
+                        className={`h-full rounded-full transition-all duration-1000 ${isUrgent ? 'bg-red-500' : isWarning ? 'bg-amber-400' : 'bg-green-400'}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={() => updateQueueStatus(entry.id, 'seated', entry.name)}
+                        className="flex-1 text-xs bg-blue-50 text-blue-700 px-2.5 py-2 rounded-xl border border-blue-200 font-medium font-sans"
+                      >
+                        ✓ Seated
+                      </button>
+                      <button
+                        onClick={() => updateQueueStatus(entry.id, 'waiting', entry.name)}
+                        className="text-xs bg-stone-50 text-stone-500 px-2.5 py-2 rounded-xl border border-stone-200 font-medium font-sans"
+                      >
+                        Re-queue
+                      </button>
+                      <button
+                        onClick={() => updateQueueStatus(entry.id, 'left', entry.name)}
+                        className="text-xs bg-red-50 text-red-500 px-2.5 py-2 rounded-xl border border-red-200 font-medium font-sans"
+                      >
+                        No-show
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex gap-1.5 flex-shrink-0">
-                    <button
-                      onClick={() => updateQueueStatus(entry.id, 'seated', entry.name)}
-                      className="text-xs bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded-lg border border-blue-200 font-medium"
-                    >
-                      ✓ Seated
-                    </button>
-                    <button
-                      onClick={() => updateQueueStatus(entry.id, 'waiting', entry.name)}
-                      className="text-xs bg-stone-50 text-stone-500 px-2.5 py-1.5 rounded-lg border border-stone-200 font-medium"
-                    >
-                      Re-queue
-                    </button>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </section>
         )}

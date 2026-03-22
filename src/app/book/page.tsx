@@ -225,7 +225,7 @@ export default function BookPage() {
 
             <button
               onClick={goToTableStep}
-              disabled={!name.trim() || !phone.trim() || !selectedDate || !timeSlot}
+              disabled={!name.trim() || !isValidAusPhone(phone) || !selectedDate || !timeSlot}
               className="btn-primary w-full py-4 text-base shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Choose Your Table →

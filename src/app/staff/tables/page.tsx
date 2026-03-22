@@ -50,8 +50,8 @@ function minutesAgo(iso: string) {
 }
 
 function todayStr() {
-  const d = new Date()
-  return d.toISOString().split('T')[0]
+  // Use Melbourne time (UTC+10/+11) to avoid date flipping at midnight UTC
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Melbourne' }).format(new Date())
 }
 
 function formatTime(t: string) {
@@ -115,6 +115,37 @@ export default function StaffTablesPage() {
   const [editLabel, setEditLabel] = useState('')
   const [editSeats, setEditSeats] = useState('')
   const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
+  const [assigningBooking, setAssigningBooking] = useState<string | null>(null)
+  const [assignTableNum, setAssignTableNum] = useState('')
+
+  const assignTable = async (bookingId: string, name: string) => {
+    const num = parseInt(assignTableNum)
+    if (!num || num < 1) return toast.error('Enter a valid table number')
+    // Verify table exists
+    const table = tables.find(t => t.table_number === num)
+    if (!table) return toast.error(`Table ${num} doesn't exist`)
+    setAssigningBooking(bookingId)
+    try {
+      const res = await fetch('/api/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: bookingId, table_number: num }),
+      })
+      if (res.ok) {
+        toast.success(`${name} assigned to Table ${num}`)
+        setAssigningBooking(null)
+        setAssignTableNum('')
+        fetchAll()
+      } else {
+        const d = await res.json()
+        toast.error(d.error || 'Failed to assign')
+        setAssigningBooking(null)
+      }
+    } catch {
+      toast.error('Network error')
+      setAssigningBooking(null)
+    }
+  }
 
   const cancelBooking = async (bookingId: string, name: string) => {
     if (!confirm(`Cancel ${name}'s booking?`)) return
@@ -572,17 +603,39 @@ export default function StaffTablesPage() {
                               </span>
                             </div>
                             {/* Staff actions */}
-                            <div className="mt-2 pt-2 border-t border-stone-50 flex items-center gap-2">
-                              <a href={`tel:${booking.phone}`} className="text-[10px] font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 font-sans hover:bg-blue-100">
-                                📞 {booking.phone}
-                              </a>
-                              <button
-                                onClick={() => cancelBooking(booking.id, booking.customer_name)}
-                                disabled={cancellingBooking === booking.id}
-                                className="text-[10px] font-medium text-red-600 bg-red-50 px-2.5 py-1 rounded-lg border border-red-200 font-sans hover:bg-red-100 disabled:opacity-50"
-                              >
-                                {cancellingBooking === booking.id ? '...' : '✕ Cancel'}
-                              </button>
+                            <div className="mt-2 pt-2 border-t border-stone-50 space-y-2">
+                              <div className="flex items-center gap-2">
+                                <a href={`tel:${booking.phone}`} className="text-[10px] font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 font-sans hover:bg-blue-100">
+                                  📞 {booking.phone}
+                                </a>
+                                <button
+                                  onClick={() => cancelBooking(booking.id, booking.customer_name)}
+                                  disabled={cancellingBooking === booking.id}
+                                  className="text-[10px] font-medium text-red-600 bg-red-50 px-2.5 py-1 rounded-lg border border-red-200 font-sans hover:bg-red-100 disabled:opacity-50"
+                                >
+                                  {cancellingBooking === booking.id ? '...' : '✕ Cancel'}
+                                </button>
+                              </div>
+                              {/* Table assignment */}
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  placeholder={booking.table_number ? `Table ${booking.table_number}` : 'Assign table #'}
+                                  value={assigningBooking === booking.id ? assignTableNum : ''}
+                                  onFocus={() => setAssigningBooking(booking.id)}
+                                  onChange={e => { setAssigningBooking(booking.id); setAssignTableNum(e.target.value) }}
+                                  className="w-28 text-[10px] px-2 py-1 rounded-lg border border-stone-200 bg-white font-sans focus:outline-none focus:border-blue-400"
+                                />
+                                {assigningBooking === booking.id && assignTableNum && (
+                                  <button
+                                    onClick={() => assignTable(booking.id, booking.customer_name)}
+                                    className="text-[10px] font-bold text-white bg-blue-600 px-2.5 py-1 rounded-lg font-sans hover:bg-blue-700"
+                                  >
+                                    Assign
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
                         )
