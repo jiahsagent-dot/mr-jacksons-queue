@@ -67,6 +67,7 @@ export default function StaffBookingsPage() {
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<'today' | 'upcoming' | 'past'>('today')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [checkingInId, setCheckingInId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
   useEffect(() => {
@@ -90,6 +91,27 @@ export default function StaffBookingsPage() {
     const interval = setInterval(fetchBookings, 30000)
     return () => clearInterval(interval)
   }, [])
+
+  const manualCheckIn = async (booking: Booking) => {
+    setCheckingInId(booking.id)
+    try {
+      const res = await fetch('/api/bookings/checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booking_id: booking.id }),
+      })
+      if (res.ok) {
+        toast.success(`${booking.customer_name} checked in ✓`)
+        fetchBookings()
+      } else {
+        const d = await res.json()
+        toast.error(d.error || 'Check-in failed')
+      }
+    } catch {
+      toast.error('Network error')
+    }
+    setCheckingInId(null)
+  }
 
   const updateStatus = async (id: string, status: string) => {
     setUpdatingId(id)
@@ -282,10 +304,21 @@ export default function StaffBookingsPage() {
                             <span>{booking.confirmed_at ? '✓' : '⏳'}</span>
                             <span>
                               {booking.confirmed_at
-                                ? `Customer confirmed arrival`
-                                : 'Not confirmed yet'}
+                                ? `Customer checked in`
+                                : 'Not checked in yet'}
                             </span>
                           </div>
+
+                          {/* Manual check-in button — only if not yet confirmed */}
+                          {!booking.confirmed_at && booking.status === 'confirmed' && (
+                            <button
+                              onClick={() => manualCheckIn(booking)}
+                              disabled={checkingInId === booking.id}
+                              className="w-full py-2.5 text-xs rounded-xl bg-green-600 text-white font-semibold font-sans hover:bg-green-700 disabled:opacity-50 transition-colors"
+                            >
+                              {checkingInId === booking.id ? '...' : '✓ Check In Customer'}
+                            </button>
+                          )}
 
                           {/* Cancel / No-show */}
                           <div className="flex gap-2">
