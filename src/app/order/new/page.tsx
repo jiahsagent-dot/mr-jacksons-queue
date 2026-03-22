@@ -65,6 +65,7 @@ function NewOrderPage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
   const [unavailable, setUnavailable] = useState<Set<string>>(new Set())
+  const [tableNumberInput, setTableNumberInput] = useState('')
 
   useEffect(() => {
     fetch('/api/menu').then(r => r.json()).then(data => {
@@ -115,6 +116,10 @@ function NewOrderPage() {
     if (!isValidAU) return toast.error('Please enter a valid Australian phone number (e.g. 0483 880 253)')
     if (needsDateTime && !selectedDate) return toast.error('Please select a date')
     if (needsDateTime && !timeSlot) return toast.error('Please select a time')
+    // Eat In without a table number from URL → require manual entry
+    if (!context && diningOption === 'dine_in' && !tableNumber && !tableNumberInput.trim()) {
+      return toast.error('Please enter your table number')
+    }
     if (items.length === 0) return toast.error('Your cart is empty')
 
     setLoading(true)
@@ -132,7 +137,7 @@ function NewOrderPage() {
           items: items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
           notes: notes.trim() || undefined,
           ...(orderId ? { order_id: orderId } : {}),
-          ...(tableNumber ? { table_number: parseInt(tableNumber) } : {}),
+          ...(tableNumber ? { table_number: parseInt(tableNumber) } : tableNumberInput ? { table_number: parseInt(tableNumberInput) } : {}),
           ...(queueId ? { queue_entry_id: queueId } : {}),
         }),
       })
@@ -372,6 +377,29 @@ function NewOrderPage() {
                     <span className="text-sm">Takeaway</span>
                   </button>
                 </div>
+
+                {/* Table number — required for Eat In when not pre-filled from table selection */}
+                {diningOption === 'dine_in' && !tableNumber && (
+                  <div className="mt-3 pt-3 border-t border-stone-100">
+                    <label htmlFor="table-number" className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5 font-sans">
+                      Table Number <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      id="table-number"
+                      name="table_number"
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      max="99"
+                      required
+                      placeholder="e.g. 5"
+                      value={tableNumberInput}
+                      onChange={e => setTableNumberInput(e.target.value)}
+                      className="input-field"
+                    />
+                    <p className="text-[11px] text-stone-400 font-sans mt-1">Check the card on your table</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -484,14 +512,26 @@ function NewOrderPage() {
               />
             </div>
 
-            {/* Pay */}
-            <button
-              onClick={handleCheckout}
-              disabled={loading}
-              className="btn-primary w-full py-4 text-lg disabled:opacity-50 shadow-md"
-            >
-              {loading ? 'Processing...' : `Pay $${total.toFixed(2)}`}
-            </button>
+            {/* Pay — disable if Eat In without table number */}
+            {!context && diningOption === 'dine_in' && !tableNumber && !tableNumberInput.trim() ? (
+              <div className="space-y-2">
+                <button
+                  disabled
+                  className="btn-primary w-full py-4 text-lg opacity-40 cursor-not-allowed shadow-md"
+                >
+                  Enter Table Number to Pay
+                </button>
+                <p className="text-xs text-center text-stone-400 font-sans">↑ Enter your table number above first</p>
+              </div>
+            ) : (
+              <button
+                onClick={handleCheckout}
+                disabled={loading}
+                className="btn-primary w-full py-4 text-lg disabled:opacity-50 shadow-md"
+              >
+                {loading ? 'Processing...' : `Pay $${total.toFixed(2)}`}
+              </button>
+            )}
             <p className="text-xs text-stone-400 text-center font-sans pb-4">🔒 Secure payment via Stripe</p>
           </div>
         )}

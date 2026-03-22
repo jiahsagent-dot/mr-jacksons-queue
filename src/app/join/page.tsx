@@ -9,14 +9,14 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 
 
 const GALLERY = [
-  '/images/food1.jpg',
-  '/images/food9.jpg',
-  '/images/food3.jpg',
-  '/images/food10.jpg',
-  '/images/food5.jpg',
-  '/images/food11.jpg',
-  '/images/food12.jpg',
-  '/images/food13.jpg',
+  { src: '/images/food1.jpg', alt: 'Ricotta pancakes with granola and fresh fruit' },
+  { src: '/images/food9.jpg', alt: 'Chilli scrambled eggs on sourdough' },
+  { src: '/images/food3.jpg', alt: 'Asian-inspired poke bowl with fresh vegetables' },
+  { src: '/images/food10.jpg', alt: 'Nourish bowl with seasonal greens' },
+  { src: '/images/food5.jpg', alt: 'Golden corn fritters with avocado' },
+  { src: '/images/food11.jpg', alt: 'Waffles with berries and cream' },
+  { src: '/images/food12.jpg', alt: 'Handmade bao buns with filling' },
+  { src: '/images/food13.jpg', alt: 'Mr Jackson signature dish' },
 ]
 
 const MENU_HIGHLIGHTS = [
@@ -234,12 +234,12 @@ export default function JoinPage() {
             </div>
 
             {!seated && !showBookingEntry && (
-              <button
-                onClick={() => setShowBookingEntry(true)}
-                className="w-full text-center text-sm text-stone-400 font-sans hover:text-stone-600 transition-colors duration-300 pt-1"
+              <Link
+                href="/checkin"
+                className="w-full text-center text-sm text-stone-400 font-sans hover:text-stone-600 transition-colors duration-300 pt-1 block"
               >
-                Have a booking, queue spot or active order? <span className="font-semibold text-stone-600 underline underline-offset-2">Check in here</span>
-              </button>
+                Have a booking? <span className="font-semibold text-stone-600 underline underline-offset-2">Check in here →</span>
+              </Link>
             )}
 
             {!seated && showBookingEntry && (
@@ -349,9 +349,9 @@ export default function JoinPage() {
           className="flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-hide"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
-          {GALLERY.map((src, i) => (
+          {GALLERY.map((item, i) => (
             <div key={i} className="relative w-40 h-48 rounded-2xl overflow-hidden flex-shrink-0 shadow-lg hover:scale-[1.03] transition-transform duration-300 ring-1 ring-black/5">
-              <Image src={src} alt="Mr Jackson dish" fill className="object-cover" />
+              <Image src={item.src} alt={item.alt} fill className="object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
             </div>
           ))}

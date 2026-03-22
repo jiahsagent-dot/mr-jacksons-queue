@@ -149,14 +149,28 @@ export default function BookPage() {
               <h2 className="text-lg font-bold text-stone-900 mb-3">Your Details</h2>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 font-sans">Name</label>
-                  <input type="text" className="input-field" placeholder="e.g. Sarah" value={name} onChange={e => setName(e.target.value)} />
+                  <label htmlFor="booking-name" className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 font-sans">Name <span className="text-red-400">*</span></label>
+                  <input
+                    id="booking-name"
+                    name="name"
+                    type="text"
+                    autoComplete="given-name"
+                    required
+                    className="input-field"
+                    placeholder="e.g. Sarah"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                  />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 font-sans">Mobile Number</label>
+                  <label htmlFor="booking-phone" className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 font-sans">Mobile Number <span className="text-red-400">*</span></label>
                   <input
+                    id="booking-phone"
+                    name="phone"
                     type="tel"
                     inputMode="tel"
+                    autoComplete="tel"
+                    required
                     placeholder="04XX XXX XXX"
                     value={phone}
                     onChange={e => setPhone(formatAusPhone(e.target.value))}
@@ -209,7 +223,11 @@ export default function BookPage() {
               </div>
             )}
 
-            <button onClick={goToTableStep} className="btn-primary w-full py-4 text-base shadow-md">
+            <button
+              onClick={goToTableStep}
+              disabled={!name.trim() || !phone.trim() || !selectedDate || !timeSlot}
+              className="btn-primary w-full py-4 text-base shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
+            >
               Choose Your Table →
             </button>
           </div>
