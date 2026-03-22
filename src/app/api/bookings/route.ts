@@ -124,14 +124,23 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PATCH — update booking status (staff action)
+// PATCH — update booking (staff action): status, table_number, or any combination
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, status } = await req.json()
-    if (!id || !status) return NextResponse.json({ error: 'id and status required' }, { status: 400 })
+    const body = await req.json()
+    const { id } = body
+    if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
     const admin = getAdmin()
-    const { error } = await admin.from('bookings').update({ status }).eq('id', id)
+    const update: Record<string, any> = {}
+    if (body.status !== undefined) update.status = body.status
+    if (body.table_number !== undefined) update.table_number = body.table_number
+
+    if (Object.keys(update).length === 0) {
+      return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
+    }
+
+    const { error } = await admin.from('bookings').update(update).eq('id', id)
     if (error) throw error
 
     return NextResponse.json({ success: true })

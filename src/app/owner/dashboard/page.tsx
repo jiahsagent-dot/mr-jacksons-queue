@@ -122,9 +122,17 @@ export default function OwnerDashboardPage() {
             <h1 className="text-white text-lg font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>Dashboard</h1>
             <p className="text-stone-500 text-xs font-sans">{today.date}</p>
           </div>
-          <button onClick={() => setShowSettings(true)} className="text-stone-400 text-sm font-sans px-3 py-1.5 rounded-xl bg-stone-900 border border-stone-700 hover:border-stone-500">
-            ⚙️ Costs
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowSettings(true)} className="text-stone-400 text-sm font-sans px-3 py-1.5 rounded-xl bg-stone-900 border border-stone-700 hover:border-stone-500">
+              ⚙️ Costs
+            </button>
+            <button
+              onClick={() => { sessionStorage.removeItem('owner_token'); router.push('/owner/login') }}
+              className="text-stone-500 text-xs font-sans px-2.5 py-1.5 rounded-xl border border-stone-800 hover:border-stone-600 hover:text-stone-300 transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </div>
 

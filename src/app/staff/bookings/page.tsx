@@ -67,6 +67,9 @@ export default function StaffBookingsPage() {
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<'today' | 'upcoming' | 'past'>('today')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [checkingInId, setCheckingInId] = useState<string | null>(null)
+  const [assigningId, setAssigningId] = useState<string | null>(null)
+  const [assignTableInput, setAssignTableInput] = useState('')
   const [search, setSearch] = useState('')
 
   useEffect(() => {
@@ -90,6 +93,53 @@ export default function StaffBookingsPage() {
     const interval = setInterval(fetchBookings, 30000)
     return () => clearInterval(interval)
   }, [])
+
+  const manualCheckIn = async (booking: Booking) => {
+    setCheckingInId(booking.id)
+    try {
+      const res = await fetch('/api/bookings/checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booking_id: booking.id }),
+      })
+      if (res.ok) {
+        toast.success(`${booking.customer_name} checked in ✓`)
+        fetchBookings()
+      } else {
+        const d = await res.json()
+        toast.error(d.error || 'Check-in failed')
+      }
+    } catch {
+      toast.error('Network error')
+    }
+    setCheckingInId(null)
+  }
+
+  const assignTable = async (id: string, name: string) => {
+    const num = parseInt(assignTableInput)
+    if (!num || num < 1) return toast.error('Enter a valid table number')
+    setAssigningId(id)
+    try {
+      const res = await fetch('/api/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, table_number: num }),
+      })
+      if (res.ok) {
+        toast.success(`${name} → Table ${num}`)
+        setAssigningId(null)
+        setAssignTableInput('')
+        fetchBookings()
+      } else {
+        const d = await res.json()
+        toast.error(d.error || 'Failed')
+        setAssigningId(null)
+      }
+    } catch {
+      toast.error('Network error')
+      setAssigningId(null)
+    }
+  }
 
   const updateStatus = async (id: string, status: string) => {
     setUpdatingId(id)
@@ -270,7 +320,7 @@ export default function StaffBookingsPage() {
                         </div>
                       )}
 
-                      {/* Confirmed badge + actions */}
+                      {/* Actions for active bookings */}
                       {booking.status !== 'cancelled' && (
                         <div className="space-y-2">
                           {/* Check-in status */}
@@ -282,10 +332,44 @@ export default function StaffBookingsPage() {
                             <span>{booking.confirmed_at ? '✓' : '⏳'}</span>
                             <span>
                               {booking.confirmed_at
-                                ? `Customer confirmed arrival`
-                                : 'Not confirmed yet'}
+                                ? 'Customer checked in'
+                                : 'Not checked in yet'}
                             </span>
                           </div>
+
+                          {/* Manual check-in (if not yet confirmed) */}
+                          {!booking.confirmed_at && booking.status === 'confirmed' && (
+                            <button
+                              onClick={() => manualCheckIn(booking)}
+                              disabled={checkingInId === booking.id}
+                              className="w-full py-2.5 text-xs rounded-xl bg-green-600 text-white font-semibold font-sans hover:bg-green-700 disabled:opacity-50 transition-colors"
+                            >
+                              {checkingInId === booking.id ? '...' : '✓ Check In Customer'}
+                            </button>
+                          )}
+
+                          {/* Table assignment */}
+                          {!booking.table_number && (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="Assign table #"
+                                value={assigningId === booking.id ? assignTableInput : ''}
+                                onFocus={() => setAssigningId(booking.id)}
+                                onChange={e => { setAssigningId(booking.id); setAssignTableInput(e.target.value) }}
+                                className="flex-1 text-xs px-3 py-2 rounded-xl border border-stone-200 bg-white font-sans focus:outline-none focus:border-blue-400"
+                              />
+                              {assigningId === booking.id && assignTableInput && (
+                                <button
+                                  onClick={() => assignTable(booking.id, booking.customer_name)}
+                                  className="text-xs font-bold text-white bg-blue-600 px-3 py-2 rounded-xl font-sans hover:bg-blue-700 whitespace-nowrap"
+                                >
+                                  Assign
+                                </button>
+                              )}
+                            </div>
+                          )}
 
                           {/* Cancel / No-show */}
                           <div className="flex gap-2">

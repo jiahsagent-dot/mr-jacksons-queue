@@ -379,9 +379,9 @@ export default function BookingConfirmedPage() {
           <div className="space-y-3">
             {[
               { step: '1', text: 'Go to mr-jacksons.vercel.app on your phone' },
-              { step: '2', text: 'Tap "I have a booking"' },
-              { step: '3', text: 'Enter your phone number to check in' },
-              { step: '4', text: 'Start ordering from your phone!' },
+              { step: '2', text: 'Tap "Check in here →" at the bottom' },
+              { step: '3', text: 'Enter your phone number and tap Check In' },
+              { step: '4', text: 'Then order straight from your phone!' },
             ].map(({ step, text }) => (
               <div key={step} className="flex items-start gap-3">
                 <div className="w-6 h-6 rounded-full bg-stone-900 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{step}</div>
@@ -389,6 +389,9 @@ export default function BookingConfirmedPage() {
               </div>
             ))}
           </div>
+          <Link href="/checkin" className="mt-3 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-stone-900 text-white text-sm font-semibold font-sans">
+            Check In Now →
+          </Link>
         </div>
 
         {/* Pre-Order Options */}
