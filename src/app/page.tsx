@@ -1,5 +1,4 @@
-import { redirect } from 'next/navigation'
-
+// Root redirect handled by next.config.mjs — this page should never render
 export default function Home() {
-  redirect('/join')
+  return null
 }
