@@ -1,13 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qducoenvjaotympjedrl.supabase.co'
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU'
-
-function getAdmin() {
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-}
+import { supabaseAdmin } from '@/lib/supabase'
 
 // POST /api/bookings/checkin — customer confirms they have arrived
 // Sets confirmed_at, updates booking status to seated, marks table occupied
@@ -16,9 +9,9 @@ export async function POST(req: NextRequest) {
     const { booking_id } = await req.json()
     if (!booking_id) return NextResponse.json({ error: 'booking_id required' }, { status: 400 })
 
-    const admin = getAdmin()
-
     // Fetch the booking
+    const admin = supabaseAdmin()
+
     const { data: booking, error: fetchErr } = await admin
       .from('bookings')
       .select('*')

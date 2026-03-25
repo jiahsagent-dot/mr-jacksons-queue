@@ -1,21 +1,14 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/lib/supabase'
 import { notifyNextInQueue } from '@/lib/notifyQueue'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qducoenvjaotympjedrl.supabase.co' 
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU' 
-
 // Always use the hardcoded service key (env vars can be wrong on Vercel)
-function getAdmin() {
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-}
 
 export async function POST(req: NextRequest) {
   try {
+    const admin = supabaseAdmin()
     const body = await req.json()
-    const admin = getAdmin()
-
     // Free all tables
     if (body.action === 'free_all') {
       const { data, error } = await admin
@@ -68,10 +61,10 @@ export async function POST(req: NextRequest) {
 // PATCH — edit table details (label, seats)
 export async function PATCH(req: NextRequest) {
   try {
+    const admin = supabaseAdmin()
     const { table_number, label, seats } = await req.json()
     if (!table_number) return NextResponse.json({ error: 'Missing table_number' }, { status: 400 })
 
-    const admin = getAdmin()
     const updateData: any = {}
     if (label !== undefined) updateData.label = label
     if (seats !== undefined) updateData.seats = parseInt(seats)

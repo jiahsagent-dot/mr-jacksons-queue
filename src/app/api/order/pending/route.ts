@@ -1,10 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-function getAdmin() {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qducoenvjaotympjedrl.supabase.co' , process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU' )
-}
+import { supabaseAdmin } from '@/lib/supabase'
 
 // POST — create a pending order (no items yet) and return order_id + short ref
 export async function POST(req: NextRequest) {
@@ -15,7 +11,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Name required' }, { status: 400 })
     }
 
-    const admin = getAdmin()
+    const admin = supabaseAdmin()
 
     const { data: order, error } = await admin
       .from('orders')

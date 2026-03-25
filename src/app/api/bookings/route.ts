@@ -1,18 +1,11 @@
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/lib/supabase'
 
 // Force hardcoded keys — do NOT use env vars
-const SUPABASE_URL = 'https://qducoenvjaotympjedrl.supabase.co'
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU' 
-
 const CLICKSEND_USER = 'jiahsagent@gmail.com'
 const CLICKSEND_KEY = '6A27AE52-866F-25C1-158C-C1D17531DBA7'
-
-function getAdmin() {
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-}
 
 function generateCode(): string {
   const num = Math.floor(1000 + Math.random() * 9000)
@@ -64,8 +57,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
     }
 
-    const admin = getAdmin()
     const code = generateCode()
+
+    const admin = supabaseAdmin()
 
     // If table_number provided, verify it's still available at that time
     if (table_number) {
@@ -127,11 +121,11 @@ export async function POST(req: NextRequest) {
 // PATCH — update booking (staff action): status, table_number, or any combination
 export async function PATCH(req: NextRequest) {
   try {
+    const admin = supabaseAdmin()
     const body = await req.json()
     const { id } = body
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
-    const admin = getAdmin()
     const update: Record<string, any> = {}
     if (body.status !== undefined) update.status = body.status
     if (body.table_number !== undefined) update.table_number = body.table_number
@@ -152,10 +146,9 @@ export async function PATCH(req: NextRequest) {
 // DELETE — cancel a booking (staff action)
 export async function DELETE(req: NextRequest) {
   try {
+    const admin = supabaseAdmin()
     const { id } = await req.json()
     if (!id) return NextResponse.json({ error: 'Booking ID required' }, { status: 400 })
-
-    const admin = getAdmin()
 
     // Get the booking first to send cancellation SMS
     const { data: booking } = await admin.from('bookings').select('*').eq('id', id).single()
@@ -179,10 +172,10 @@ export async function DELETE(req: NextRequest) {
 
 // GET — fetch bookings (for staff) with order status
 export async function GET(req: NextRequest) {
+  const admin = supabaseAdmin()
   const { searchParams } = new URL(req.url)
   const date = searchParams.get('date')
 
-  const admin = getAdmin()
   let query = admin.from('bookings').select('*').order('time_slot', { ascending: true })
 
   if (date) query = query.eq('date', date)

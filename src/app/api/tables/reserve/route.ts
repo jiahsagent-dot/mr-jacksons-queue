@@ -1,13 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qducoenvjaotympjedrl.supabase.co' 
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkdWNvZW52amFvdHltcGplZHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNjY0OCwiZXhwIjoyMDg4NTgyNjQ4fQ.BFi8krTlin52yIMGBvdrHdh0Rjy-gGYxjCByqKi2_EU' 
-
-function getAdmin() {
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-}
+import { supabaseAdmin } from '@/lib/supabase'
 
 function timeToMinutes(t: string): number {
   const [h, m] = t.split(':').map(Number)
@@ -24,13 +17,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing table_number or customer_name' }, { status: 400 })
     }
 
-    const admin = getAdmin()
     const now = new Date()
     const todayDate = now.toISOString().split('T')[0]
     const currentTime = `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}`
     const currentMinutes = timeToMinutes(currentTime)
 
     // Check if table has any booking that overlaps with now
+    const admin = supabaseAdmin()
+
     const { data: existingBookings } = await admin
       .from('bookings')
       .select('*')
