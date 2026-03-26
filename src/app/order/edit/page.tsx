@@ -3,7 +3,8 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { menuData } from '@/lib/menu'
+import { menuData as fallbackMenu } from '@/lib/menu'
+import type { MenuCategory, MenuItem } from '@/lib/menu-config'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -43,7 +44,7 @@ function EditContent() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
-  const [unavailable, setUnavailable] = useState<Set<string>>(new Set())
+  const [menuCategories, setMenuCategories] = useState<MenuCategory[]>(fallbackMenu.categories)
   const [step, setStep] = useState<'menu' | 'review'>('menu')
 
   useEffect(() => {
@@ -61,9 +62,7 @@ function EditContent() {
       .catch(() => { toast.error('Could not load order'); router.push('/join') })
       .finally(() => setLoading(false))
 
-    fetch('/api/menu').then(r => r.json()).then(data => {
-      if (data.unavailable?.length) setUnavailable(new Set(data.unavailable))
-    }).catch(() => {})
+    // Menu is now fetched from DB in a separate useEffect
   }, [orderId])
 
   const addItem = (item: any) => {
@@ -117,9 +116,25 @@ function EditContent() {
     }
   }
 
+  // Fetch menu from DB
+  useEffect(() => {
+    fetch('/api/menu/full')
+      .then(r => r.json())
+      .then(data => {
+        if (data.categories?.length > 0) {
+          const available = data.categories.map((cat: MenuCategory) => ({
+            ...cat,
+            items: cat.items.filter((item: MenuItem) => item.available !== false),
+          })).filter((cat: MenuCategory) => cat.items.length > 0)
+          setMenuCategories(available)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   const displayCategories = activeCategory
-    ? menuData.categories.filter(c => c.name === activeCategory)
-    : menuData.categories
+    ? menuCategories.filter(c => c.name === activeCategory)
+    : menuCategories
 
   if (loading) {
     return (
@@ -163,7 +178,7 @@ function EditContent() {
             <div className="mb-5">
               <div className="flex flex-wrap gap-1.5">
                 <button onClick={() => setActiveCategory(null)} className={`py-1.5 px-3 rounded-full text-[11px] font-medium transition-all font-sans ${!activeCategory ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-400'}`}>All</button>
-                {menuData.categories.map(cat => (
+                {menuCategories.map(cat => (
                   <button key={cat.name} onClick={() => setActiveCategory(activeCategory === cat.name ? null : cat.name)} className={`py-1.5 px-3 rounded-full text-[11px] font-medium transition-all font-sans ${activeCategory === cat.name ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-400'}`}>{cat.name}</button>
                 ))}
               </div>
@@ -179,33 +194,30 @@ function EditContent() {
                   </div>
                   <div className="space-y-1">
                     {cat.items.map(item => {
-                      const inCart = cart.find(i => i.id === item.id)
-                      const soldOut = unavailable.has(item.name)
+                      const inCart = cart.find(i => String(i.id) === String(item.id))
                       return (
-                        <div key={item.id} className={`flex items-center gap-3 py-3 px-3 rounded-2xl transition-colors -mx-1 ${soldOut ? 'opacity-40' : 'hover:bg-white/80'}`}>
+                        <div key={item.id} className="flex items-center gap-3 py-3 px-3 rounded-2xl transition-colors -mx-1 hover:bg-white/80">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className={`font-semibold text-[14px] font-sans ${soldOut ? 'text-stone-400 line-through' : 'text-stone-800'}`}>{item.name}</h3>
-                              {!soldOut && item.tags.map(tag => (
+                              <h3 className="font-semibold text-[14px] font-sans text-stone-800">{item.name}</h3>
+                              {item.tags?.map(tag => (
                                 <span key={tag} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${TAG_COLORS[tag] || ''}`}>{tag}</span>
                               ))}
                             </div>
-                            {item.description && !soldOut && <p className="text-[12px] text-stone-400 mt-0.5 font-sans">{item.description}</p>}
-                            <p className={`text-[14px] font-bold mt-0.5 font-sans ${soldOut ? 'text-stone-300' : 'text-stone-600'}`}>${item.price.toFixed(2)}</p>
+                            {item.description && <p className="text-[12px] text-stone-400 mt-0.5 font-sans">{item.description}</p>}
+                            <p className="text-[14px] font-bold mt-0.5 font-sans text-stone-600">${item.price.toFixed(2)}</p>
                           </div>
-                          {!soldOut && (
-                            <div className="flex items-center gap-1.5 flex-shrink-0">
-                              {inCart ? (
-                                <>
-                                  <button onClick={() => removeItem(item.id)} className="w-8 h-8 rounded-full bg-stone-100 text-stone-500 font-bold text-lg flex items-center justify-center">−</button>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {inCart ? (
+                              <>
+                                <button onClick={() => removeItem(String(item.id))} className="w-8 h-8 rounded-full bg-stone-100 text-stone-500 font-bold text-lg flex items-center justify-center">−</button>
                                   <span className="w-7 text-center font-bold text-stone-900 text-sm font-sans">{inCart.quantity}</span>
                                   <button onClick={() => addItem(item)} className="w-8 h-8 rounded-full bg-stone-900 text-white font-bold text-lg flex items-center justify-center">+</button>
                                 </>
                               ) : (
                                 <button onClick={() => addItem(item)} className="px-4 py-2 rounded-xl bg-stone-900 text-white text-xs font-semibold font-sans shadow-sm">Add</button>
                               )}
-                            </div>
-                          )}
+                          </div>
                         </div>
                       )
                     })}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import type { MenuItem } from './menu'
+import type { MenuItem } from './menu-config'
 
 export type CartItem = MenuItem & { quantity: number }
 
@@ -10,9 +10,9 @@ export function useCart() {
 
   const addItem = useCallback((item: MenuItem) => {
     setItems(prev => {
-      const existing = prev.find(i => i.id === item.id)
+      const existing = prev.find(i => String(i.id) === String(item.id))
       if (existing) {
-        return prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i)
+        return prev.map(i => String(i.id) === String(item.id) ? { ...i, quantity: i.quantity + 1 } : i)
       }
       return [...prev, { ...item, quantity: 1 }]
     })
@@ -20,11 +20,11 @@ export function useCart() {
 
   const removeItem = useCallback((id: string) => {
     setItems(prev => {
-      const existing = prev.find(i => i.id === id)
+      const existing = prev.find(i => String(i.id) === id)
       if (existing && existing.quantity > 1) {
-        return prev.map(i => i.id === id ? { ...i, quantity: i.quantity - 1 } : i)
+        return prev.map(i => String(i.id) === id ? { ...i, quantity: i.quantity - 1 } : i)
       }
-      return prev.filter(i => i.id !== id)
+      return prev.filter(i => String(i.id) !== id)
     })
   }, [])
 

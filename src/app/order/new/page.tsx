@@ -3,7 +3,8 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { menuData } from '@/lib/menu'
+import { menuData as fallbackMenu } from '@/lib/menu'
+import type { MenuCategory, MenuItem } from '@/lib/menu-config'
 import { useCart } from '@/lib/cart'
 import { generateTimeSlots, formatTimeSlot, getAvailableDates } from '@/lib/timeslots'
 import Link from 'next/link'
@@ -65,12 +66,22 @@ function NewOrderPage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
   const [tableNumberInput, setTableNumberInput] = useState('')
-  const [unavailable, setUnavailable] = useState<Set<string>>(new Set())
+  const [menuCategories, setMenuCategories] = useState<MenuCategory[]>(fallbackMenu.categories)
 
   useEffect(() => {
-    fetch('/api/menu').then(r => r.json()).then(data => {
-      if (data.unavailable?.length) setUnavailable(new Set(data.unavailable))
-    }).catch(() => {})
+    fetch('/api/menu/full')
+      .then(r => r.json())
+      .then(data => {
+        if (data.categories?.length > 0) {
+          // Filter out unavailable items
+          const available = data.categories.map((cat: MenuCategory) => ({
+            ...cat,
+            items: cat.items.filter((item: MenuItem) => item.available !== false),
+          })).filter((cat: MenuCategory) => cat.items.length > 0)
+          setMenuCategories(available)
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const orderId = searchParams.get('order_id') || ''
@@ -97,8 +108,8 @@ function NewOrderPage() {
   const availableDates = getAvailableDates()
 
   const displayCategories = activeCategory
-    ? menuData.categories.filter(c => c.name === activeCategory)
-    : menuData.categories
+    ? menuCategories.filter(c => c.name === activeCategory)
+    : menuCategories
 
   const isDineIn = context === 'dine_in'
   // Only show date/time pickers if they weren't already provided via URL (e.g. from a booking)
@@ -227,7 +238,7 @@ function NewOrderPage() {
                   <h2 className="text-sm font-bold text-stone-900 font-sans">Popular Picks</h2>
                 </div>
                 <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-1" style={{ WebkitOverflowScrolling: 'touch' }}>
-                  {menuData.categories.flatMap(c => c.items).filter(item => POPULAR_IDS.includes(item.id) && !unavailable.has(item.name)).map(item => {
+                  {menuCategories.flatMap(c => c.items).filter(item => POPULAR_IDS.includes(String(item.id))).slice(0, 6).map(item => {
                     const inCart = items.find(i => i.id === item.id)
                     return (
                       <div key={item.id} className="flex-shrink-0 w-[140px] bg-white rounded-2xl border border-stone-100 p-3 shadow-sm">
@@ -258,7 +269,7 @@ function NewOrderPage() {
                     !activeCategory ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-400 hover:bg-stone-200'
                   }`}
                 >All</button>
-                {menuData.categories.map(cat => (
+                {menuCategories.map(cat => (
                   <button
                     key={cat.name}
                     onClick={() => setActiveCategory(activeCategory === cat.name ? null : cat.name)}
@@ -280,41 +291,34 @@ function NewOrderPage() {
                   </div>
                   <div className="space-y-1">
                     {cat.items.map(item => {
-                      const inCart = items.find(i => i.id === item.id)
-                      const soldOut = unavailable.has(item.name)
+                      const inCart = items.find(i => String(i.id) === String(item.id))
                       return (
-                        <div key={item.id} className={`flex items-center gap-3 py-3 px-3 rounded-2xl transition-colors -mx-1 group ${soldOut ? 'opacity-40' : 'hover:bg-white/80'}`}>
+                        <div key={item.id} className="flex items-center gap-3 py-3 px-3 rounded-2xl transition-colors -mx-1 group hover:bg-white/80">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className={`font-semibold text-[14px] font-sans ${soldOut ? 'text-stone-400 line-through' : 'text-stone-800'}`}>{item.name}</h3>
-                              {soldOut ? (
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-red-50 text-red-500 border border-red-200">SOLD OUT</span>
-                              ) : (
-                                item.tags.map(tag => (
-                                  <span key={tag} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${TAG_COLORS[tag] || ''}`}>{tag}</span>
-                                ))
-                              )}
+                              <h3 className="font-semibold text-[14px] font-sans text-stone-800">{item.name}</h3>
+                              {item.tags.map(tag => (
+                                <span key={tag} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${TAG_COLORS[tag] || ''}`}>{tag}</span>
+                              ))}
                             </div>
-                            {item.description && !soldOut && (
+                            {item.description && (
                               <p className="text-[12px] text-stone-400 mt-0.5 font-sans leading-relaxed">{item.description}</p>
                             )}
-                            <p className={`text-[14px] font-bold mt-0.5 font-sans ${soldOut ? 'text-stone-300' : 'text-stone-600'}`}>${item.price.toFixed(2)}</p>
+                            <p className="text-[14px] font-bold mt-0.5 font-sans text-stone-600">${item.price.toFixed(2)}</p>
                           </div>
-                          {!soldOut && (
-                            <div className="flex items-center gap-1.5 flex-shrink-0">
-                              {inCart ? (
-                                <>
-                                  <button onClick={() => removeItem(item.id)} className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 font-bold text-lg flex items-center justify-center transition-colors">−</button>
-                                  <span className="w-7 text-center font-bold text-stone-900 text-sm font-sans">{inCart.quantity}</span>
-                                  <button onClick={() => addItem(item)} className="w-8 h-8 rounded-full bg-stone-900 hover:bg-stone-800 text-white font-bold text-lg flex items-center justify-center transition-colors">+</button>
-                                </>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {inCart ? (
+                              <>
+                                <button onClick={() => removeItem(String(item.id))} className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 font-bold text-lg flex items-center justify-center transition-colors">−</button>
+                                <span className="w-7 text-center font-bold text-stone-900 text-sm font-sans">{inCart.quantity}</span>
+                                <button onClick={() => addItem(item as any)} className="w-8 h-8 rounded-full bg-stone-900 hover:bg-stone-800 text-white font-bold text-lg flex items-center justify-center transition-colors">+</button>
+                              </>
                               ) : (
-                                <button onClick={() => addItem(item)} className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold font-sans transition-colors shadow-sm">
+                                <button onClick={() => addItem(item as any)} className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold font-sans transition-colors shadow-sm">
                                   Add
                                 </button>
                               )}
-                            </div>
-                          )}
+                          </div>
                         </div>
                       )
                     })}

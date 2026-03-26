@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { menuData } from '@/lib/menu'
+import type { MenuCategory, MenuItem } from '@/lib/menu-config'
+import { menuData as fallbackMenu } from '@/lib/menu'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ScrollReveal } from '@/components/ScrollReveal'
@@ -39,17 +40,32 @@ const CATEGORY_PHOTOS: Record<string, string> = {
 export default function MenuPage() {
   const [activeTag, setActiveTag] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
-  const [unavailable, setUnavailable] = useState<Set<string>>(new Set())
+  const [menuCategories, setMenuCategories] = useState<MenuCategory[]>(fallbackMenu.categories)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/menu').then(r => r.json()).then(data => {
-      if (data.unavailable?.length) setUnavailable(new Set(data.unavailable))
-    }).catch(() => {})
+    fetch('/api/menu/full')
+      .then(r => r.json())
+      .then(data => {
+        if (data.categories?.length > 0) {
+          // Filter out unavailable items for customer view
+          const available = data.categories.map((cat: MenuCategory) => ({
+            ...cat,
+            items: cat.items.filter((item: MenuItem) => item.available !== false),
+          })).filter((cat: MenuCategory) => cat.items.length > 0)
+          setMenuCategories(available)
+        }
+        // If API returns empty, keep the fallback
+      })
+      .catch(() => {
+        // Keep fallback menu on error
+      })
+      .finally(() => setLoading(false))
   }, [])
 
   const allTags = ['V', 'LG', 'VG', 'DF']
 
-  const filteredCategories = menuData.categories
+  const filteredCategories = menuCategories
     .filter(cat => !activeCategory || cat.name === activeCategory)
     .map(cat => ({
       ...cat,
@@ -82,7 +98,7 @@ export default function MenuPage() {
                 !activeCategory ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
               }`}
             >All</button>
-            {menuData.categories.map(cat => (
+            {menuCategories.map(cat => (
               <button
                 key={cat.name}
                 onClick={() => setActiveCategory(activeCategory === cat.name ? null : cat.name)}
@@ -133,33 +149,25 @@ export default function MenuPage() {
                 </div>
               )}
               <div className="space-y-1">
-                {cat.items.map(item => {
-                  const soldOut = unavailable.has(item.name)
-                  return (
+                {cat.items.map(item => (
                     <div
                       key={item.id}
-                      className={`group flex justify-between items-start gap-3 py-3 px-3 border-b border-stone-100 last:border-0 rounded-xl transition-colors -mx-1 ${
-                        soldOut ? 'opacity-50' : 'hover:bg-white/60'
-                      }`}
+                      className="group flex justify-between items-start gap-3 py-3 px-3 border-b border-stone-100 last:border-0 rounded-xl transition-colors -mx-1 hover:bg-white/60"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className={`font-semibold text-[15px] font-sans ${soldOut ? 'text-stone-400 line-through' : 'text-stone-800'}`}>{item.name}</h3>
-                          {soldOut && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-red-50 text-red-500 border border-red-200">SOLD OUT</span>
-                          )}
-                          {!soldOut && item.tags.map(tag => (
+                          <h3 className="font-semibold text-[15px] font-sans text-stone-800">{item.name}</h3>
+                          {item.tags.map(tag => (
                             <span key={tag} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${TAG_COLORS[tag]}`}>{tag}</span>
                           ))}
                         </div>
-                        {item.description && !soldOut && (
+                        {item.description && (
                           <p className="text-[13px] text-stone-400 mt-0.5 leading-relaxed font-sans">{item.description}</p>
                         )}
                       </div>
-                      <span className={`font-bold whitespace-nowrap text-[15px] tabular-nums pt-0.5 font-sans ${soldOut ? 'text-stone-300' : 'text-stone-700'}`}>${item.price.toFixed(2)}</span>
+                      <span className="font-bold whitespace-nowrap text-[15px] tabular-nums pt-0.5 font-sans text-stone-700">${item.price.toFixed(2)}</span>
                     </div>
-                  )
-                })}
+                ))}
               </div>
             </section>
             </ScrollReveal>
